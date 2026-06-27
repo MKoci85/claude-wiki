@@ -1,0 +1,198 @@
+{
+  "title": "Reglas",
+  "description": "Cómo controlar el comportamiento de Claude Code con reglas permanentes y reglas condicionales por ruta.",
+  "sections": [
+    {
+      "title": "El sistema de Reglas",
+      "articles": [
+        {
+          "id": "reglas-overview",
+          "title": "¿Qué son las reglas?",
+          "summary": "Las reglas son instrucciones permanentes que Claude carga automáticamente en cada sesión. Tienen dos ejes independientes: dónde viven (nivel) y cuándo se activan (tipo).",
+          "blocks": [
+            {
+              "type": "text",
+              "content": "Una regla es un archivo `.md` que Claude carga automáticamente — sin que tengas que pedirlo. Cada regla tiene dos características independientes:\n\n- **Nivel** — dónde vive el archivo: en el proyecto (`.claude/rules/`) o en tu sistema (`~/.claude/rules/`)\n- **Tipo** — cuándo se activa: siempre (sin frontmatter) o solo al tocar ciertos archivos (con `paths:`)"
+            },
+            {
+              "type": "compare",
+              "title": "Eje 1 — Nivel: ¿dónde vive la regla?",
+              "left": {
+                "label": "Nivel proyecto · .claude/rules/",
+                "items": [
+                  "Aplica solo en ese repositorio",
+                  "Se puede versionar con git",
+                  "Compartida con todo el equipo",
+                  "Admite reglas con y sin paths:",
+                  "Recomendado para la mayoría de los casos"
+                ]
+              },
+              "right": {
+                "label": "Nivel sistema · ~/.claude/rules/",
+                "items": [
+                  "Aplica en todos tus proyectos",
+                  "Solo en tu máquina",
+                  "Preferencias personales del desarrollador",
+                  "⚠ paths: ignorados (bug 2026)",
+                  "Solo reglas sin frontmatter funcionan aquí"
+                ]
+              }
+            },
+            {
+              "type": "compare",
+              "title": "Eje 2 — Tipo: ¿cuándo se activa?",
+              "left": {
+                "label": "Sin frontmatter → siempre activa",
+                "items": [
+                  "Carga al inicio de cada sesión",
+                  "Aplica a todos los archivos",
+                  "Alta atención: al principio del contexto",
+                  "Archivo sin nada especial al inicio",
+                  "Ideal para estándares universales"
+                ]
+              },
+              "right": {
+                "label": "Con paths: → activa por ruta",
+                "items": [
+                  "Carga solo al tocar un archivo coincidente",
+                  "Aplica solo a los archivos del glob",
+                  "Activación mecánica: match de glob puro",
+                  "Requiere frontmatter con paths:",
+                  "Ideal para convenciones por capa"
+                ]
+              }
+            },
+            {
+              "type": "callout",
+              "variant": "info",
+              "title": "Reglas vs Skills",
+              "content": "**Reglas** = instrucciones permanentes que Claude siempre aplica. **Skills** = procedimientos que Claude ejecuta cuando se lo pedís explícitamente. Este artículo cubre solo las reglas."
+            }
+          ]
+        },
+        {
+          "id": "reglas-sin-frontmatter",
+          "title": "Reglas siempre activas (sin frontmatter)",
+          "summary": "Archivos .md sin frontmatter en .claude/rules/ o ~/.claude/rules/. Claude los carga al inicio de cada sesión y los mantiene en contexto durante toda la conversación.",
+          "blocks": [
+            {
+              "type": "text",
+              "content": "Un archivo `.md` sin frontmatter en `.claude/rules/` es una regla que se carga **siempre**, al inicio de cada sesión. Se ubica al principio del contexto y permanece ahí incluso en sesiones muy largas (turno 50+). Es el tipo más simple y el de mayor peso de atención."
+            },
+            {
+              "type": "code",
+              "lang": "markdown",
+              "label": ".claude/rules/code-style.md — sin frontmatter",
+              "content": "# Estándares de código — aplica siempre\n\n## TypeScript\n- Usar siempre TypeScript estricto (strict: true)\n- Preferir `type` sobre `interface` para objetos\n- Nunca usar `any`, usar `unknown` si el tipo es desconocido\n\n## Estilo general\n- Indentación con 2 espacios\n- Comillas simples en strings\n- Punto y coma al final de cada sentencia"
+            },
+            {
+              "type": "text",
+              "content": "Funciona en ambos niveles: tanto en `.claude/rules/` (proyecto) como en `~/.claude/rules/` (sistema). En el nivel sistema es la **única variante que funciona** — el bug de 2026 hace que las reglas con `paths:` sean ignoradas silenciosamente en `~/.claude/`."
+            },
+            {
+              "type": "table",
+              "headers": ["✅ Poné acá", "❌ No pongas acá"],
+              "rows": [
+                ["Estilo de código universal: TypeScript estricto, comillas, indentación", "Convenciones específicas de una capa → usá reglas por ruta"],
+                ["Restricciones de arquitectura que nunca deben romperse (ej: no llamar a la DB desde controllers)", "Instrucciones muy largas → saturan el contexto desde el inicio"],
+                ["Lineamientos de seguridad transversales (manejo de secrets, validaciones obligatorias)", "Flujos de trabajo o procedimientos → eso es una skill, no una regla"]
+              ]
+            }
+          ]
+        },
+        {
+          "id": "reglas-por-ruta",
+          "title": "Reglas por ruta (con paths:)",
+          "summary": "Reglas que solo se cargan cuando Claude trabaja con archivos que coinciden con un patrón glob. Activación mecánica, sin razonamiento. Solo funcionan a nivel proyecto.",
+          "blocks": [
+            {
+              "type": "text",
+              "content": "Las reglas por ruta usan frontmatter con `paths:` para definir qué archivos las activan. El trigger es **mecánico, no semántico**: Claude no evalúa si «necesita» la regla. Si abre un archivo que coincide con el glob, la regla se carga. Si no, queda en disco. Sin razonamiento de por medio."
+            },
+            {
+              "type": "code",
+              "lang": "markdown",
+              "label": ".claude/rules/api-rules.md — con paths",
+              "content": "---\npaths:\n  - \"src/api/**/*.ts\"\n---\n\n# Reglas para endpoints de API\n- Todos los endpoints deben validar el input con Zod\n- Usar el formato estándar de errores de `src/api/errors.ts`\n- Incluir comentarios OpenAPI sobre cada route handler\n- Retornar códigos HTTP correctos (200, 201, 400, 404, 500)"
+            },
+            {
+              "type": "code",
+              "lang": "markdown",
+              "label": ".claude/rules/frontend-rules.md — brace expansion en glob",
+              "content": "---\npaths:\n  - \"src/**/*.{ts,tsx}\"\n  - \"components/**/*.{ts,tsx}\"\n---\n\n# Reglas para componentes React\n- Usar componentes funcionales, nunca clases\n- Nombrar handlers con prefijo `handle` (ej: `handleSubmit`)\n- Extraer lógica compleja a custom hooks"
+            },
+            {
+              "type": "callout",
+              "variant": "warning",
+              "title": "Bug conocido (2026): paths: no funciona en ~/.claude/",
+              "content": "Las reglas con `paths:` en `~/.claude/rules/` (nivel sistema) son **ignoradas silenciosamente**. Las reglas por ruta solo funcionan en `.claude/rules/` a nivel proyecto. Si necesitás verificar qué reglas están activas, usá `/memory` en la sesión."
+            },
+            {
+              "type": "cards",
+              "title": "Cuándo usar reglas por ruta",
+              "items": [
+                {
+                  "title": "Convenciones por capa",
+                  "description": "API, frontend, tests, docs — cada capa con sus propias convenciones sin contaminar las demás."
+                },
+                {
+                  "title": "Monorepos",
+                  "description": "Múltiples dominios o packages con estilos distintos. Cada dominio tiene sus reglas propias."
+                },
+                {
+                  "title": "Reglas específicas del tipo de archivo",
+                  "description": "Reglas que solo tienen sentido en cierto tipo de archivo (ej: validaciones solo en endpoints)."
+                }
+              ]
+            },
+            {
+              "type": "table",
+              "headers": ["✅ Poné acá", "❌ No pongas acá"],
+              "rows": [
+                ["Convenciones específicas de una capa: API, frontend, tests, DB", "Reglas que aplican a todo el proyecto sin excepción → esas van sin frontmatter"],
+                ["Proyectos grandes o monorepos donde cada dominio tiene su propio estilo", "Reglas en ~/.claude/rules/ → bug conocido: paths: no funciona ahí"],
+                ["Cuando las reglas globales empiezan a acumular excepciones por tipo de archivo", "Flujos de trabajo o procedimientos → eso es una skill, no una regla por ruta"]
+              ]
+            }
+          ]
+        },
+        {
+          "id": "reglas-tabla-comparativa",
+          "title": "Reglas, Skills y CLAUDE.md: cuándo usar cada uno",
+          "summary": "Tabla de referencia rápida para decidir qué mecanismo usar según el tipo de instrucción.",
+          "blocks": [
+            {
+              "type": "text",
+              "content": "Los tres mecanismos cubren casos de uso distintos. Elegir el correcto determina cuándo se aplican las instrucciones y con qué peso de atención."
+            },
+            {
+              "type": "table",
+              "headers": ["Característica", "Sin frontmatter", "Con paths:", "Skill"],
+              "rows": [
+                ["¿Cuándo carga?", "Siempre, al inicio", "Al tocar archivo coincidente", "Al ser invocada"],
+                ["Tipo de activación", "Automática", "Mecánica · glob", "Semántica · pedido"],
+                ["Posición en contexto", "Al principio ✓", "Al principio ✓", "A mitad de conversación"],
+                ["Nivel sistema (~/.claude/)", "✓ Funciona", "✗ Bug conocido", "N/A"],
+                ["Nivel proyecto (.claude/)", "✓ Funciona", "✓ Funciona", "✓ Funciona"],
+                ["Uso ideal", "Estándares universales", "Convenciones por capa", "Flujos de trabajo"],
+                ["Ejemplo", "\"Siempre TypeScript estricto\"", "\"En src/api/**: validar con Zod\"", "\"Hacer un code review completo\""]
+              ]
+            },
+            {
+              "type": "callout",
+              "variant": "info",
+              "title": "Reglas vs CLAUDE.md",
+              "content": "CLAUDE.md es el archivo de instrucciones tradicional — sigue siendo válido. La carpeta `.claude/rules/` es la forma estructurada de organizar esas mismas instrucciones cuando el proyecto crece. Podés usarlos juntos: CLAUDE.md para contexto general del proyecto y `.claude/rules/` para instrucciones segmentadas."
+            },
+            {
+              "type": "callout",
+              "variant": "tip",
+              "title": "Posición en contexto importa",
+              "content": "Las reglas (con o sin frontmatter) entran **al principio del contexto** cuando se activan — tienen alta atención durante toda la sesión. Las skills entran a mitad de conversación y pueden perder atención en sesiones largas. Para instrucciones críticas que nunca deben olvidarse, usá reglas, no skills."
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

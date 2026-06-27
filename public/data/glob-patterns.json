@@ -1,0 +1,536 @@
+{
+  "title": "Patrones Glob",
+  "sections": [
+    {
+      "title": "Conceptos",
+      "articles": [
+        {
+          "id": "glob-intro",
+          "title": "¿Qué es un glob?",
+          "summary": "Una forma compacta de describir conjuntos de rutas mediante comodines",
+          "subsections": [
+            {
+              "title": "Definición",
+              "blocks": [
+                {
+                  "type": "text",
+                  "content": "Un glob es una plantilla que o encaja con una ruta, o no encaja. No es código que se ejecuta ni una expresión regular: es un patrón de comparación. El nombre viene de un programa Unix llamado glob — de global — pensado para expandir comodines en la línea de comandos."
+                },
+                {
+                  "type": "text",
+                  "content": "Esto es lo que determina si una rule se activa o no cuando Claude trabaja con un archivo."
+                }
+              ]
+            },
+            {
+              "title": "Ejemplo básico",
+              "blocks": [
+                {
+                  "type": "text",
+                  "content": "El patrón `src/**/*.ts` encaja con:"
+                },
+                {
+                  "type": "cards",
+                  "items": [
+                    {
+                      "title": "✓ src/utils/format.ts",
+                      "body": "encaja"
+                    },
+                    {
+                      "title": "✓ src/index.ts",
+                      "body": "encaja"
+                    },
+                    {
+                      "title": "✗ lib/utils/format.ts",
+                      "body": "no empieza por src/"
+                    },
+                    {
+                      "title": "✗ src/components/Button.tsx",
+                      "body": "extensión .tsx, no .ts"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "glob-asterisco",
+          "title": "Asterisco simple: *",
+          "summary": "Cualquier cadena dentro de un tramo (sin atravesar directorios)",
+          "subsections": [
+            {
+              "title": "Cómo funciona",
+              "blocks": [
+                {
+                  "type": "text",
+                  "content": "El `*` coincide con cualquier cadena de caracteres dentro de un mismo tramo de ruta. **El matiz clave: no atraviesa separadores de directorio** (`/`)."
+                }
+              ]
+            },
+            {
+              "title": "Ejemplos",
+              "blocks": [
+                {
+                  "type": "code",
+                  "lang": "text",
+                  "label": "Patrón: src/*.ts",
+                  "content": "✓ src/index.ts\n✓ src/utils.ts\n✗ src/utils/helpers.ts    (hay otro nivel por medio)\n✗ index.ts                (no está dentro de src/)"
+                },
+                {
+                  "type": "text",
+                  "content": "Otros ejemplos:"
+                },
+                {
+                  "type": "cards",
+                  "items": [
+                    {
+                      "title": "*.test.ts",
+                      "body": "Encaja: login.test.ts, utils.test.ts"
+                    },
+                    {
+                      "title": "test-*.js",
+                      "body": "Encaja: test-auth.js, test-api.js"
+                    },
+                    {
+                      "title": "components/*Form.*",
+                      "body": "Encaja: LoginForm.tsx, SignupForm.jsx"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "glob-globstar",
+          "title": "Globstar: **",
+          "summary": "Cualquier cadena, atravesando directorios",
+          "subsections": [
+            {
+              "title": "La diferencia con *",
+              "blocks": [
+                {
+                  "type": "text",
+                  "content": "El `**` coincide con cualquier cadena **incluyendo separadores de directorio**. Atraviesa cuantos niveles haga falta. La diferencia con `*` es fundamental."
+                },
+                {
+                  "type": "cards",
+                  "items": [
+                    {
+                      "title": "src/*.ts",
+                      "body": "Solo archivos .ts directamente dentro de src/"
+                    },
+                    {
+                      "title": "src/**/*.ts",
+                      "body": "Archivos .ts en src/ y en cualquier subdirectorio suyo"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "title": "Posiciones del globstar",
+              "blocks": [
+                {
+                  "type": "text",
+                  "content": "**Al principio: 'en cualquier lugar del proyecto'**"
+                },
+                {
+                  "type": "code",
+                  "lang": "text",
+                  "label": "Ejemplos",
+                  "content": "**/node_modules    — cualquier node_modules, dé igual su ubicación\n**/*.log            — todos los logs\n**/src              — todas las carpetas llamadas src"
+                },
+                {
+                  "type": "text",
+                  "content": "**En medio: salta niveles desconocidos**"
+                },
+                {
+                  "type": "code",
+                  "lang": "text",
+                  "label": "Ejemplos",
+                  "content": "src/**/*.test.ts       — tests en src, a cualquier profundidad\npackages/**/dist       — la carpeta dist de cualquier paquete\nsrc/**/config/db.ts    — db.ts dentro de cualquier config en src"
+                },
+                {
+                  "type": "text",
+                  "content": "**Al final: 'todo lo que hay a partir de aquí'**"
+                },
+                {
+                  "type": "code",
+                  "lang": "text",
+                  "label": "Ejemplos",
+                  "content": "docs/**              — absolutamente todo dentro de docs\nsrc/legacy/**        — todo el contenido del directorio legacy"
+                }
+              ]
+            },
+            {
+              "title": "Regla de oro",
+              "blocks": [
+                {
+                  "type": "callout",
+                  "variant": "blue",
+                  "icon": "💡",
+                  "content": "El `**` debe aparecer como **tramo completo** entre barras. `src**/foo` no funciona como globstar; lo correcto es `src/**/foo`."
+                }
+              ]
+            },
+            {
+              "title": "Alternativa: brace expansion",
+              "blocks": [
+                {
+                  "type": "text",
+                  "content": "Si querés tres subdirectorios específicos de los seis que hay, usa brace expansion en lugar de `**`:"
+                },
+                {
+                  "type": "code",
+                  "lang": "text",
+                  "label": "Ejemplo",
+                  "content": "src/directorio/{alfa,beta,gamma}/**/*.java\n\nEncaja: src/directorio/alfa/Modelo.java\n        src/directorio/beta/sub/Repo.java\n        src/directorio/gamma/Service.java\n\nNo encaja: src/directorio/delta/Config.java"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "glob-interrogacion",
+          "title": "Signo de interrogación: ?",
+          "summary": "Exactamente un carácter",
+          "subsections": [
+            {
+              "title": "Cómo funciona",
+              "blocks": [
+                {
+                  "type": "text",
+                  "content": "El `?` coincide con **exactamente un carácter** cualquiera, excepto el separador `/`. Mucho más restrictivo que `*`: se usa cuando sabés la longitud exacta de lo que buscás."
+                }
+              ]
+            },
+            {
+              "title": "Ejemplos",
+              "blocks": [
+                {
+                  "type": "code",
+                  "lang": "text",
+                  "label": "Patrón: test?.js",
+                  "content": "✓ test1.js        (un carácter)\n✓ testA.js        (un carácter)\n✗ test.js         (falta un carácter)\n✗ test10.js       (son dos caracteres)"
+                },
+                {
+                  "type": "code",
+                  "lang": "text",
+                  "label": "Patrón: v?.?.?.md",
+                  "content": "✓ v1.2.3.md       (versión corta)\n✓ v9.0.1.md       (versión corta)\n✗ v1.10.0.md      ('10' son dos caracteres)"
+                }
+              ]
+            },
+            {
+              "title": "Cuándo usar",
+              "blocks": [
+                {
+                  "type": "text",
+                  "content": "En la práctica se usa poco, pero es útil para nombres con formato fijo: versiones cortas, identificadores con longitud estricta."
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "glob-clases",
+          "title": "Clases de caracteres: [ ]",
+          "summary": "Un carácter de un conjunto",
+          "subsections": [
+            {
+              "title": "Cómo funciona",
+              "blocks": [
+                {
+                  "type": "text",
+                  "content": "Los corchetes permiten especificar un conjunto de caracteres aceptables para una sola posición. Coincide exactamente con uno de los caracteres listados."
+                }
+              ]
+            },
+            {
+              "title": "Rangos comunes",
+              "blocks": [
+                {
+                  "type": "cards",
+                  "items": [
+                    {
+                      "title": "[0-9]",
+                      "body": "cualquier dígito"
+                    },
+                    {
+                      "title": "[a-z]",
+                      "body": "cualquier minúscula"
+                    },
+                    {
+                      "title": "[A-Z]",
+                      "body": "cualquier mayúscula"
+                    },
+                    {
+                      "title": "[a-zA-Z]",
+                      "body": "cualquier letra"
+                    },
+                    {
+                      "title": "[0-9a-f]",
+                      "body": "cualquier dígito hexadecimal"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "title": "Ejemplos realistas",
+              "blocks": [
+                {
+                  "type": "code",
+                  "lang": "text",
+                  "label": "Patrones",
+                  "content": "log-[0-9].txt      — log-0.txt hasta log-9.txt\nv[0-9].[0-9].ts    — v1.0.ts, v2.3.ts...\n[A-Z]*.md          — archivos .md que empiezan con mayúscula"
+                }
+              ]
+            },
+            {
+              "title": "Negación con [!...]",
+              "blocks": [
+                {
+                  "type": "text",
+                  "content": "Si el primer carácter dentro de los corchetes es `!`, el significado se invierte: coincide con cualquier carácter que **no esté** en el conjunto."
+                },
+                {
+                  "type": "code",
+                  "lang": "text",
+                  "label": "Ejemplos",
+                  "content": "[!0-9]*.txt      — .txt cuyo nombre NO empieza por dígito\n[!_]*.js         — .js cuyo nombre NO empieza por guion bajo"
+                },
+                {
+                  "type": "callout",
+                  "variant": "blue",
+                  "icon": "💡",
+                  "content": "**Atención:** La negación dentro de corchetes `[!abc]` afecta solo a esa posición del patrón. Para excluir rutas completas se usa `!patrón` al principio de línea — que es otra cosa."
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "glob-alternativas",
+          "title": "Alternativas: { }",
+          "summary": "OR entre varios patrones",
+          "subsections": [
+            {
+              "title": "Cómo funciona",
+              "blocks": [
+                {
+                  "type": "text",
+                  "content": "Las llaves permiten listar alternativas separadas por comas. El patrón encaja si la ruta coincide con **cualquiera** de ellas. Especialmente útil para agrupar extensiones."
+                }
+              ]
+            },
+            {
+              "title": "Ejemplos comunes",
+              "blocks": [
+                {
+                  "type": "cards",
+                  "items": [
+                    {
+                      "title": "*.{jpg,jpeg,png,gif,webp}",
+                      "body": "formatos de imagen"
+                    },
+                    {
+                      "title": "*.{ts,tsx}",
+                      "body": "TypeScript con y sin JSX"
+                    },
+                    {
+                      "title": "src/**/*.{test,spec}.ts",
+                      "body": "ambas convenciones de tests"
+                    },
+                    {
+                      "title": "{src,lib,packages}/**/*.ts",
+                      "body": "TS en cualquiera de los tres dirs"
+                    },
+                    {
+                      "title": "{Dockerfile,docker-compose.yml}",
+                      "body": "ficheros de Docker"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "title": "Alternativas con tramos de ruta",
+              "blocks": [
+                {
+                  "type": "code",
+                  "lang": "text",
+                  "label": "Patrón complejo",
+                  "content": "src/directorio/{alfa,beta,gamma}/**/*.java\n\n✓ src/directorio/alfa/Modelo.java\n✓ src/directorio/beta/sub/Repo.java\n✓ src/directorio/gamma/Service.java\n✗ src/directorio/delta/Config.java\n✗ src/directorio/epsilon/Utils.java"
+                },
+                {
+                  "type": "text",
+                  "content": "Las alternativas pueden contener tramos de ruta completos. Justamente esto es lo que permite seleccionar tres subdirectorios específicos sin repetir el patrón entero."
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "glob-negacion",
+          "title": "Negación de patrón: !",
+          "summary": "Excluir rutas del conjunto",
+          "subsections": [
+            {
+              "title": "Cómo funciona",
+              "blocks": [
+                {
+                  "type": "text",
+                  "content": "Un patrón que empieza con `!` excluye rutas del conjunto acumulado. Se evalúan en orden: primero incluís un conjunto amplio, después recortás lo que no querés."
+                }
+              ]
+            },
+            {
+              "title": "Ejemplo 1: Todo el TS sin tests ni generados",
+              "blocks": [
+                {
+                  "type": "code",
+                  "lang": "text",
+                  "label": "Patrones",
+                  "content": "**/*.ts                    — incluye todos los TS\n!**/*.test.ts              — excepto los tests\n!**/*.spec.ts              — y los specs\n!**/node_modules/**        — y nunca nada de node_modules\n!src/**/generated/**        — ni código generado"
+                }
+              ]
+            },
+            {
+              "title": "Ejemplo 2: Docs sin borradores",
+              "blocks": [
+                {
+                  "type": "code",
+                  "lang": "text",
+                  "label": "Patrones",
+                  "content": "docs/**/*.md               — incluye docs de markdown\n!docs/**/DRAFT-*.md        — excepto borradores"
+                }
+              ]
+            },
+            {
+              "title": "Diferencia importante",
+              "blocks": [
+                {
+                  "type": "callout",
+                  "variant": "red",
+                  "icon": "⚠️",
+                  "content": "No confundir `[!abc]` (negación de carácter en una posición) con `!patrón` (negación de patrón completo). Son mecanismos **completamente distintos**."
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "glob-errors",
+          "title": "Errores comunes",
+          "summary": "Trapas típicas al escribir globs",
+          "subsections": [
+            {
+              "title": "Error 1: Confundir * con **",
+              "blocks": [
+                {
+                  "type": "text",
+                  "content": "El error más clásico: escribir `src/*.ts` esperando que cubra todo src y llevarse la sorpresa de que los archivos en subdirectorios no aparecen."
+                },
+                {
+                  "type": "callout",
+                  "variant": "blue",
+                  "icon": "💡",
+                  "content": "**Regla mental:** un asterisco no cruza barras, dos sí. En cuanto el patrón 'no recoge lo de dentro de las carpetas', cambiá el `*` por `**/*`."
+                }
+              ]
+            },
+            {
+              "title": "Error 2: El ** no está aislado",
+              "blocks": [
+                {
+                  "type": "text",
+                  "content": "Escribir `src**` o `**foo` no funciona como globstar en la mayoría de implementaciones. El globstar quiere vivir solo entre separadores: `src/**/foo`, no `src**/foo`."
+                }
+              ]
+            },
+            {
+              "title": "Error 3: Pensar que los globs son regex",
+              "blocks": [
+                {
+                  "type": "text",
+                  "content": "No lo son. En un glob, el punto `.` es un punto literal, no 'cualquier carácter'. `app.js` en un glob significa exactamente `app.js`. Y no existen cuantificadores tipo `+` o `{3,5}`: si necesitás eso, los globs no son la herramienta."
+                }
+              ]
+            },
+            {
+              "title": "Error 4: Olvidar los archivos ocultos",
+              "blocks": [
+                {
+                  "type": "text",
+                  "content": "Los archivos que empiezan por punto (`.env`, `.gitignore`) suelen estar fuera de lo que captura un patrón genérico. Un `*.json` puede no capturar `.babelrc.json` dependiendo de la implementación. Si los querés incluir, sé explícito: `.*` o `**/.*.json`."
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "glob-reference",
+          "title": "Referencia rápida",
+          "summary": "Cheat sheet de patrones glob",
+          "subsections": [
+            {
+              "title": "Todos los símbolos",
+              "blocks": [
+                {
+                  "type": "table",
+                  "headers": ["Símbolo", "Descripción", "Ejemplo"],
+                  "rows": [
+                    ["*", "Cualquier cadena dentro de un tramo. No cruza barras.", "*.ts → index.ts, utils.ts"],
+                    ["**", "Cualquier cadena atravesando directorios. Debe estar aislado entre barras.", "src/**/*.ts → src/a/b/c.ts"],
+                    ["?", "Exactamente un carácter. No cruza barras.", "v?.md → v1.md, vA.md"],
+                    ["[ ]", "Un carácter del conjunto o rango.", "[0-9].txt → 0.txt, 9.txt"],
+                    ["[! ]", "Un carácter que NO está en el conjunto.", "[!_]*.js → excluye _private.js"],
+                    ["{ }", "Alternativas separadas por comas. Funciona como OR.", "*.{js,ts} → app.js, app.ts"],
+                    ["!", "Excluye rutas que encajan con el patrón. Va al principio.", "!**/*.test.ts → fuera los tests"],
+                    [".", "Punto literal. En globs no significa 'cualquier carácter'.", "app.js coincide solo con app.js"]
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "glob-tips",
+          "title": "Tips para escribir globs",
+          "summary": "Estrategia para escribir patrones correctos",
+          "subsections": [
+            {
+              "title": "Las tres preguntas clave",
+              "blocks": [
+                {
+                  "type": "steps",
+                  "items": [
+                    {
+                      "title": "¿Qué archivos exactos deberían activar la regla?",
+                      "body": "Sé específico. Por ejemplo: 'todos los tests de TypeScript en src'"
+                    },
+                    {
+                      "title": "¿Qué archivos parecidos deberían quedar fuera?",
+                      "body": "Piensa en archivos que se parecen pero no quieren: .test.js vs .test.ts, /src vs /dist"
+                    },
+                    {
+                      "title": "¿Hay subdirectorios trampa?",
+                      "body": "node_modules, dist, build — que conviene excluir explícitamente"
+                    }
+                  ]
+                },
+                {
+                  "type": "text",
+                  "content": "Responder esas tres preguntas primero hace que el patrón salga casi solo."
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

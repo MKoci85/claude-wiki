@@ -1,0 +1,209 @@
+{
+  "sections": [
+    {
+      "title": "Conceptos Clave",
+      "articles": [
+        {
+          "title": "Tool Use",
+          "subsections": [
+            {
+              "title": "¿Qué es tool use?",
+              "blocks": [
+                {
+                  "type": "text",
+                  "content": "Tool use permite que Claude llame funciones que definas. El modelo analiza el problema, decide qué función usar, y tú ejecutas esa función en tu código."
+                },
+                {
+                  "type": "compare",
+                  "left": {
+                    "head": "Client tools (tu código ejecuta)",
+                    "rows": [
+                      { "key": "Qué son", "value": "Funciones que vos definís: get_weather, search_db, send_email, etc." },
+                      { "key": "Flujo", "value": "Claude devuelve `stop_reason: tool_use` → vos ejecutás → devolvés `tool_result`." },
+                      { "key": "Costo extra", "value": "Ninguno. Se cobran como tokens normales." }
+                    ]
+                  },
+                  "right": {
+                    "head": "Server tools (Anthropic ejecuta)",
+                    "rows": [
+                      { "key": "Qué son", "value": "`web_search`, `code_execution`, `web_fetch`. Anthropic las ejecuta en su infraestructura." },
+                      { "key": "Flujo", "value": "Claude las llama y los resultados llegan directamente en la respuesta. Sin código tuyo." },
+                      { "key": "Costo extra", "value": "Sí. Por ejemplo, web_search cobra por búsqueda realizada." }
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "title": "Flujo básico",
+              "blocks": [
+                {
+                  "type": "steps",
+                  "steps": [
+                    {
+                      "step": 1,
+                      "title": "Definir tools",
+                      "description": "Describes funciones disponibles (nombre, descripción, parámetros)"
+                    },
+                    {
+                      "step": 2,
+                      "title": "Enviar mensaje",
+                      "description": "Claude recibe el mensaje y la lista de tools"
+                    },
+                    {
+                      "step": 3,
+                      "title": "Claude decide usar tool",
+                      "description": "Si es necesario, devuelve stop_reason='tool_use'"
+                    },
+                    {
+                      "step": 4,
+                      "title": "Ejecutar función",
+                      "description": "Tu código ejecuta la función con los parámetros que Claude sugirió"
+                    },
+                    {
+                      "step": 5,
+                      "title": "Enviar resultado",
+                      "description": "Devuelves el resultado a Claude en el mismo thread"
+                    },
+                    {
+                      "step": 6,
+                      "title": "Claude continúa",
+                      "description": "Claude ve el resultado y genera respuesta final"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "title": "Ejemplo: Calculadora",
+              "blocks": [
+                {
+                  "type": "code",
+                  "language": "python",
+                  "code": "import anthropic\nimport json\n\nclient = anthropic.Anthropic()\n\ntools = [\n    {\n        \"name\": \"calculator\",\n        \"description\": \"Realiza cálculos matemáticos\",\n        \"input_schema\": {\n            \"type\": \"object\",\n            \"properties\": {\n                \"expression\": {\n                    \"type\": \"string\",\n                    \"description\": \"Expresión matemática (ej: '2 + 2')\"\n                }\n            },\n            \"required\": [\"expression\"]\n        }\n    }\n]\n\nmessages = [\n    {\"role\": \"user\", \"content\": \"¿Cuánto es 15 * 8?\"}\n]\n\nresponse = client.messages.create(\n    model=\"claude-opus-4-8\",\n    max_tokens=1024,\n    tools=tools,\n    messages=messages\n)\n\nif response.stop_reason == \"tool_use\":\n    for content_block in response.content:\n        if content_block.type == \"tool_use\":\n            result = eval(content_block.input[\"expression\"])\n            messages.append({\"role\": \"assistant\", \"content\": response.content})\n            messages.append({\n                \"role\": \"user\",\n                \"content\": [\n                    {\n                        \"type\": \"tool_result\",\n                        \"tool_use_id\": content_block.id,\n                        \"content\": str(result)\n                    }\n                ]\n            })\n\nfinal_response = client.messages.create(\n    model=\"claude-opus-4-8\",\n    max_tokens=1024,\n    tools=tools,\n    messages=messages\n)\n\nprint(final_response.content[0].text)"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "title": "Token Counting",
+          "subsections": [
+            {
+              "title": "¿Qué son los tokens?",
+              "blocks": [
+                {
+                  "type": "text",
+                  "content": "Un token es una unidad pequeña de texto. Aproximadamente, 1 token = 4 caracteres o 1 palabra."
+                },
+                {
+                  "type": "text",
+                  "content": "La API cobra por tokens: entrada (los que envías) y salida (los que recibes). Contar tokens antes de enviar permite estimar costos."
+                }
+              ]
+            },
+            {
+              "title": "Contar tokens",
+              "blocks": [
+                {
+                  "type": "code",
+                  "language": "python",
+                  "code": "import anthropic\n\nclient = anthropic.Anthropic()\n\nresponse = client.messages.count_tokens(\n    model=\"claude-opus-4-8\",\n    messages=[\n        {\"role\": \"user\", \"content\": \"Hola, ¿cuántos tokens tiene este mensaje?\"}\n    ]\n)\n\nprint(f\"Tokens: {response.input_tokens}\")"
+                }
+              ]
+            },
+            {
+              "title": "Límites de contexto",
+              "blocks": [
+                {
+                  "type": "callout",
+                  "style": "info",
+                  "title": "Contexto de 200K tokens",
+                  "content": "Todos los modelos Claude actuales soportan 200K tokens de contexto (aproximadamente 150 páginas de texto). Puedes enviar conversaciones largas, documentos grandes, o múltiples archivos."
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "title": "Vision (Imágenes)",
+          "subsections": [
+            {
+              "title": "Procesar imágenes",
+              "blocks": [
+                {
+                  "type": "text",
+                  "content": "Claude puede analizar imágenes: describir contenido, leer texto, responder preguntas sobre ellas, etc."
+                },
+                {
+                  "type": "text",
+                  "content": "Las imágenes se envían en base64 o como URLs. Soporta PNG, JPEG, GIF, WebP."
+                }
+              ]
+            },
+            {
+              "title": "Ejemplo: Analizar una imagen",
+              "blocks": [
+                {
+                  "type": "code",
+                  "language": "python",
+                  "code": "import anthropic\nimport base64\n\nclient = anthropic.Anthropic()\n\nwith open(\"imagen.jpg\", \"rb\") as f:\n    image_data = base64.standard_b64encode(f.read()).decode(\"utf-8\")\n\nmessage = client.messages.create(\n    model=\"claude-opus-4-8\",\n    max_tokens=1024,\n    messages=[\n        {\n            \"role\": \"user\",\n            \"content\": [\n                {\n                    \"type\": \"image\",\n                    \"source\": {\n                        \"type\": \"base64\",\n                        \"media_type\": \"image/jpeg\",\n                        \"data\": image_data,\n                    },\n                },\n                {\n                    \"type\": \"text\",\n                    \"text\": \"¿Qué ves en esta imagen?\"\n                }\n            ],\n        }\n    ],\n)\n\nprint(message.content[0].text)"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "title": "Batch Processing",
+          "subsections": [
+            {
+              "title": "¿Cuándo usar Batch API?",
+              "blocks": [
+                {
+                  "type": "text",
+                  "content": "La Batch API permite procesar múltiples requests con descuento (50%) cuando no necesitas respuestas inmediatas."
+                },
+                {
+                  "type": "callout",
+                  "style": "info",
+                  "title": "Mejor para",
+                  "content": "Análisis de datasets, procesamiento de logs, generación en masa, trabajos programados"
+                }
+              ]
+            },
+            {
+              "title": "Flujo básico",
+              "blocks": [
+                {
+                  "type": "steps",
+                  "steps": [
+                    {
+                      "step": 1,
+                      "title": "Crear archivo JSONL",
+                      "description": "Una línea por request, con custom_id único"
+                    },
+                    {
+                      "step": 2,
+                      "title": "Subir batch",
+                      "description": "Enviar archivo a la API de batches"
+                    },
+                    {
+                      "step": 3,
+                      "title": "Esperar procesamiento",
+                      "description": "Generalmente tarda minutos u horas"
+                    },
+                    {
+                      "step": 4,
+                      "title": "Descargar resultados",
+                      "description": "Cuando el batch esté completo, bajas los resultados"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

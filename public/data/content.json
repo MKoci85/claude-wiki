@@ -1,0 +1,138 @@
+{
+  "collections": [
+    {
+      "title": "Introducción a Claude Code",
+      "file": "introduccion.json"
+    },
+    {
+      "title": "Reglas",
+      "file": "reglas.json"
+    },
+    {
+      "title": "Permisos",
+      "file": "permisos.json"
+    },
+    {
+      "title": "Sistema de Memoria",
+      "file": "sistema-de-memoria.json"
+    },
+    {
+      "title": "Hooks",
+      "description": "El sistema de hooks de Claude Code y los fundamentos técnicos de stdio",
+      "isSuper": true,
+      "items": [
+        {
+          "title": "Sistema de Hooks",
+          "file": "hooks.json",
+          "description": "Puntos de extensión para validar, bloquear y automatizar el agente"
+        },
+        {
+          "title": "Stdio & Fundamentos",
+          "file": "stdio-hooks.json",
+          "description": "Cómo funcionan stdin, stdout, stderr, pipes y exit codes"
+        }
+      ]
+    },
+    {
+      "title": "Skills",
+      "file": "skills.json"
+    },
+    {
+      "title": "Subagentes",
+      "file": "subagentes.json"
+    },
+    {
+      "title": "MCP",
+      "description": "Model Context Protocol: comandos, scopes, transportes, Tool Search y seguridad",
+      "file": "mcp.json"
+    },
+    {
+      "title": "Conceptos",
+      "description": "Temas transversales que complementan el uso de Claude Code",
+      "items": [
+        {
+          "title": "Patrones Glob",
+          "file": "glob-patterns.json",
+          "description": "Sintaxis de patrones glob para rules y file matching"
+        }
+      ]
+    },
+    {
+      "title": "API de Claude",
+      "description": "Documentación de la API REST de Anthropic",
+      "isSuper": true,
+      "items": [
+        {
+          "title": "Primeros pasos",
+          "file": "api-primeros-pasos.json",
+          "description": "Qué es la API, autenticación e instalación del SDK"
+        },
+        {
+          "title": "Modelos y Versiones",
+          "file": "api-modelos.json",
+          "description": "Catálogo de modelos disponibles y cuándo usar cada uno"
+        },
+        {
+          "title": "Tool Use",
+          "file": "api-tool-use.json",
+          "description": "Schemas, loop multi-turno, errores, tool_choice, paralelismo, herramientas del servidor, seguridad"
+        },
+        {
+          "title": "RAG y búsqueda agéntica",
+          "file": "api-rag.json",
+          "description": "Chunking, contextual retrieval, embeddings, BM25, re-ranking, RAG agéntico, evaluación"
+        },
+        {
+          "title": "MCP en profundidad",
+          "file": "api-mcp.json",
+          "description": "Protocolo N+M, ciclo de vida, stdio vs HTTP, tools, resources, prompts, roots, sampling, seguridad"
+        },
+        {
+          "title": "Prefill y alternativas",
+          "file": "api-prefill.json",
+          "description": "Por qué se retiró el prefill y cómo reemplazarlo con strict tool use, output_config.format y system prompt"
+        },
+        {
+          "title": "Referencia de la API",
+          "file": "api-referencia.json",
+          "description": "Parámetros del request, stop_reason completo, códigos de error HTTP, streaming"
+        },
+        {
+          "title": "Conceptos Clave",
+          "file": "api-conceptos.json",
+          "description": "Tool use, token counting, vision, batch processing"
+        },
+        {
+          "title": "Endpoints Principales",
+          "file": "api-endpoints.json",
+          "description": "Referencia de endpoints REST con ejemplos"
+        },
+        {
+          "title": "Guías Prácticas",
+          "file": "api-practicas.json",
+          "description": "Streaming, manejo de errores, rate limiting, mejores prácticas"
+        },
+        {
+          "title": "Prompt Engineering",
+          "file": "api-prompt-engineering.json",
+          "description": "Claridad, XML tags, multishot, chain-of-thought, reducción de alucinaciones"
+        },
+        {
+          "title": "Evaluación de Prompts",
+          "file": "api-evals.json",
+          "description": "Evals, datasets, grading por código, LLM-as-judge, overfitting"
+        },
+        {
+          "title": "Agentes y Workflows",
+          "file": "api-agentes.json",
+          "description": "Paralelización, chaining, routing, orchestrator-workers, human-in-the-loop"
+        },
+        {
+          "title": "Capacidades Avanzadas",
+          "file": "api-avanzado.json",
+          "description": "MCP Connector, Extended Thinking, Files API"
+        }
+      ]
+    }
+  ]
+}

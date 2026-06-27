@@ -1,0 +1,225 @@
+{
+  "sections": [
+    {
+      "title": "Prompt Engineering",
+      "articles": [
+        {
+          "title": "Técnicas fundamentales",
+          "subsections": [
+            {
+              "title": "Claridad y especificidad",
+              "blocks": [
+                {
+                  "type": "text",
+                  "content": "Claude responde mejor a instrucciones explícitas que a insinuaciones. Cuanto más se deja implícito, más espacio hay para que el modelo adivine algo distinto de lo que se quería. Fijar formato, longitud, audiencia, tono y restricciones reduce la varianza de la respuesta antes de tocar cualquier otra técnica."
+                },
+                {
+                  "type": "compare",
+                  "left": {
+                    "head": "Vago",
+                    "rows": [
+                      { "key": "Prompt", "value": "\"Resumí este artículo.\"" },
+                      { "key": "Problema", "value": "Claude decide la longitud, el formato y el enfoque libremente." }
+                    ]
+                  },
+                  "right": {
+                    "head": "Específico",
+                    "rows": [
+                      { "key": "Prompt", "value": "\"Resumí en 3 viñetas de máximo 20 palabras, enfocadas en decisiones de negocio (no en detalles técnicos).\"" },
+                      { "key": "Resultado", "value": "Respuesta predecible y evaluable." }
+                    ]
+                  }
+                },
+                {
+                  "type": "callout",
+                  "style": "info",
+                  "title": "El test del colega",
+                  "content": "Mostrale el prompt a alguien sin contexto adicional. Si necesita preguntar algo para saber cómo proceder, Claude va a tener la misma duda y la va a resolver adivinando. Explicar también el por qué de la instrucción (la motivación, no solo el pedido) mejora el cumplimiento en casos límite."
+                }
+              ]
+            },
+            {
+              "title": "Role prompting",
+              "blocks": [
+                {
+                  "type": "text",
+                  "content": "Pedirle a Claude que asuma una perspectiva específica cambia genuinamente el vocabulario, el nivel de detalle y los criterios que aplica. El rol va en el `system` prompt; las instrucciones de formato van en el mensaje. Son complementarios, no se sustituyen."
+                },
+                {
+                  "type": "code",
+                  "language": "python",
+                  "code": "import anthropic\n\nclient = anthropic.Anthropic()\n\n# el mismo documento, dos roles, dos lecturas completamente distintas\nsystem_escéptico = (\n    \"Sos un analista financiero senior con 15 años revisando balances \"\n    \"de empresas industriales. Tu lectura es escéptica por defecto: \"\n    \"señalás riesgos y supuestos poco sólidos antes que fortalezas.\"\n)\n\nresponse = client.messages.create(\n    model=\"claude-sonnet-4-6\",\n    max_tokens=500,\n    system=system_escéptico,\n    messages=[{\"role\": \"user\", \"content\": f\"Analizá este balance:\\n{balance}\"}],\n)"
+                }
+              ]
+            },
+            {
+              "title": "Etiquetas XML",
+              "blocks": [
+                {
+                  "type": "text",
+                  "content": "Claude fue entrenado intensivamente con etiquetas XML como separadores semánticos. Usarlas ayuda al modelo a distinguir con precisión dónde empieza y termina cada parte del prompt, especialmente en prompts largos con múltiples secciones."
+                },
+                {
+                  "type": "code",
+                  "language": "python",
+                  "code": "prompt = \"\"\"\n<instrucciones>\nLeé el contrato y respondé únicamente con datos que figuren en él.\nSi un dato no está, decí \"no especificado\".\n</instrucciones>\n\n<contrato>\n{texto_del_contrato}\n</contrato>\n\n<pregunta>\n¿Cuál es el plazo de preaviso para rescindir el contrato?\n</pregunta>\n\"\"\""
+                },
+                {
+                  "type": "cards",
+                  "items": [
+                    {
+                      "icon": "✅",
+                      "title": "Nombres consistentes",
+                      "description": "Si una sección se llama `<documento>` en la instrucción, referirse a ella como \"el documento\" en todo el prompt, no como \"el texto\" o \"el archivo\"."
+                    },
+                    {
+                      "icon": "🔗",
+                      "title": "Anidamiento",
+                      "description": "Para listas de ejemplos o documentos múltiples, anidar tags (`<documentos><documento id=\"1\">...</documento></documentos>`) evita ambigüedad."
+                    },
+                    {
+                      "icon": "ℹ️",
+                      "title": "No hace falta XML válido",
+                      "description": "Claude no parsea el prompt como XML real. Lo que importa es la consistencia de los nombres de tag, no la validez formal del documento."
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "title": "Técnicas de razonamiento",
+          "subsections": [
+            {
+              "title": "Multishot prompting",
+              "blocks": [
+                {
+                  "type": "text",
+                  "content": "Mostrar ejemplos de entrada/salida deseada suele ser más efectivo que describir el formato en abstracto, especialmente para formatos de salida poco comunes. 2 a 5 ejemplos con diversidad de casos (incluyendo algún edge case) generalizan mejor que muchos ejemplos parecidos entre sí."
+                },
+                {
+                  "type": "code",
+                  "language": "python",
+                  "code": "prompt = \"\"\"\nConvertí cada ticket en una línea de log con formato: [categoria] resumen_corto\n\n<ejemplos>\n<ejemplo>\nEntrada: \"no me llegó el pedido #4521, ya pasaron 10 días\"\nSalida: [envio] pedido #4521 sin entregar hace 10 días\n</ejemplo>\n<ejemplo>\nEntrada: \"quiero que me devuelvan la plata del producto roto\"\nSalida: [reembolso] solicita devolución por producto dañado\n</ejemplo>\n<ejemplo>\nEntrada: \"tengo un problema, no sé bien con qué\"\nSalida: [ambiguo] reclamo sin detalle suficiente para clasificar\n</ejemplo>\n</ejemplos>\n\nEntrada: \"el cargador que compré no enciende la notebook\"\nSalida:\n\"\"\""
+                }
+              ]
+            },
+            {
+              "title": "Chain-of-thought",
+              "blocks": [
+                {
+                  "type": "text",
+                  "content": "En tareas con varios pasos lógicos, pedirle al modelo que razone paso a paso antes de dar la respuesta final mejora la precisión. El razonamiento es texto normal dentro de la respuesta, estructurado con tags para poder separarlo de la respuesta final. Esto es distinto del Extended Thinking nativo de la API."
+                },
+                {
+                  "type": "code",
+                  "language": "python",
+                  "code": "prompt = \"\"\"\nUn comercio compró 120 unidades a $850 cada una y las vendió todas a $1330.\nTuvo además $9000 de gastos fijos ese mes.\n\nAntes de responder, pensá el problema paso a paso dentro de\n<razonamiento></razonamiento>.\nDespués, dentro de <respuesta></respuesta>, dejá solo el resultado\nfinal: la ganancia neta en pesos, sin explicación adicional.\n\"\"\"\n\nresponse = client.messages.create(\n    model=\"claude-sonnet-4-6\", max_tokens=500,\n    messages=[{\"role\": \"user\", \"content\": prompt}],\n)\n# la app puede mostrar el razonamiento (transparencia)\n# o quedarse solo con <respuesta> para el flujo automático"
+                },
+                {
+                  "type": "callout",
+                  "style": "warning",
+                  "title": "Costo de pensar en voz alta",
+                  "content": "Cada token de razonamiento se paga y agrega latencia. Para tareas simples (clasificación directa, extracción) el chain-of-thought casi nunca aporta. Reservarlo para problemas con múltiples pasos de razonamiento."
+                }
+              ]
+            },
+            {
+              "title": "Encadenamiento de prompts",
+              "blocks": [
+                {
+                  "type": "text",
+                  "content": "Un prompt único que pide \"hacé A, después B, y con eso C\" suele rendir peor que dividir esa tarea en llamadas separadas, cada una con un único objetivo claro. Cada prompt más chico es más fácil de depurar, evaluar y mejorar sin afectar el resto de la cadena."
+                },
+                {
+                  "type": "code",
+                  "language": "python",
+                  "code": "def pedir(prompt):\n    r = client.messages.create(\n        model=\"claude-sonnet-4-6\", max_tokens=600,\n        messages=[{\"role\": \"user\", \"content\": prompt}],\n    )\n    return r.content[0].text\n\n# un único responsable por prompt, en vez de un prompt gigante\npuntos_de_dolor = pedir(f\"Extraé, en una lista, los puntos de dolor de este feedback:\\n\\n{feedback}\")\nacciones = pedir(f\"Para cada punto de dolor, proponé una acción concreta:\\n\\n{puntos_de_dolor}\")\nresumen = pedir(f\"Resumí estas acciones en un párrafo para un comité directivo:\\n\\n{acciones}\")"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "title": "Contexto largo y alucinaciones",
+          "subsections": [
+            {
+              "title": "Trabajar con documentos largos",
+              "blocks": [
+                {
+                  "type": "text",
+                  "content": "Con documentos extensos, dos prácticas mejoran la fidelidad: ubicar el documento al principio del prompt (antes de las instrucciones y la pregunta) y pedirle a Claude que primero cite los fragmentos exactos que va a usar antes de responder. Esto ancla cada afirmación en texto real, no en paráfrasis de memoria."
+                },
+                {
+                  "type": "code",
+                  "language": "python",
+                  "code": "prompt = f\"\"\"\n<documento>\n{contrato_completo}\n</documento>\n\nAntes de responder, citá entre comillas, dentro de <citas></citas>,\nlos fragmentos exactos del documento que vas a usar para responder.\nDespués, dentro de <respuesta></respuesta>, respondé la pregunta\nbasándote únicamente en esas citas.\n\nPregunta: ¿bajo qué condiciones se puede rescindir el contrato sin penalidad?\n\"\"\""
+                },
+                {
+                  "type": "callout",
+                  "style": "info",
+                  "title": "Orden importa",
+                  "content": "El documento va primero, la pregunta al final, justo después de las instrucciones. Cuando la pregunta aparece antes de un documento muy largo, el modelo tiene que \"recordarla\" a través de todo el contenido intermedio. Ponerla al final reduce esa distancia."
+                }
+              ]
+            },
+            {
+              "title": "Reducir alucinaciones",
+              "blocks": [
+                {
+                  "type": "text",
+                  "content": "Ninguna técnica elimina completamente el riesgo de que el modelo invente información, pero varias lo reducen de forma medible."
+                },
+                {
+                  "type": "cards",
+                  "items": [
+                    {
+                      "icon": "🚪",
+                      "title": "Permiso para no saber",
+                      "description": "Un prompt que nunca contempla \"no tengo esa información\" empuja al modelo a rellenar con una conjetura. Habilitarlo explícitamente."
+                    },
+                    {
+                      "icon": "📌",
+                      "title": "Pedir citas primero",
+                      "description": "La técnica de citas del punto anterior obliga a anclar cada afirmación en texto real antes de responder."
+                    },
+                    {
+                      "icon": "🌡️",
+                      "title": "Temperature baja",
+                      "description": "Para extracción o respuesta basada en hechos, `temperature=0` reduce la tendencia a \"rellenar\" con variaciones creativas."
+                    },
+                    {
+                      "icon": "🔒",
+                      "title": "Restringir el alcance",
+                      "description": "Indicar explícitamente con qué fuente debe (y no debe) responder: \"Respondé únicamente con información presente en el documento provisto.\""
+                    }
+                  ]
+                },
+                {
+                  "type": "code",
+                  "language": "python",
+                  "code": "system = \"\"\"\nRespondé únicamente con información presente en el documento provisto.\nSi la información solicitada no está en el documento, respondé exactamente:\n\"No tengo esa información en el documento.\"\nNo completes huecos con conocimiento general ni con suposiciones razonables.\n\"\"\""
+                }
+              ]
+            },
+            {
+              "title": "Plantilla combinada",
+              "blocks": [
+                {
+                  "type": "text",
+                  "content": "Un prompt de producción rara vez aplica una sola técnica. Esta plantilla combina rol, especificidad, XML, ejemplos y razonamiento estructurado en un solo prompt para un clasificador de tickets de soporte."
+                },
+                {
+                  "type": "code",
+                  "language": "python",
+                  "code": "system = \"Sos un analista de soporte senior, preciso y conciso.\"\n\nprompt = \"\"\"\n<instrucciones>\nClasificá el ticket en una categoría y proponé una respuesta de máximo 50\npalabras, en tono profesional. Si falta información clave, indicalo en vez\nde asumir datos.\n</instrucciones>\n\n<ejemplos>\n<ejemplo>\nTicket: \"no me llegó el pedido #4521\"\n<razonamiento>Hay número de pedido, el reclamo es claro: categoría envío.</razonamiento>\n<categoria>envio</categoria>\n</ejemplo>\n</ejemplos>\n\n<ticket>\n{ticket_nuevo}\n</ticket>\n\nPensá brevemente en <razonamiento></razonamiento> y después completá\n<categoria></categoria> y <respuesta></respuesta>.\n\"\"\"\n\nresponse = client.messages.create(\n    model=\"claude-sonnet-4-6\",\n    max_tokens=400,\n    system=system,\n    messages=[\n        {\"role\": \"user\", \"content\": prompt},\n        {\"role\": \"assistant\", \"content\": \"<razonamiento>\"},  # prefill\n    ],\n)"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

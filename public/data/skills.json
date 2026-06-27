@@ -1,0 +1,1211 @@
+{
+  "id": "skills",
+  "title": "Skills",
+  "description": "Cómo crear, diseñar y optimizar Skills en Claude Code: conocimiento especializado empaquetado que Claude puede consultar bajo demanda.",
+  "sections": [
+    {
+      "id": "skills-fundamentos",
+      "title": "Skills en Claude Code — Fundamentos",
+      "articles": [
+        {
+          "id": "ski-001",
+          "title": "¿Qué es una Skill?",
+          "blocks": [
+            {
+              "type": "text",
+              "content": "Una **Skill** es un procedimiento especializado que le enseñás a Claude cómo hacer una tarea concreta de tu proyecto. Vivís en un directorio dentro de `.claude/skills/` y contiene instrucciones, ejemplos, scripts y referencias que Claude carga cuando necesita ejecutar esa tarea."
+            },
+            {
+              "type": "text",
+              "content": "La idea central es simple: en lugar de explicarle a Claude cómo hacer un code review cada vez que lo necesitás, escribís esa explicación una sola vez en una skill. La próxima vez que pedís \"revisá este PR\", Claude encuentra la skill, la carga y sigue el procedimiento que vos definiste."
+            },
+            {
+              "type": "cards",
+              "items": [
+                {
+                  "title": "Procedimientos repetibles",
+                  "content": "Code reviews, generación de endpoints, releases, deploys — cualquier tarea multi-paso que hacés seguido y querés que Claude haga siempre igual."
+                },
+                {
+                  "title": "Conocimiento del proyecto",
+                  "content": "Convenciones de tu codebase, formatos específicos, herramientas propias — cosas que Claude no puede adivinar y que vos sabés mejor."
+                },
+                {
+                  "title": "Activación automática",
+                  "content": "Claude detecta cuándo usar la skill leyendo tu pedido y comparándolo con la descripción de la skill. No necesitás invocarla manualmente cada vez."
+                },
+                {
+                  "title": "Reutilizable por todo el equipo",
+                  "content": "Una skill en `.claude/skills/` está disponible para todos los que trabajen en el proyecto. Se puede versionar con git y distribuir como `.skill`."
+                }
+              ]
+            },
+            {
+              "type": "callout",
+              "variant": "warning",
+              "title": "Lo que una Skill NO es",
+              "content": "**No es un bot ni un agente** — no tiene memoria propia ni estado entre sesiones. Cada vez que se invoca, carga desde cero sin recordar interacciones anteriores.\n\n**No es código ejecutable por sí solo** — es instrucciones + recursos que Claude interpreta y ejecuta. No es un programa que corre independientemente o tiene un runtime propio.\n\n**No es un plugin que modifica Claude** — no se instala \"dentro\" de Claude ni cambia permanentemente cómo funciona. Es un archivo en tu proyecto que vos creás y controlas.\n\n**No está siempre activa en el contexto** — solo el `name` y `description` están disponibles siempre. El `SKILL.md` completo carga solo cuando la skill se activa. Las referencias, scripts y assets se cargan solo a demanda.\n\n**No reemplaza conversación clara** — si necesitás que Claude haga algo una sola vez y nunca más, no necesitas una skill. Las skills son para flujos repetibles que querés standarizar."
+            }
+          ]
+        },
+        {
+          "id": "ski-002",
+          "title": "Anatomía de una Skill",
+          "blocks": [
+            {
+              "type": "text",
+              "content": "Una Skill vive en un directorio dentro de `.claude/skills/`. La estructura mínima es un `SKILL.md`, pero puede incluir scripts ejecutables, referencias de documentación y assets de trabajo."
+            },
+            {
+              "type": "code",
+              "lang": "text",
+              "label": "Estructura de directorios",
+              "content": "my-skill/\n├── SKILL.md          # requerido\n├── scripts/           # opcional — scripts ejecutables\n│   └── process.py\n├── references/        # opcional — docs a demanda\n│   ├── aws.md\n│   └── gcp.md\n└── assets/            # opcional — templates y archivos\n    └── template.docx"
+            },
+            {
+              "type": "text",
+              "content": "El `SKILL.md` tiene dos partes: un **frontmatter YAML** entre `---` con metadatos, y un **cuerpo** con instrucciones, ejemplos y pasos para Claude."
+            },
+            {
+              "type": "table",
+              "headers": [
+                "Campo",
+                "¿Obligatorio?",
+                "Descripción"
+              ],
+              "rows": [
+                [
+                  "`name`",
+                  "✅ Sí",
+                  "Identificador único. Se usa para invocarla explícitamente con `/nombre`."
+                ],
+                [
+                  "`description`",
+                  "✅ Sí",
+                  "Lo que Claude lee para decidir si activarla. Máx. ~100 palabras. **El campo más importante**."
+                ],
+                [
+                  "`argument-hint`",
+                  "No",
+                  "Hint del argumento esperado. Convierte la skill en herramienta con parámetro (`$ARGUMENTS`)."
+                ],
+                [
+                  "`context`",
+                  "No",
+                  "`fork` para ejecutar en subagente con contexto aislado."
+                ],
+                [
+                  "`agent`",
+                  "No",
+                  "Tipo de subagente a usar cuando `context: fork` (ej: `Explore`)."
+                ],
+                [
+                  "`allowed-tools`",
+                  "No",
+                  "Herramientas pre-aprobadas para que Claude no pida permiso al usarlas."
+                ],
+                [
+                  "`disable-model-invocation`",
+                  "No",
+                  "`true` para skills manuales: solo se activan con `/nombre`, nunca automáticamente."
+                ],
+                [
+                  "`compatibility`",
+                  "No",
+                  "Herramientas requeridas para que la skill funcione correctamente."
+                ],
+                [
+                  "`model`",
+                  "No",
+                  "Modelo específico a usar para esta skill."
+                ],
+                [
+                  "`effort`",
+                  "No",
+                  "Nivel de esfuerzo para la tarea (low, medium, high)."
+                ]
+              ]
+            },
+            {
+              "type": "callout",
+              "variant": "tip",
+              "title": "El campo más importante",
+              "content": "El campo `description` es el **único mecanismo que determina si Claude activa la skill**. Todos los demás campos son configuración; `description` es la llave que abre o cierra la skill."
+            }
+          ]
+        },
+        {
+          "id": "ski-003",
+          "title": "Progressive Disclosure",
+          "blocks": [
+            {
+              "type": "text",
+              "content": "**Progressive Disclosure** es un principio de diseño que carga información en **capas sucesivas**, revelando solo lo necesario en cada momento. La idea: no muestres todo de una vez; muestra lo básico siempre, lo específico cuando se necesita, y lo detallado solo a pedido."
+            },
+            {
+              "type": "text",
+              "content": "En una skill, Progressive Disclosure significa: el `name` y `description` siempre presentes (Claude puede decidir si usarla), el cuerpo del `SKILL.md` carga al activarla (Claude ya decidió usarla y necesita las instrucciones), y las referencias, scripts y assets se cargan bajo demanda (solo si Claude los necesita para completar la tarea)."
+            },
+            {
+              "type": "text",
+              "content": "**Por qué importa:** La ventana de contexto de Claude es finita. Si tuvieras 20 skills y cada una cargara todo su contenido en cada sesión, no quedaría espacio para la conversación real. Progressive Disclosure garantiza que solo lo imprescindible está siempre presente, y el resto aparece justo cuando hace falta. Esto maximiza el espacio para razonamiento y conversación."
+            },
+            {
+              "type": "table",
+              "headers": [
+                "Nivel",
+                "Qué se carga",
+                "Cuándo",
+                "Tokens aprox."
+              ],
+              "rows": [
+                [
+                  "1 — Siempre",
+                  "`name` + `description`",
+                  "Al inicio de cada sesión, sin excepción",
+                  "~100 tokens por skill"
+                ],
+                [
+                  "2 — Al activar",
+                  "Cuerpo completo del `SKILL.md`",
+                  "Cuando Claude decide usar la skill o vos la invocás con `/nombre`",
+                  "< 500 líneas ideal"
+                ],
+                [
+                  "3 — A demanda",
+                  "Scripts, `references/`, `assets/`",
+                  "Solo cuando el SKILL.md instruye cargarlos explícitamente",
+                  "Sin límite (controlado por vos)"
+                ]
+              ]
+            },
+            {
+              "type": "text",
+              "content": "El nivel 3 es la clave del diseño eficiente: si tu skill maneja múltiples clouds (AWS, GCP, Azure), no metés toda esa documentación en `SKILL.md`. Creás `references/aws.md`, `references/gcp.md`, `references/azure.md`, y en el cuerpo escribís *\"si el usuario menciona AWS, leé references/aws.md antes de continuar\"*. Solo el archivo relevante se carga, solo cuando se usa."
+            },
+            {
+              "type": "callout",
+              "variant": "warning",
+              "title": "Error frecuente: meter todo en SKILL.md",
+              "content": "Un SKILL.md de 1000 líneas carga completo cada vez que la skill se activa — aunque solo uses el 10% en esa sesión. Resultado: consume tokens que necesitás para el historial y el razonamiento. Si el cuerpo supera 500 líneas, es señal de que algo debe moverse a `references/`."
+            },
+            {
+              "type": "callout",
+              "variant": "info",
+              "title": "Analogía: el índice de un libro",
+              "content": "El nivel 1 (name + description) es la tapa del libro — siempre visible. El nivel 2 (SKILL.md) es el capítulo relevante que abrís cuando lo necesitás. El nivel 3 (references, scripts, assets) son los apéndices técnicos que consultás solo para casos específicos. Nadie lee los apéndices antes de saber si el libro es el correcto."
+            }
+          ]
+        },
+        {
+          "id": "ski-004",
+          "title": "Cómo se activa una Skill",
+          "blocks": [
+            {
+              "type": "text",
+              "content": "Claude activa una skill por **similitud semántica**: compara el pedido del usuario con la `description` de cada skill disponible. No hay palabras clave exactas ni reglas de matching — es evaluación semántica."
+            },
+            {
+              "type": "callout",
+              "variant": "warning",
+              "title": "Undertriggering: el problema más común",
+              "content": "Claude suele **no usar** skills cuando podría. Descripciones genéricas o vagas generan undertriggering. La solución son descripciones más explícitas e \"insistentes\" sobre cuándo activar la skill."
+            },
+            {
+              "type": "text",
+              "content": "La `description` debe ser directiva, no solo descriptiva. En lugar de explicar qué hace la skill, debe decirle a Claude **cuándo usarla**:"
+            },
+            {
+              "type": "code",
+              "lang": "yaml",
+              "label": "❌ Descripción vaga — produce undertriggering",
+              "content": "description: |\n  Ayuda a crear documentos Word."
+            },
+            {
+              "type": "code",
+              "lang": "yaml",
+              "label": "✅ Descripción explícita — activa de forma confiable",
+              "content": "description: |\n  Usá esta skill siempre que el usuario mencione Word, .docx,\n  documento para descargar, informe, carta o memo.\n  Incluso si no dice 'Word' explícitamente — si quiere algo\n  que parece un documento formal, usá esta skill."
+            },
+            {
+              "type": "callout",
+              "variant": "tip",
+              "title": "Incluí frases disparadoras explícitas",
+              "content": "Listá las frases, palabras clave y contextos que deben activar la skill. Cuanto más específica sea la descripción, más confiable es el triggering."
+            }
+          ]
+        },
+        {
+          "id": "ski-005",
+          "title": "Patrones de diseño para Skills",
+          "blocks": [
+            {
+              "type": "text",
+              "content": "Hay cuatro patrones principales para estructurar una skill. La elección depende del tipo de tarea y de cómo se maneja el contexto:"
+            },
+            {
+              "type": "cards",
+              "items": [
+                {
+                  "title": "Router Pattern",
+                  "content": "El `SKILL.md` actúa como árbol de decisión y apunta al archivo correcto en `references/`. Ideal para multi-cloud, multi-framework o cuando hay variantes según el contexto del usuario."
+                },
+                {
+                  "title": "Script Pattern",
+                  "content": "El `SKILL.md` instruye a Claude que ejecute un script en `scripts/`. Ideal para tareas determinísticas y repetitivas con lógica concreta que no debería vivir en el texto de la skill."
+                },
+                {
+                  "title": "Template Pattern",
+                  "content": "Incluye assets (templates `.docx`, `.pptx`, `.csv`) en `assets/` como base. Ideal para garantizar consistencia de output y estructura fija entre distintos usos."
+                },
+                {
+                  "title": "Chaining Pattern",
+                  "content": "Una skill instruye a usar otra skill. Permite composición de comportamientos, pero requiere cuidado: la complejidad puede crecer rápido y generar contexto redundante."
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "ski-006",
+          "title": "Qué sale mal y por qué",
+          "blocks": [
+            {
+              "type": "text",
+              "content": "Los errores más comunes al diseñar skills tienen patrones predecibles. Conocerlos permite evitarlos desde el diseño inicial:"
+            },
+            {
+              "type": "table",
+              "headers": [
+                "Error",
+                "Impacto",
+                "Solución"
+              ],
+              "rows": [
+                [
+                  "Descripción vaga",
+                  "La skill nunca se activa (undertriggering)",
+                  "Ser explícito sobre frases y contextos que deben activarla"
+                ],
+                [
+                  "`SKILL.md` de 1000+ líneas",
+                  "Consume contexto innecesariamente en toda tarea larga",
+                  "Mover a `references/`, mantener máx. 500 líneas"
+                ],
+                [
+                  "Skills para tareas simples",
+                  "Overhead innecesario sin beneficio real",
+                  "Usar skills solo para resolver lo que Claude no maneja bien por sí solo"
+                ],
+                [
+                  "Sin ejemplos de output",
+                  "Output inconsistente entre usos distintos",
+                  "Incluir un ejemplo del resultado \"perfecto\" en el cuerpo de la skill"
+                ],
+                [
+                  "Violar el principio no-sorpresa",
+                  "Efectos colaterales inesperados, desconfianza del usuario",
+                  "La skill debe hacer exactamente lo que su descripción promete"
+                ]
+              ]
+            }
+          ]
+        },
+        {
+          "id": "ski-007",
+          "title": "Evaluación y optimización de Skills",
+          "blocks": [
+            {
+              "type": "text",
+              "content": "Una skill sin evaluación es una hipótesis. El proceso de evaluación tiene cuatro fases que determinan si la skill realmente mejora los resultados respecto a no tenerla:"
+            },
+            {
+              "type": "steps",
+              "items": [
+                {
+                  "title": "Escribir test cases realistas",
+                  "content": "2-3 prompts representativos del uso real, guardados en `evals/evals.json`. Evitar prompts simples de 1 paso que no activan el razonamiento."
+                },
+                {
+                  "title": "Correr con-skill y sin-skill en paralelo",
+                  "content": "misma tarea al mismo tiempo. Mide el uplift real, no el rendimiento absoluto."
+                },
+                {
+                  "title": "Agregar assertions verificables",
+                  "content": "deben ser objetivamente verificables: \"el archivo existe\", \"tiene 5 columnas\", \"corre en <30 segundos\". No subjetivos: \"parece profesional\"."
+                },
+                {
+                  "title": "Review humano ANTES de que Claude corrija",
+                  "content": "el evaluador humano revisa los outputs lado a lado primero. Solo después Claude propone mejoras. Este orden es crítico."
+                }
+              ]
+            },
+            {
+              "type": "callout",
+              "variant": "warning",
+              "title": "El orden importa: humano primero",
+              "content": "Si dejás que Claude proponga mejoras antes del review humano, optimiza hacia lo que Claude cree que es bueno — no hacia lo que el usuario necesita. El review humano primero es el paso más importante del proceso de evaluación."
+            },
+            {
+              "type": "text",
+              "content": "**Optimización automática de la `description`:** disponible en Claude Code, permite mejorar el triggering usando un eval set de ~20 queries."
+            },
+            {
+              "type": "steps",
+              "items": [
+                {
+                  "title": "Preparar eval set: ~10 queries que deberían activar la skill, ~10 que no deberían",
+                  "content": ""
+                },
+                {
+                  "title": "El optimizador divide 60% train / 40% test para evitar overfitting",
+                  "content": ""
+                },
+                {
+                  "title": "Evalúa la descripción actual (3 runs por query para estabilidad estadística)",
+                  "content": ""
+                },
+                {
+                  "title": "Claude propone mejoras basadas en los fallos del set de entrenamiento",
+                  "content": ""
+                },
+                {
+                  "title": "Re-evalúa en el set de test, repite hasta max-iterations (máx. 5)",
+                  "content": ""
+                },
+                {
+                  "title": "Devuelve la `best_description` según el test score",
+                  "content": "no el train score"
+                }
+              ]
+            },
+            {
+              "type": "callout",
+              "variant": "info",
+              "title": "¿Por qué 60/40 y 3 runs?",
+              "content": "El 60/40 evita overfitting al set de entrenamiento. Los 3 runs por query compensan la varianza natural del triggering — Claude no siempre activa la misma skill ante el mismo prompt exacto."
+            }
+          ]
+        },
+        {
+          "id": "ski-008",
+          "title": "Skills, Contexto y Subagentes",
+          "blocks": [
+            {
+              "type": "text",
+              "content": "Cuando Claude Code crea un subagente, ese subagente **hereda el contexto de skills del agente principal**. Esto tiene implicaciones importantes para el diseño de sistemas con múltiples agentes."
+            },
+            {
+              "type": "callout",
+              "variant": "info",
+              "title": "Cómo funciona la herencia",
+              "content": "Cuando una skill se activa en el agente principal, su `SKILL.md` se inyecta en el contexto. Los subagentes creados con `Task` heredan ese contexto completo — incluyendo las skills activas. Esto puede generar **redundancia de instrucciones**: el subagente recibe instrucciones que quizás no necesita."
+            },
+            {
+              "type": "cards",
+              "items": [
+                {
+                  "title": "Por qué importa el límite de 500 líneas",
+                  "content": "Si la skill activa tiene 1000 líneas y creás 3 subagentes en paralelo, cada uno lleva esas 1000 líneas en su contexto. El costo se multiplica. Skills lean = subagentes con más espacio para razonar."
+                },
+                {
+                  "title": "context: fork como alternativa",
+                  "content": "Usar `context: fork` en el frontmatter crea un subagente con **contexto aislado** — no hereda las skills del padre. Ideal para investigaciones que no necesitan instrucciones del contexto principal."
+                },
+                {
+                  "title": "Principio central",
+                  "content": "El contexto es el recurso más escaso. Cuanto más lean sea cada skill, más espacio tienen los subagentes para explorar, investigar y razonar."
+                }
+              ]
+            },
+            {
+              "type": "callout",
+              "variant": "tip",
+              "title": "Regla práctica",
+              "content": "Si una skill va a ser usada frecuentemente en contextos con subagentes, priorizá la brevedad sobre la completitud. Lo que no entra en `SKILL.md` puede ir en `references/` y cargarse solo cuando se necesita."
+            }
+          ]
+        },
+        {
+          "id": "ski-009",
+          "title": "Cómo escribir instrucciones que funcionen",
+          "blocks": [
+            {
+              "type": "text",
+              "content": "La calidad de las instrucciones en el cuerpo del `SKILL.md` determina la calidad del output. Cuatro principios guían la escritura efectiva de instrucciones para Claude:"
+            },
+            {
+              "type": "cards",
+              "items": [
+                {
+                  "title": "Usá imperativo, no sugerencias",
+                  "content": "\"Leé el archivo de configuración\" en lugar de \"Podrías considerar leer el archivo\". Claude responde mejor a instrucciones directas y definitivas."
+                },
+                {
+                  "title": "Explicá el por qué",
+                  "content": "Los razonamientos funcionan mejor que los mandatos ciegos. \"Validá con Zod porque los errores de tipo deben fallar en la capa de entrada\" genera mejor comportamiento que solo \"Usá siempre Zod\"."
+                },
+                {
+                  "title": "Sé específico sobre el output",
+                  "content": "Especificá formato, estructura y nombre de archivos esperados. No asumas que Claude inferirá el formato correcto — dilo explícitamente."
+                },
+                {
+                  "title": "Cubrí los casos borde",
+                  "content": "¿Qué pasa si el archivo no existe? ¿Si el input está vacío? ¿Si hay ambigüedad en el pedido? Las skills robustas anticipan y responden a los casos de borde."
+                }
+              ]
+            },
+            {
+              "type": "callout",
+              "variant": "tip",
+              "title": "Incluí un ejemplo de output perfecto",
+              "content": "Mostrar cómo se ve el output esperado — formato, estructura, nivel de detalle — es más efectivo que describir los criterios abstractamente. Claude calibra el output según el ejemplo."
+            }
+          ]
+        },
+        {
+          "id": "ski-010",
+          "title": "Lo que definitivamente necesitás saber",
+          "blocks": [
+            {
+              "type": "text",
+              "content": "Conceptos clave para el examen y la práctica:"
+            },
+            {
+              "type": "cards",
+              "items": [
+                {
+                  "title": "El `description` es la llave",
+                  "content": "Es el único mecanismo de trigger. Todos los demás campos son configuración — la descripción abre o cierra la skill."
+                },
+                {
+                  "title": "Progressive disclosure en 3 capas",
+                  "content": "Metadata siempre visible → SKILL.md al activar → recursos según necesidad. Maximiza eficiencia de contexto."
+                },
+                {
+                  "title": "500 líneas: el límite práctico",
+                  "content": "El SKILL.md no debería superar 500 líneas. Más que eso → agregar jerarquía con references/."
+                },
+                {
+                  "title": "Scripts no consumen contexto inicial",
+                  "content": "Un script de 500 líneas en `scripts/` está fuera del contexto hasta ejecutarse. La skill sí consume contexto permanentemente."
+                },
+                {
+                  "title": "Undertriggering es el problema #1",
+                  "content": "Descripciones vagas hacen que Claude no use las skills. Solución: ser explícito sobre cuándo activarlas."
+                },
+                {
+                  "title": "Eval con-skill vs sin-skill",
+                  "content": "Mide el uplift real corriendo ambas en paralelo. El baseline es lo más importante."
+                },
+                {
+                  "title": "Review humano antes de mejorar",
+                  "content": "El humano revisa los outputs lado a lado primero. Recién después Claude propone mejoras. Este orden es crítico."
+                },
+                {
+                  "title": "Optimización de descripción es 60/40",
+                  "content": "Divide el eval set en 60% train / 40% test para evitar overfitting. Itera máx. 5 veces."
+                },
+                {
+                  "title": "Contexto: el recurso más escaso",
+                  "content": "Toda decisión de diseño en una skill es una decisión sobre context window management."
+                },
+                {
+                  "title": "Principio de no-sorpresa",
+                  "content": "La skill debe hacer exactamente lo que su descripción promete, sin efectos colaterales inesperados."
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "ski-011",
+          "title": "El loop de mejora continua",
+          "blocks": [
+            {
+              "type": "text",
+              "content": "Una skill no se escribe una sola vez. El proceso de creación es un ciclo que solo termina cuando el output es consistentemente bueno en prompts reales y variados."
+            },
+            {
+              "type": "steps",
+              "items": [
+                {
+                  "title": "Draft de la skill",
+                  "content": "Entender el intent del usuario, hacer preguntas sobre edge cases y output esperado. Escribir un primer SKILL.md. Revisar con \"ojos frescos\" — ¿hay algo que sorprendería al usuario?"
+                },
+                {
+                  "title": "Test cases + runs en paralelo",
+                  "content": "Escribir 2-3 prompts realistas. Lanzar *simultáneamente* el run con-skill y baseline (sin-skill). Mientras corren, escribir assertions. Capturar `total_tokens` y `duration_ms`."
+                },
+                {
+                  "title": "Review humano ANTES de que Claude corrija",
+                  "content": "Este paso es crítico. El eval viewer muestra outputs lado a lado. El humano revisa y deja feedback. Recién después Claude propone mejoras."
+                },
+                {
+                  "title": "Mejorar la skill (con criterio)",
+                  "content": "Generalizar desde el feedback, no parchear solo para los test cases. Si la mejora solo funciona en esos ejemplos específicos, está overfitteada."
+                },
+                {
+                  "title": "Salir del loop cuando",
+                  "content": "El usuario dice que está satisfecho · Todo el feedback de test cases está vacío · No hay progreso significativo entre iteraciones"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "ski-012",
+          "title": "Cómo pensar las mejoras",
+          "blocks": [
+            {
+              "type": "text",
+              "content": "Hay diferencia importante entre parchear una skill para que pase los tests y mejorarla genuinamente."
+            },
+            {
+              "type": "cards",
+              "items": [
+                {
+                  "title": "Leer las transcripciones, no solo los outputs",
+                  "content": "Si la skill hace que el modelo pierda tiempo en pasos improductivos, se ve en la transcripción. Un output correcto puede haberle costado 10 pasos innecesarios. Eliminarlos ahorra tokens."
+                },
+                {
+                  "title": "Detectar trabajo que se repite entre test cases",
+                  "content": "Si los tres subagentes escribieron independientemente un script similar (build_chart.py, create_table.py), eso es una señal clara: ese script debería estar en `scripts/` de la skill."
+                },
+                {
+                  "title": "Mantener la skill lean",
+                  "content": "Preguntate: ¿hay instrucciones que no están pulling their weight? Una instrucción que nadie viola y que el modelo hubiera seguido de todas formas es overhead. Eliminarla hace la skill más clara."
+                },
+                {
+                  "title": "Usar teoría de la mente, no reglas rígidas",
+                  "content": "Si el feedback es frustrante, intenta entender qué necesita realmente el usuario. Los modelos responden mejor a razonamientos que a mandatos. Si escribís `ALWAYS` en mayúsculas, reconsidera."
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "ski-013",
+          "title": "Optimización automática de descripción",
+          "blocks": [
+            {
+              "type": "text",
+              "content": "Cuando la skill funciona bien en términos de output, el siguiente problema es el **triggering**: ¿Claude la usa cuando debería? Existe un proceso automatizado para optimizar la `description` — solo disponible en Claude Code."
+            },
+            {
+              "type": "text",
+              "content": "**Paso 1 — Construir el eval set de triggering (~20 queries):**"
+            },
+            {
+              "type": "steps",
+              "items": [
+                {
+                  "title": "~10 queries que **deben** activar la skill",
+                  "content": "casos donde claramente es la herramienta correcta"
+                },
+                {
+                  "title": "~10 queries que **no deben** activarla",
+                  "content": "casos donde Claude debería elegir otra cosa"
+                },
+                {
+                  "title": "Las queries deben ser realistas y detalladas",
+                  "content": "no simples como \"Format this data\""
+                },
+                {
+                  "title": "Los más valiosos: **near-misses**",
+                  "content": "queries con keywords iguales pero intent distinto"
+                }
+              ]
+            },
+            {
+              "type": "text",
+              "content": "**Paso 2 — El loop de optimización:**"
+            },
+            {
+              "type": "steps",
+              "items": [
+                {
+                  "title": "Divide el set: 60% training / 40% test (evita overfitting)",
+                  "content": ""
+                },
+                {
+                  "title": "Evalúa la descripción actual: 3 runs por query (estabiliza la varianza de triggering)",
+                  "content": ""
+                },
+                {
+                  "title": "Identifica fallos en el training set",
+                  "content": ""
+                },
+                {
+                  "title": "Claude propone mejoras a la descripción basadas en los fallos",
+                  "content": ""
+                },
+                {
+                  "title": "Re-evalúa la descripción propuesta en el **test set**",
+                  "content": "no en training"
+                },
+                {
+                  "title": "Si test score mejora, acepta. Repite hasta 5 iteraciones o sin progreso",
+                  "content": ""
+                }
+              ]
+            },
+            {
+              "type": "callout",
+              "variant": "info",
+              "title": "¿Por qué 60/40 y 3 runs?",
+              "content": "**60/40:** si optimizás solo con training, la descripción se especializa para esos 12 queries y falla en el resto. El test set detecta eso.\n**3 runs por query:** el triggering tiene varianza natural — Claude no activa siempre la misma skill ante el mismo prompt. 3 runs estabilizan la señal."
+            }
+          ]
+        },
+        {
+          "id": "ski-014",
+          "title": "Comportamiento según entorno",
+          "blocks": [
+            {
+              "type": "text",
+              "content": "Las skills funcionan distinto según dónde se usen. Aquí está el comportamiento esperado en cada entorno:"
+            },
+            {
+              "type": "table",
+              "headers": [
+                "Característica",
+                "Claude Code",
+                "Claude.ai",
+                "Cowork"
+              ],
+              "rows": [
+                [
+                  "¿Se activan automáticamente?",
+                  "Sí (por `description`)",
+                  "Sí (por `description`)",
+                  "Sí (por `description`)"
+                ],
+                [
+                  "¿Se invocan con /nombre?",
+                  "Sí",
+                  "No",
+                  "Sí"
+                ],
+                [
+                  "¿Cargan `references/`?",
+                  "Sí",
+                  "Sí",
+                  "Sí"
+                ],
+                [
+                  "¿Pueden ejecutar scripts?",
+                  "Sí",
+                  "No",
+                  "Sí"
+                ],
+                [
+                  "¿Tienen contexto: fork?",
+                  "Sí",
+                  "No",
+                  "Sí"
+                ],
+                [
+                  "¿Pueden usar allowed-tools?",
+                  "Sí",
+                  "No",
+                  "No"
+                ],
+                [
+                  "Límite de contexto por skill",
+                  "~5000 tokens",
+                  "~3000 tokens",
+                  "~5000 tokens"
+                ],
+                [
+                  "Atención en sesiones largas",
+                  "Alta (al inicio)",
+                  "Media (a mitad)",
+                  "Alta (al inicio)"
+                ]
+              ]
+            },
+            {
+              "type": "callout",
+              "variant": "warning",
+              "title": "Skills diseñadas para Code pueden no funcionar en Claude.ai",
+              "content": "Si usás `context: fork`, scripts ejecutables o `allowed-tools`, la skill solo funcionará bien en Claude Code. En Claude.ai, esas features no están disponibles — la skill se \"degrada\" a solo instrucciones de texto."
+            }
+          ]
+        },
+        {
+          "id": "ski-015",
+          "title": "Qué hace una buena assertion",
+          "blocks": [
+            {
+              "type": "text",
+              "content": "Una buena assertion es verificable objetivamente. No puede ser \"se ve bien\" o \"parece profesional\" — debe ser algo que se pueda medir o confirmar sin ambigüedad."
+            },
+            {
+              "type": "cards",
+              "items": [
+                {
+                  "title": "Assertions buenas",
+                  "content": "\"El archivo .docx existe y tiene > 100 palabras\"\n\"El output contiene sección 'Executive Summary'\"\n\"No hay errores de compilación\"\n\"La respuesta se generó en < 30 segundos\"\n\"El JSON es válido y schema-compliant\""
+                },
+                {
+                  "title": "Assertions malas",
+                  "content": "\"El resultado parece bueno\"\n\"Es profesional\"\n\"Se ve correcto\"\n\"Funciona como debería\"\n\"Está bien escrito\""
+                }
+              ]
+            },
+            {
+              "type": "text",
+              "content": "La mejor forma de escribir assertions: preguntate \"¿puede un programa verificar esto sin consultar a un humano?\" Si la respuesta es sí, es una buena assertion."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "skills-avanzadas",
+      "title": "Skills Avanzadas — Producción",
+      "articles": [
+        {
+          "id": "ski-016",
+          "title": "Actualizar una Skill existente",
+          "blocks": [
+            {
+              "type": "text",
+              "content": "Una skill en producción cambia con el tiempo. Entender cómo actualizarla sin romper flujos existentes es crítico."
+            },
+            {
+              "type": "steps",
+              "items": [
+                {
+                  "title": "Antes de cambiar",
+                  "content": "Revisa si hay usuarios dependiendo de ella. Comunica cambios que afecten la `description` (pueden cambiar el triggering)."
+                },
+                {
+                  "title": "Cambios seguros",
+                  "content": "Mejorar instrucciones, agregar ejemplos, referenciar archivos nuevos en `references/`, actualizar versión en frontmatter."
+                },
+                {
+                  "title": "Cambios que requieren cuidado",
+                  "content": "Cambiar el `name` (rompe invocaciones explícitas), cambiar la `description` (puede afectar triggering), eliminar campos del frontmatter."
+                },
+                {
+                  "title": "Testing antes de push",
+                  "content": "Corre los evals existentes con la nueva versión. Si el uplift se mantiene, está seguro hacer push."
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "ski-017",
+          "title": "Packaging: de directorio a .skill",
+          "blocks": [
+            {
+              "type": "text",
+              "content": "Para compartir una skill entre proyectos o equipos, se puede empaquetar en un archivo `.skill`. Es un tarball con estructura estándar."
+            },
+            {
+              "type": "code",
+              "lang": "bash",
+              "label": "Crear un .skill",
+              "content": "# Desde el directorio .claude/skills/\ntar -czf my-skill.skill my-skill/\n\n# Instalar en otro proyecto\ntar -xzf my-skill.skill -C .claude/skills/"
+            },
+            {
+              "type": "text",
+              "content": "El `.skill` debería incluir: SKILL.md, scripts/, references/, assets/, y un archivo README.md con instrucciones de uso."
+            }
+          ]
+        },
+        {
+          "id": "ski-018",
+          "title": "Skills y la ventana de contexto",
+          "blocks": [
+            {
+              "type": "text",
+              "content": "Cada skill activa compite con otros elementos por espacio en la ventana de contexto. Entender este stack es fundamental para diseñar skills que funcionen bien en sesiones largas:"
+            },
+            {
+              "type": "table",
+              "headers": [
+                "Elemento",
+                "Tokens aprox."
+              ],
+              "rows": [
+                [
+                  "System prompt + `CLAUDE.md`",
+                  "~500–2000"
+                ],
+                [
+                  "Metadata de todas las skills (`name` + `description`)",
+                  "~100 por skill"
+                ],
+                [
+                  "Cuerpo del `SKILL.md` activo",
+                  "< 500 líneas ideal"
+                ],
+                [
+                  "Historial de conversación",
+                  "Crece con el tiempo"
+                ],
+                [
+                  "Resultados de herramientas (bash output, archivos)",
+                  "Variable"
+                ],
+                [
+                  "Referencias cargadas a demanda",
+                  "Variable"
+                ],
+                [
+                  "**Espacio libre para razonamiento**",
+                  "**Lo que sobra de todo lo anterior**"
+                ]
+              ]
+            },
+            {
+              "type": "callout",
+              "variant": "tip",
+              "title": "Scripts vs instrucciones en SKILL.md",
+              "content": "Un script Python de 500 líneas **no consume nada de contexto** hasta que se ejecuta — solo el output entra al contexto. Una skill de 500 líneas en `SKILL.md` consume contexto permanentemente mientras está activa. Para lógica compleja, preferí scripts en `scripts/`."
+            },
+            {
+              "type": "callout",
+              "variant": "info",
+              "title": "Regla de oro: mantener las skills magras",
+              "content": "A 400 líneas de `SKILL.md`, bien. A 600 líneas, considerá refactorizar. A 800, refactorizá. A 1200+, el comportamiento en sesiones largas empieza a degradarse porque el contexto libre se agota antes de que el agente termine su trabajo."
+            }
+          ]
+        },
+        {
+          "id": "ski-019",
+          "title": "Principios que no se negocian",
+          "blocks": [
+            {
+              "type": "text",
+              "content": "Algunos principios son no-negociables en design de skills, sin excepciones:"
+            },
+            {
+              "type": "cards",
+              "items": [
+                {
+                  "title": "Principio de mínima sorpresa",
+                  "content": "Una skill debe hacer **exactamente** lo que su descripción promete. Sin efectos colaterales, sin cambios de comportamiento invisibles, sin cambios al sistema que el usuario no espere."
+                },
+                {
+                  "title": "Descripciones explícitas",
+                  "content": "Jamás confíes en que Claude va a intuir cuándo usar la skill. Sé literal: \"Usá cuando...\", \"Incluso si...\", \"Bajo ninguna circunstancia...\"."
+                },
+                {
+                  "title": "Testing es no-opcional",
+                  "content": "Una skill sin evals es una apuesta. Si no mediste que funciona mejor que la alternativa, no la pongas en producción."
+                },
+                {
+                  "title": "Fallbacks en todo lo importante",
+                  "content": "Si tu skill ejecuta un script, ¿qué pasa si falla? Si llama una API, ¿qué pasa si el servidor no está? Plan B es obligatorio."
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "ski-020",
+          "title": "Todo el modelo mental en una página",
+          "blocks": [
+            {
+              "type": "text",
+              "content": "Si tuvieras que resumir todo el conocimiento sobre skills en cuatro dimensiones, sería esto:"
+            },
+            {
+              "type": "cards",
+              "items": [
+                {
+                  "title": "Estructura",
+                  "content": "Directorio con `SKILL.md` + `scripts/` + `references/` + `assets/`. Frontmatter YAML + cuerpo Markdown. Límite: 500 líneas en `SKILL.md`. Scripts ejecutables sin consumir contexto permanente."
+                },
+                {
+                  "title": "Activación",
+                  "content": "Solo la `description` determina el trigger — similitud semántica, no keywords exactas. Undertriggering es el problema más común: descripciones \"insistentes\" con frases explícitas. Optimización: 60/40 train/test, hasta 5 iteraciones."
+                },
+                {
+                  "title": "Evaluación",
+                  "content": "Con-skill y sin-skill en paralelo — mide uplift real. Review humano primero, siempre. Assertions verificables, no subjetivas. Feedback generalizado, no parcheado para tests específicos."
+                },
+                {
+                  "title": "Entornos",
+                  "content": "Claude Code: subagentes, scripts, context: fork, descripción optimizer. Claude.ai: secuencial, solo instrucciones de texto. Actualizar: preservar nombre, testear antes de push. Packaging .skill = entregable final."
+                }
+              ]
+            },
+            {
+              "type": "cards",
+              "items": [
+                {
+                  "title": "Skill de acceso a estado real",
+                  "content": "Inyecta datos dinámicos con `` !`comando` ``. Siempre consulta el sistema en tiempo real. Siempre incluye fallback si el servidor no está disponible. Ejemplo: `mission-status`."
+                },
+                {
+                  "title": "Skill de investigación especializada",
+                  "content": "Usa `context: fork` + `agent: Explore`. El contexto principal no se contamina. Define qué investigar (find, trace, map, identify, suggest) — no ejecuta cambios. Ejemplo: `investigate-scene`."
+                },
+                {
+                  "title": "Skill de automatización",
+                  "content": "Orquesta un script en `scripts/` que produce un artefacto real. `disable-model-invocation: true` para skills manuales. `allowed-tools` para pre-aprobar herramientas. Ejemplo: `telemetry-report`."
+                }
+              ]
+            },
+            {
+              "type": "callout",
+              "variant": "tip",
+              "title": "El principio que lo abraza todo",
+              "content": "**Contexto es escaso.** Cada decisión de diseño en una skill — cuántas líneas, qué va en SKILL.md vs en scripts, si usar context: fork o no — es una decisión sobre cómo gastar ese recurso bien."
+            }
+          ]
+        },
+        {
+          "id": "ski-021",
+          "title": "Tareas prácticas para alumnos",
+          "blocks": [
+            {
+              "type": "text",
+              "content": "Tres tareas para poner en práctica todo lo aprendido:"
+            },
+            {
+              "type": "cards",
+              "items": [
+                {
+                  "title": "Tarea 1: Skill básica con descripción fuerte",
+                  "content": "**Consigna:** Creá una skill para \"crear reportes ejecutivos en PDF\". Lo importante es la `description`: debe ser tan explícita que Claude la use cuando sea apropiado, pero no cuando no. Testear en 2-3 prompts y medir triggering.\n**Resolución esperada:** SKILL.md de ~100 líneas, descripción lista de frases disparadoras, evals mostrando cuando se activa y cuando no."
+                },
+                {
+                  "title": "Tarea 2: Skill con subagente",
+                  "content": "**Consigna:** Creá una skill que investigue el código del proyecto en profundidad. Debe usar `context: fork` y `agent: Explore`. El resultado debe ser un análisis real de las dependencias, no una salida genérica.\n**Resolución esperada:** SKILL.md con `context: fork`, 5-6 pasos de investigación claros, ejemplo de invocación con `/nombre \"topic\"`."
+                },
+                {
+                  "title": "Tarea 3: Skill que produce artefactos",
+                  "content": "**Consigna:** Creá una skill que genere algo tangible: un HTML, un CSV, un archivo de código. La skill debe orquestar un script, no hacer todo el trabajo sola.\n**Resolución esperada:** SKILL.md manual (`disable-model-invocation: true`), un script en `scripts/`, resultado que es un archivo real (no solo texto)."
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "ski-022",
+          "title": "La gran lección de skills avanzadas",
+          "blocks": [
+            {
+              "type": "text",
+              "content": "Después de las tres partes de skills avanzadas, la lección central no es memorizar sintaxis: es entender que una skill bien diseñada es un **multiplicador de capacidad**, no un prompt guardado."
+            },
+            {
+              "type": "cards",
+              "items": [
+                {
+                  "title": "mission-status enseñó",
+                  "content": "Inyectar contexto dinámico en ejecución con `` !`comando` ``. Una skill puede saber **ahora mismo** qué está pasando en el sistema — no solo lo que estaba hardcodeado cuando se escribió."
+                },
+                {
+                  "title": "investigate-scene enseñó",
+                  "content": "Aislar exploración profunda con `context: fork` y `agent: Explore`. El agente principal no se contamina. El subagente especializado investiga. Los resultados vuelven limpios."
+                },
+                {
+                  "title": "telemetry-report enseñó",
+                  "content": "Orquestar scripts que producen artefactos reales. La skill organiza, el script ejecuta, Claude interpreta. El output no tiene que ser texto — puede ser un archivo, un dashboard, una validación."
+                }
+              ]
+            },
+            {
+              "type": "callout",
+              "variant": "info",
+              "title": "La evolución que marca la diferencia",
+              "content": "Cuando dejás de pensar en skills como \"cosas que me ahorran tiempo escribiendo\" y empezás a verlas como \"la forma en que le doy superpoderes específicos a Claude en mi proyecto\", cambia cómo diseñás cada una. Esa es la diferencia entre alguien que usa Claude Code y alguien que lo domina."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "skills-dinamicas",
+      "title": "Skills Dinámicas en Práctica",
+      "articles": [
+        {
+          "id": "ski-023",
+          "title": "Capa de acceso a estado real",
+          "blocks": [
+            {
+              "type": "text",
+              "content": "Una skill dinámica no tiene datos fijos. En lugar de eso, ejecuta comandos en el momento en que se usa para inyectar el estado **actual** del sistema. Esto convierte una skill estática en una ventana al presente."
+            },
+            {
+              "type": "code",
+              "lang": "markdown",
+              "label": "Sintaxis de ejecución dinámica",
+              "content": "# Comando simple\n```!\ncurl -s http://localhost:3000/api/status\n```\n\n# Comando múltiple\n```!\ncomando 1\ncomando 2\ncomando 3\n```"
+            },
+            {
+              "type": "text",
+              "content": "La clave es que estos bloques se ejecutan **antes** de que el contenido se envíe a Claude. Eso significa que Claude ve datos frescos, no datos hardcodeados de hace una semana."
+            },
+            {
+              "type": "code",
+              "lang": "yaml",
+              "label": "SKILL.md — mission-status (ejemplo completo)",
+              "content": "---\nname: mission-status\ndescription: >\n  Show current Artemis II mission status with telemetry and\n  upcoming events. Use when asked about mission progress.\n---\n\n# Artemis II Mission Status\n\n## Current telemetry\n\n```!\ncurl -s http://localhost:3000/api/telemetry/current 2>/dev/null | jq . || echo \"Server not running\"\n```\n\n## Mission events timeline\n\n```!\ncurl -s http://localhost:3000/api/events 2>/dev/null | \\\n  jq '.[] | \"\\(.met) — \\(.title) [\\(.phase)]\"' || echo \"Server not running\"\n```\n\n## Upcoming events\n\n```!\ncurl -s http://localhost:3000/api/events/upcoming 2>/dev/null | jq '.[0:3]' || echo \"N/A\"\n```\n\n## What to summarize\n\n1. Current mission phase and elapsed time\n2. Spacecraft distance from Earth and Moon\n3. Current and next event\n4. Any notable observations or anomalies"
+            },
+            {
+              "type": "callout",
+              "variant": "tip",
+              "title": "Tres principios de esta skill",
+              "content": "1. La `description` dice qué hace **y cuándo activarla** — no es genérica.\n2. Los datos vienen del sistema **en tiempo real** — no son fijos.\n3. La sección final **dirige el razonamiento** — no solo vuelca datos crudos."
+            }
+          ]
+        },
+        {
+          "id": "ski-024",
+          "title": "Marco de investigación especializado",
+          "blocks": [
+            {
+              "type": "text",
+              "content": "Cuando una tarea requiere investigación profunda — buscar archivos, seguir dependencias, entender flujos complejos — tiene sentido aislar ese trabajo en un subagente. La skill actúa como playbook; el subagente ejecuta."
+            },
+            {
+              "type": "code",
+              "lang": "yaml",
+              "label": "Campos para ejecutar en subagente",
+              "content": "context: fork\nagent: Explore"
+            },
+            {
+              "type": "text",
+              "content": "**`context: fork`** — la skill se ejecuta en un hilo separado; la investigación no ensucia el contexto principal.\n**`agent: Explore`** — el trabajo lo hace el agente especializado en exploración de código, con sus propias herramientas de búsqueda."
+            },
+            {
+              "type": "code",
+              "lang": "yaml",
+              "label": "SKILL.md — investigate-scene",
+              "content": "---\nname: investigate-scene\ndescription: >\n  Deep investigation of the 3D scene code. Use when debugging\n  visual issues, understanding rendering pipeline, or planning\n  visual changes.\ncontext: fork\nagent: Explore\nargument-hint: \"<topic>\"\n---\n\n# Investigate 3D Scene: $ARGUMENTS\n\nResearch this aspect of the Artemis Tracker 3D scene:\n\n1. **Find relevant files** in `public/js/` and `src/data/`\n2. **Trace the rendering pipeline**: How does this visual element get from data → Three.js scene → screen?\n3. **Map dependencies**: What data does it need? What other scene elements does it interact with?\n4. **Identify issues**: Performance problems, visual bugs, missing features\n5. **Suggest improvements** with specific code references\n\nFocus on Three.js specifics: materials, geometries, shaders, animation loops."
+            },
+            {
+              "type": "callout",
+              "variant": "tip",
+              "title": "La skill es el playbook; el subagente ejecuta",
+              "content": "La skill define **qué investigar y cómo**. El subagente hace el trabajo de exploración en su propio contexto aislado. El resultado vuelve al contexto principal sin contaminarlo.\n\nInvocación: `/investigate-scene \"Earth atmosphere glow and Fresnel shading\"`"
+            }
+          ]
+        },
+        {
+          "id": "ski-025",
+          "title": "Interfaz de automatización",
+          "blocks": [
+            {
+              "type": "text",
+              "content": "El patrón más poderoso: una skill que no genera texto, sino que **orquesta un script externo** y produce un artefacto real (HTML, CSV, PDF). La skill actúa como interfaz limpia que oculta la complejidad operativa."
+            },
+            {
+              "type": "code",
+              "lang": "yaml",
+              "label": "SKILL.md — telemetry-report",
+              "content": "---\nname: telemetry-report\ndescription: Generate an HTML telemetry report for a mission phase\ndisable-model-invocation: true\nargument-hint: \"<phase>\"\nallowed-tools: Bash(python *) Bash(curl *)\n---\n\n# Telemetry Report for Phase: $ARGUMENTS\n\nGenerate an interactive HTML report showing telemetry data\nfor the \"$ARGUMENTS\" phase.\n\n```bash\npython ${CLAUDE_SKILL_DIR}/scripts/report.py \"$ARGUMENTS\"\n```\n\nOpen the generated file and describe the key insights\nfrom this mission phase."
+            },
+            {
+              "type": "text",
+              "content": "**Flujo completo:**\nIntención del usuario → Skill (orquesta) → Script Python (ejecuta lógica) → Artefacto HTML (resultado tangible) → Claude (interpreta y explica)\n\nCada capa hace lo que mejor sabe hacer."
+            },
+            {
+              "type": "cards",
+              "items": [
+                {
+                  "title": "Por qué no meter la lógica en SKILL.md",
+                  "content": "Menos mantenible, menos reutilizable, consume contexto permanentemente, más difícil de ampliar, imposible de testear de forma independiente."
+                },
+                {
+                  "title": "`disable-model-invocation: true`",
+                  "content": "Convierte la skill en manual: solo se activa con `/telemetry-report`, nunca automáticamente. Útil cuando la skill genera efectos secundarios (archivos, network calls)."
+                },
+                {
+                  "title": "`allowed-tools`",
+                  "content": "Pre-aprueba las herramientas que la skill necesita. El usuario no ve prompts de permiso cuando la skill ejecuta comandos ya autorizados."
+                },
+                {
+                  "title": "`${CLAUDE_SKILL_DIR}`",
+                  "content": "Variable de entorno que apunta al directorio de la skill. Permite al script encontrar sus dependencias sin paths hardcodeados."
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "ski-026",
+          "title": "Comparación: Reglas vs Skills vs Subagentes",
+          "blocks": [
+            {
+              "type": "text",
+              "content": "Los tres mecanismos (reglas globales, reglas por ruta, skills) resuelven problemas distintos. La elección correcta depende de cuándo se necesita el conocimiento y cómo se activa:"
+            },
+            {
+              "type": "table",
+              "headers": [
+                "Característica",
+                "Regla Global",
+                "Regla por Ruta",
+                "Skill"
+              ],
+              "rows": [
+                [
+                  "¿Cuándo carga?",
+                  "Siempre, al inicio",
+                  "Al tocar archivo coincidente",
+                  "Al ser invocada"
+                ],
+                [
+                  "Tipo de activación",
+                  "Automática",
+                  "Mecánica · glob pattern",
+                  "Semántica · pedido del usuario"
+                ],
+                [
+                  "Posición en contexto",
+                  "Al principio ✅",
+                  "Al principio ✅",
+                  "A mitad de conversación"
+                ],
+                [
+                  "Frontmatter",
+                  "Sin frontmatter",
+                  "`paths: [globs]`",
+                  "`name:` + `description:`"
+                ],
+                [
+                  "Uso ideal",
+                  "Estándares universales",
+                  "Convenciones por capa",
+                  "Flujos de trabajo"
+                ],
+                [
+                  "Invocación explícita",
+                  "No aplica",
+                  "No aplica",
+                  "Sí: `/nombre`"
+                ],
+                [
+                  "Ejemplo",
+                  "\"Siempre TypeScript estricto\"",
+                  "\"En src/api/**: validar con Zod\"",
+                  "\"Hacer code review completo\""
+                ]
+              ]
+            },
+            {
+              "type": "callout",
+              "variant": "tip",
+              "title": "Regla simple de decisión",
+              "content": "¿Siempre aplica, sin excepción? → **Regla global**\n¿Solo aplica cuando trabajo con ciertos archivos? → **Regla por ruta**\n¿Se necesita solo para ciertas tareas específicas? → **Skill**"
+            },
+            {
+              "type": "text",
+              "content": "**Sobre subagentes:** Los subagentes no son un reemplazo de skills. Una skill puede ejecutarse en un subagente (con `context: fork`), pero eso es un detalles implementativo. La decisión principal es: ¿necesito aislar el contexto de este trabajo? Si sí, usa `context: fork`."
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

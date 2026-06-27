@@ -1,0 +1,325 @@
+{
+  "id": "sistema-de-memoria",
+  "title": "Sistema de Memoria",
+  "summary": "Cómo Claude aprende entre sesiones con CLAUDE.md, Auto Memory, Session Memory y Auto Dream",
+  "sections": [
+    {
+      "title": "Sistema de Memoria de Claude Code",
+      "articles": [
+        {
+          "id": "memoria-overview",
+          "title": "El sistema de memoria de Claude Code",
+          "summary": "Cómo Claude aprende de tus sesiones, organiza el conocimiento y lo consolida automáticamente — de manera que no tenés que explicar lo mismo dos veces.",
+          "source": null,
+          "subsections": [
+            {
+              "title": "Las cuatro capas",
+              "blocks": [
+                {
+                  "type": "text",
+                  "content": "Claude Code usa cuatro mecanismos complementarios para mantener contexto entre sesiones. Cada capa tiene un ritmo de escritura diferente y un alcance distinto. La configuración más robusta usa las cuatro simultáneamente."
+                },
+                {
+                  "type": "cards",
+                  "items": [
+                    {
+                      "title": "📄 CLAUDE.md",
+                      "body": "Lo escribís vos. Reglas autoritativas que se cargan al inicio de cada sesión. Definen qué Claude debe siempre recordar de tu proyecto o equipo."
+                    },
+                    {
+                      "title": "✏️ Auto Memory",
+                      "body": "Lo escribe Claude. Acumula conocimiento entre sesiones sin que vos escribas nada — comandos, patrones, preferencias que descubre mientras trabaja."
+                    },
+                    {
+                      "title": "🔄 Session Memory",
+                      "body": "Dentro de la sesión. Mantiene coherencia durante conversaciones largas o con compactación de contexto."
+                    },
+                    {
+                      "title": "🌙 Auto Dream",
+                      "body": "Consolida todo. Proceso en background que limpia, deduplica y organiza las otras capas cuando acumulan suficiente material."
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "auto-memory",
+          "title": "Auto Memory",
+          "summary": "Auto Memory permite que Claude acumule conocimiento entre sesiones sin que el usuario escriba nada. Claude guarda notas para sí mismo mientras trabaja: comandos de build, información de debugging, notas de arquitectura, preferencias de estilo y hábitos de flujo de trabajo.",
+          "source": null,
+          "subsections": [
+            {
+              "title": "Qué aprende y guarda",
+              "blocks": [
+                {
+                  "type": "text",
+                  "content": "Claude evalúa internamente si la información de cada sesión tendría utilidad durable en una conversación futura. No guarda todo — las conversaciones triviales y las reglas que ya están en CLAUDE.md no se duplican."
+                },
+                {
+                  "type": "cards",
+                  "items": [
+                    {
+                      "title": "⚡ Comandos de build",
+                      "body": "Tiempos de compilación, scripts de test, configuración del servidor de desarrollo. Claude los recuerda automáticamente."
+                    },
+                    {
+                      "title": "🐛 Patrones de debugging",
+                      "body": "Problemas recurrentes, rotaciones de token de auth, troubleshooting de base de datos. Se guardan en archivos de tema dedicados."
+                    },
+                    {
+                      "title": "🏛️ Decisiones de arquitectura",
+                      "body": "Singletons de API client, patrones de autenticación, convenciones del proyecto descubiertas en la práctica."
+                    },
+                    {
+                      "title": "✏️ Preferencias corregidas",
+                      "body": "Cada vez que le decís «no uses esa librería» o «preferí este patrón», Claude lo recuerda para las próximas sesiones."
+                    },
+                    {
+                      "title": "📐 Estilo de código",
+                      "body": "Convenciones de nomenclatura, preferencias de formato, patrones idiomáticos específicos del equipo."
+                    },
+                    {
+                      "title": "🔄 Flujo de trabajo",
+                      "body": "Hábitos operativos repetidos: cómo desplegás, cómo testeás, qué herramientas usás y en qué orden."
+                    }
+                  ]
+                },
+                {
+                  "type": "callout",
+                  "icon": "💡",
+                  "content": "Criterio de decisión: Claude evalúa internamente si la información tendría utilidad durable en una conversación futura. Las conversaciones triviales y las reglas que ya están en CLAUDE.md no se duplican."
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "estructura-de-archivos-de-memoria",
+          "title": "Estructura de archivos de memoria",
+          "summary": "El sistema de memoria usa un índice liviano que siempre se carga, más archivos de tema opcionales que se leen solo cuando son relevantes para la tarea en curso.",
+          "source": null,
+          "subsections": [
+            {
+              "title": "Organización en dos niveles",
+              "blocks": [
+                {
+                  "type": "text",
+                  "content": "La memoria vive en ~/.claude/projects/<repo>/memory/. Un directorio compartido por todo el repositorio git, organizado en un índice principal y archivos de tema bajo demanda."
+                },
+                {
+                  "type": "code",
+                  "lang": "text",
+                  "content": "~/.claude/projects/<repo>/memory/\n  MEMORY.md          ← índice principal, siempre se carga al inicio\n  build-commands.md  ← comandos, tiempos, scripts\n  architecture.md    ← decisiones de diseño del sistema\n  debugging.md       ← patrones de bugs y troubleshooting\n  patterns.md        ← preferencias y convenciones del equipo"
+                },
+                {
+                  "type": "cards",
+                  "items": [
+                    {
+                      "title": "📑 MEMORY.md — El índice",
+                      "body": "Actúa como tabla de contenidos del directorio de memoria. Claude lo lee al inicio de cada sesión y lo usa para saber qué archivos de tema existen y qué contienen. Cuando crece demasiado, Claude mueve el contenido detallado a archivos de tema para mantenerlo bajo el límite."
+                    },
+                    {
+                      "title": "📂 Archivos de tema — Bajo demanda",
+                      "body": "Contienen el conocimiento detallado. Tienen frontmatter con name, description y type para que Claude pueda decidir cuándo son relevantes sin leerlos completos. Solo se abren cuando la tarea actual los necesita."
+                    }
+                  ]
+                },
+                {
+                  "type": "stats",
+                  "items": [
+                    {
+                      "value": "200",
+                      "label": "líneas máximas de MEMORY.md cargadas al inicio"
+                    },
+                    {
+                      "value": "25KB",
+                      "label": "límite de tamaño alternativo (el menor de los dos aplica)"
+                    },
+                    {
+                      "value": "1 repo",
+                      "label": "directorio compartido por todo el repositorio git"
+                    }
+                  ]
+                },
+                {
+                  "type": "callout",
+                  "icon": "⚠️",
+                  "content": "Alcance por worktree: todos los worktrees y subdirectorios dentro del mismo repositorio git comparten un directorio de auto memory. Si trabajás con múltiples worktrees en paralelo, la memoria es compartida — lo que puede generar contradicciones que Auto Dream luego resuelve."
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "auto-dream",
+          "title": "Auto Dream — Consolidación automática",
+          "summary": "Auto Dream es el proceso de consolidación en background que mantiene la memoria limpia, coherente y organizada. La analogía con el sueño REM es intencional: convierte notas de corto plazo en conocimiento durable.",
+          "source": null,
+          "subsections": [
+            {
+              "title": "Cuándo se activa",
+              "blocks": [
+                {
+                  "type": "text",
+                  "content": "Auto Dream tiene un trigger doble: ambas condiciones deben cumplirse simultáneamente. Esto previene corridas redundantes y asegura que haya material suficiente para consolidar."
+                },
+                {
+                  "type": "table",
+                  "headers": ["Condición", "Valor", "Propósito"],
+                  "rows": [
+                    ["Tiempo desde última consolidación", "≥ 24 horas", "Previene corridas redundantes en días tranquilos"],
+                    ["Sesiones de nueva actividad", "≥ 5 sesiones", "Asegura que haya material suficiente para consolidar"],
+                    ["Ejemplo: 10 sesiones en 2 horas", "No activa", "El tiempo no se cumple"],
+                    ["Ejemplo: 1 sesión larga de 2 días", "No activa", "Las sesiones no se cumplen"]
+                  ]
+                },
+                {
+                  "type": "callout",
+                  "icon": "🎛️",
+                  "content": "Trigger manual: podés ejecutar /dream desde cualquier sesión para disparar la consolidación inmediatamente, sin esperar el trigger automático. También funciona decir «dream» o «consolidate my memory files»."
+                }
+              ]
+            },
+            {
+              "title": "Las 4 fases de consolidación",
+              "blocks": [
+                {
+                  "type": "steps",
+                  "items": [
+                    {
+                      "title": "Orient — Mapear lo existente",
+                      "body": "Lee el directorio de memoria completo para entender qué existe antes de hacer cualquier cambio. Construye un mapa del conocimiento actual: índice, archivos de tema y su contenido.",
+                      "tag": "Read-only"
+                    },
+                    {
+                      "title": "Gather Signal — Escanear transcripts",
+                      "body": "Busca en los archivos JSONL de sesiones recientes patrones de alto valor: correcciones del usuario, cambios de preferencia, decisiones importantes y temas recurrentes. Usa búsqueda dirigida, no lectura completa de los archivos.",
+                      "tag": "Eficiente"
+                    },
+                    {
+                      "title": "Consolidate — Mergear y resolver",
+                      "body": "Integra los nuevos hallazgos en los archivos de tema existentes. Convierte fechas relativas a absolutas. Resuelve contradicciones entre archivos. Elimina duplicados. Es quirúrgico: los archivos sin cambios no se tocan.",
+                      "tag": "Escribe solo en /memory"
+                    },
+                    {
+                      "title": "Prune & Index — Reconstruir el índice",
+                      "body": "Reconstruye MEMORY.md como índice liviano de menos de 200 líneas. Elimina punteros a archivos que ya no existen. Mueve entradas verbosas a archivos de tema. Resuelve contradicciones entre el índice y el contenido de los archivos.",
+                      "tag": "Bajo el límite de 200 líneas"
+                    }
+                  ]
+                },
+                {
+                  "type": "stats",
+                  "items": [
+                    {
+                      "value": "913",
+                      "label": "sesiones consolidadas en un caso observado"
+                    },
+                    {
+                      "value": "~9 min",
+                      "label": "tiempo de consolidación para ese caso"
+                    },
+                    {
+                      "value": "🔒 Lock",
+                      "label": "lock file previene ejecuciones concurrentes"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "como-trabajan-juntas-las-cuatro-capas",
+          "title": "Cómo trabajan juntas las cuatro capas",
+          "summary": "Cada capa tiene un ritmo de escritura diferente y un alcance diferente. La configuración más robusta usa las cuatro simultáneamente.",
+          "source": null,
+          "subsections": [
+            {
+              "title": "Tabla comparativa",
+              "blocks": [
+                {
+                  "type": "table",
+                  "headers": ["Capa", "Quién escribe", "Cuándo se lee", "Alcance", "Propósito"],
+                  "rows": [
+                    ["CLAUDE.md", "Vos", "Al inicio de cada sesión", "Proyecto / usuario / org", "Reglas autoritativas, instrucciones explícitas que querés reforzar siempre"],
+                    ["Auto Memory", "Claude", "Índice al inicio, temas bajo demanda", "Por repositorio git", "Lo que Claude descubre trabajando: patrones, comandos, preferencias observadas"],
+                    ["Session Memory", "Claude", "Dentro de la sesión", "Una sola sesión", "Mantener coherencia durante una conversación larga o con compactación de contexto"],
+                    ["Auto Dream", "Claude", "En background (trigger automático)", "Cross-session", "El único mecanismo que reescribe el historial: limpia, deduplica y organiza las otras capas"]
+                  ]
+                }
+              ]
+            },
+            {
+              "title": "CLAUDE.md vs Auto Memory",
+              "blocks": [
+                {
+                  "type": "compare",
+                  "left": {
+                    "title": "📄 CLAUDE.md",
+                    "rows": [
+                      { "key": "Escribe", "value": "El usuario manualmente" },
+                      { "key": "Contiene", "value": "Reglas, instrucciones, contexto que querés repetir cada sesión" },
+                      { "key": "Cadencia", "value": "Cuando vos decidís actualizarlo" },
+                      { "key": "Alcance", "value": "Proyecto, usuario u organización según dónde esté" }
+                    ]
+                  },
+                  "right": {
+                    "title": "🌙 Auto Memory",
+                    "rows": [
+                      { "key": "Escribe", "value": "Claude mientras trabaja" },
+                      { "key": "Contiene", "value": "Lo que Claude deduce: patrones, comandos, aprendizajes" },
+                      { "key": "Cadencia", "value": "Incremental, cada sesión con info durable" },
+                      { "key": "Alcance", "value": "Por worktree / repositorio git" }
+                    ]
+                  }
+                },
+                {
+                  "type": "callout",
+                  "icon": "🎯",
+                  "content": "Auto Memory sin Auto Dream es un tomador de notas que nunca organiza su libreta. Auto Dream sin Auto Memory no tiene nada que consolidar. Las dos están diseñadas para funcionar juntas — con el trigger de 24h + 5 sesiones como configuración predeterminada para proyectos activos."
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "cuando-funciona-bien-y-cuando-no",
+          "title": "Cuándo funciona bien y cuándo no",
+          "summary": "El sistema de memoria tiene casos de uso donde brilla y limitaciones importantes que conviene conocer para no depender de él en contextos inadecuados.",
+          "source": null,
+          "subsections": [
+            {
+              "title": "Casos de uso y limitaciones",
+              "blocks": [
+                {
+                  "type": "cards",
+                  "items": [
+                    {
+                      "title": "✅ Funciona bien con...",
+                      "body": "Hábitos operativos repetidos, preferencias que se corrigen en el tiempo, comandos de build y test, patrones de debugging que reaparecen, decisiones de arquitectura estables."
+                    },
+                    {
+                      "title": "⚠️ Funciona mal como...",
+                      "body": "Policy engine autoritativo, knowledge base compartida entre equipos, almacenamiento multi-desarrollador, retrieval universal. Para esos casos, usá CLAUDE.md o documentación explícita."
+                    },
+                    {
+                      "title": "🔍 Cómo revisarlo",
+                      "body": "Ejecutá /memory en cualquier sesión para ver el estado actual, la fecha de última consolidación y los archivos existentes. Podés editar los archivos markdown directamente."
+                    },
+                    {
+                      "title": "⚡ Limitaciones técnicas",
+                      "body": "No sincroniza entre máquinas. Necesita revisión periódica para evitar acumulación de ruido. Requiere Auto Dream activo para mantenerse coherente en proyectos de largo plazo."
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

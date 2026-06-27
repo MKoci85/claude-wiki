@@ -1,0 +1,121 @@
+{
+  "sections": [
+    {
+      "title": "Modelos y Versiones",
+      "articles": [
+        {
+          "title": "Catálogo de modelos",
+          "subsections": [
+            {
+              "title": "Modelos disponibles",
+              "blocks": [
+                {
+                  "type": "table",
+                  "columns": ["Modelo", "ID", "Tokens entrada", "Tokens salida", "Mejor para"],
+                  "rows": [
+                    ["Haiku 4.5", "claude-haiku-4-5-20251001", "200K", "8K", "Tareas rápidas y económicas"],
+                    ["Sonnet 4.6", "claude-sonnet-4-6", "200K", "8K", "Balance costo/rendimiento"],
+                    ["Opus 4.8", "claude-opus-4-8", "200K", "8K", "Máxima capacidad y complejidad"]
+                  ]
+                }
+              ]
+            },
+            {
+              "title": "Características por modelo",
+              "blocks": [
+                {
+                  "type": "compare",
+                  "items": [
+                    {
+                      "title": "Haiku 4.5",
+                      "items": [
+                        "Más rápido",
+                        "Más económico",
+                        "200K contexto",
+                        "Tareas simples y directas"
+                      ]
+                    },
+                    {
+                      "title": "Sonnet 4.6",
+                      "items": [
+                        "Versátil",
+                        "Costo moderado",
+                        "200K contexto",
+                        "Producción general"
+                      ]
+                    },
+                    {
+                      "title": "Opus 4.8",
+                      "items": [
+                        "Más potente",
+                        "Costo más alto",
+                        "200K contexto",
+                        "Tareas complejas"
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "title": "Cuándo usar cada modelo",
+          "subsections": [
+            {
+              "title": "Criterios de selección",
+              "blocks": [
+                {
+                  "type": "text",
+                  "content": "Elige el modelo según tres factores: velocidad requerida, complejidad de la tarea, y presupuesto."
+                },
+                {
+                  "type": "stats",
+                  "stats": [
+                    {
+                      "label": "Haiku 4.5",
+                      "value": "Más rápido",
+                      "note": "Para respuestas en milisegundos y bajo costo"
+                    },
+                    {
+                      "label": "Sonnet 4.6",
+                      "value": "Equilibrado",
+                      "note": "Para la mayoría de casos"
+                    },
+                    {
+                      "label": "Opus 4.8",
+                      "value": "Premium",
+                      "note": "Para máxima calidad y complejidad"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "title": "Ejemplos de uso",
+              "blocks": [
+                {
+                  "type": "cards",
+                  "items": [
+                    {
+                      "title": "Haiku 4.5",
+                      "description": "Resúmenes rápidos, respuestas a FAQ, clasificación simple, chatbot básico"
+                    },
+                    {
+                      "title": "Sonnet 4.6",
+                      "description": "Análisis de contenido, escritura, traducción profesional, búsqueda avanzada"
+                    },
+                    {
+                      "title": "Opus 4.8",
+                      "description": "Razonamiento complejo, código avanzado, análisis profundo, research"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,162 @@
+{
+  "sections": [
+    {
+      "title": "Prefill y alternativas modernas",
+      "articles": [
+        {
+          "title": "Qué era el prefill y por qué desapareció",
+          "subsections": [
+            {
+              "title": "El truco de generación",
+              "blocks": [
+                {
+                  "type": "text",
+                  "content": "El prefill consistía en colocar un mensaje con role: \"assistant\" al final de messages, como si Claude ya hubiera empezado a responder. El modelo continuaba exactamente desde ahí, en lugar de generar una respuesta desde cero."
+                },
+                {
+                  "type": "code",
+                  "language": "python",
+                  "code": "# Esto ya NO funciona en modelos actuales — devuelve 400\nmessage = client.messages.create(\n    model=\"claude-sonnet-4-5\",  # solo funcionaba en versiones antiguas\n    max_tokens=1,\n    messages=[\n        {\n            \"role\": \"user\",\n            \"content\": \"¿Cuál es el latín para hormiga? (A) Apoidea (B) Formicidae\",\n        },\n        {\"role\": \"assistant\", \"content\": \"La respuesta es (\"},  # prefill\n    ],\n)\n# stop_reason: \"max_tokens\" — Claude completaba con \"B\" y se detenía en 1 token"
+                },
+                {
+                  "type": "callout",
+                  "style": "warning",
+                  "title": "Retirado en modelos actuales",
+                  "content": "El prefill no está soportado en claude-sonnet-4-6, claude-opus-4-8 ni claude-haiku-4-5-20251001. Las peticiones que lo usan devuelven un error 400. Anthropic lo retiró porque era un truco de generación, no una garantía real: no aseguraba JSON válido, consumía tokens de contexto sin atribución clara, y choca con extended thinking, donde el modelo necesita controlar su propio flujo de respuesta."
+                }
+              ]
+            },
+            {
+              "title": "Los tres casos de uso originales",
+              "blocks": [
+                {
+                  "type": "text",
+                  "content": "El prefill se usaba sobre todo para tres situaciones. Cada una tiene un reemplazo directo y más sólido en los modelos actuales."
+                },
+                {
+                  "type": "compare",
+                  "left": {
+                    "head": "Con prefill (deprecado)",
+                    "rows": [
+                      { "key": "Opción múltiple", "value": "Prefillear \"La respuesta es (\" y pedir 1 token." },
+                      { "key": "JSON específico", "value": "Prefillear \"{\" para que Claude empiece directo con JSON." },
+                      { "key": "Mantener personaje", "value": "Prefillear \"[Detective Morgan]\" al inicio de cada turno." }
+                    ]
+                  },
+                  "right": {
+                    "head": "Alternativa moderna",
+                    "rows": [
+                      { "key": "Opción múltiple", "value": "Strict tool use con enum: garantiza uno de los valores exactos, sin parsear texto." },
+                      { "key": "JSON específico", "value": "output_config.format con json_schema: garantía real a nivel de API, no probabilística." },
+                      { "key": "Mantener personaje", "value": "Instrucción en el system prompt: se aplica a toda la conversación sin mensajes falsos." }
+                    ]
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "title": "Las tres alternativas modernas",
+          "subsections": [
+            {
+              "title": "Caso 1: Opción múltiple → Strict tool use",
+              "blocks": [
+                {
+                  "type": "text",
+                  "content": "En lugar de prefillear \"La respuesta es (\", se define una tool con strict: true y un enum con las opciones válidas. Claude está obligado a llamar la tool con uno de esos valores exactos, no hay que parsear texto."
+                },
+                {
+                  "type": "code",
+                  "language": "python",
+                  "code": "response = client.messages.create(\n    model=\"claude-sonnet-4-6\",\n    max_tokens=1024,\n    messages=[{\n        \"role\": \"user\",\n        \"content\": \"¿Cuál es el latín para hormiga? (A) Apoidea (B) Formicidae\",\n    }],\n    tool_choice={\"type\": \"tool\", \"name\": \"answer\"},\n    tools=[{\n        \"name\": \"answer\",\n        \"description\": \"Registra la opción elegida\",\n        \"strict\": True,\n        \"input_schema\": {\n            \"type\": \"object\",\n            \"properties\": {\n                \"choice\": {\"type\": \"string\", \"enum\": [\"A\", \"B\"]}\n            },\n            \"required\": [\"choice\"],\n            \"additionalProperties\": False,\n        },\n    }],\n)\n# response.content[0].input == {\"choice\": \"B\"} — garantizado, no hay que parsear texto"
+                },
+                {
+                  "type": "callout",
+                  "style": "info",
+                  "title": "strict: true vs. sin strict",
+                  "content": "Con strict: true y additionalProperties: False, Claude está obligado a producir exactamente los campos del schema, sin extras ni variaciones. Sin strict, el schema es una guía fuerte pero no una garantía absoluta."
+                }
+              ]
+            },
+            {
+              "title": "Caso 2: JSON con forma específica → output_config.format",
+              "blocks": [
+                {
+                  "type": "text",
+                  "content": "Antes se prefilleaba \"{\" para forzar a Claude a saltarse el preámbulo y empezar directo con JSON. Ahora output_config.format garantiza la estructura completa a nivel de la API, sin depender de un truco de generación."
+                },
+                {
+                  "type": "code",
+                  "language": "python",
+                  "code": "response = client.messages.create(\n    model=\"claude-sonnet-4-6\",\n    max_tokens=1024,\n    messages=[{\n        \"role\": \"user\",\n        \"content\": \"Extraé el nombre y el email de: Juan Pérez, juan@email.com\",\n    }],\n    output_config={\n        \"format\": {\n            \"type\": \"json_schema\",\n            \"schema\": {\n                \"type\": \"object\",\n                \"properties\": {\n                    \"name\": {\"type\": \"string\"},\n                    \"email\": {\"type\": \"string\"},\n                },\n                \"required\": [\"name\", \"email\"],\n                \"additionalProperties\": False,\n            },\n        }\n    },\n)\n# response.content[0].text es JSON válido garantizado, listo para json.loads()\nimport json\ndatos = json.loads(response.content[0].text)\nprint(datos[\"name\"])   # \"Juan Pérez\"\nprint(datos[\"email\"])  # \"juan@email.com\""
+                },
+                {
+                  "type": "callout",
+                  "style": "warning",
+                  "title": "output_config.format es incompatible con prefill",
+                  "content": "Ni falta hace combinarlo con prefill: ya resuelve el mismo problema de forma garantizada en lugar de probabilística."
+                }
+              ]
+            },
+            {
+              "title": "Caso 3: Mantener tono o personaje → System prompt",
+              "blocks": [
+                {
+                  "type": "text",
+                  "content": "Cuando el prefill se usaba para reforzar un rol al inicio de cada turno, el reemplazo es mover esa instrucción al system, donde se aplica a toda la conversación sin depender de un mensaje falso del asistente."
+                },
+                {
+                  "type": "code",
+                  "language": "python",
+                  "code": "response = client.messages.create(\n    model=\"claude-sonnet-4-6\",\n    max_tokens=1024,\n    system=\"Respondé siempre en el personaje del Detective Morgan: tono seco, \"\n           \"observaciones precisas, sin rodeos. Nunca rompas el personaje ni \"\n           \"añadas explicaciones fuera de su voz.\",\n    messages=[\n        {\"role\": \"user\", \"content\": \"¿Qué encontraste en la escena?\"},\n    ],\n)\n# Claude responde directamente como el Detective Morgan,\n# sin preámbulo ni ruptura de personaje"
+                },
+                {
+                  "type": "callout",
+                  "style": "info",
+                  "title": "El system prompt también aplica para saltar el preámbulo",
+                  "content": "Si el problema era que Claude comenzaba con \"Claro, aquí tienes...\", la solución es agregar al system: \"Respondé directamente sin frases introductorias.\" Es más confiable que un prefill porque aplica a toda la sesión."
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "title": "Cuándo preferir cada alternativa",
+          "subsections": [
+            {
+              "title": "Resumen de decisión",
+              "blocks": [
+                {
+                  "type": "text",
+                  "content": "El prefill nunca garantizaba nada: solo influía en la probabilidad de continuación. Las tres alternativas son más explícitas y, en los casos de schema, dan una garantía real en lugar de una sugerencia probabilística."
+                },
+                {
+                  "type": "cards",
+                  "items": [
+                    {
+                      "title": "Quiero una de N opciones exactas",
+                      "body": "Strict tool use con enum. Claude está obligado a devolver uno de los valores listados. Ideal para clasificadores, respuestas de opción múltiple, enrutamiento."
+                    },
+                    {
+                      "title": "Quiero JSON con forma específica",
+                      "body": "output_config.format con json_schema. Garantía real a nivel de API. Ideal para extracción de datos, APIs internas que consumen el output de Claude."
+                    },
+                    {
+                      "title": "Quiero controlar el tono, estilo o personaje",
+                      "body": "System prompt. Se aplica a toda la conversación, sin mensajes falsos del asistente, y puede cachearse con cache_control para conversaciones largas."
+                    },
+                    {
+                      "title": "Quiero saltar el preámbulo",
+                      "body": "System prompt con instrucción explícita: \"Respondé directamente sin introducción\". Más confiable que un prefill porque aplica a toda la sesión."
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

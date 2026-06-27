@@ -1,0 +1,254 @@
+{
+  "sections": [
+    {
+      "title": "RAG y búsqueda agéntica",
+      "articles": [
+        {
+          "title": "Qué es RAG y cuándo usarlo",
+          "subsections": [
+            {
+              "title": "La idea central",
+              "blocks": [
+                {
+                  "type": "text",
+                  "content": "Retrieval-Augmented Generation (RAG) resuelve un problema concreto: Claude no conoce el contenido privado de tu empresa ni lo ocurrido después de su corte de entrenamiento. La idea es simple: en vez de confiar en lo que el modelo recuerda, se recupera (retrieve) un pequeño conjunto de fragmentos relevantes desde una base de conocimiento, se los inserta en el prompt (augment) y se le pide al modelo que genere (generate) la respuesta basándose en esos fragmentos."
+                },
+                {
+                  "type": "table",
+                  "columns": ["Situación", "Enfoque recomendado"],
+                  "rows": [
+                    ["Pocos documentos que entran completos en la ventana de contexto", "Meterlos directo en el prompt: más simple, sin infraestructura de búsqueda"],
+                    ["Muchos documentos, o que cambian seguido, y no entran todos en el contexto", "RAG: se indexa una vez y se recupera solo lo relevante por consulta"],
+                    ["Se necesita cambiar el comportamiento o el estilo del modelo, no agregarle datos", "Fine-tuning: RAG no modifica cómo razona el modelo, solo qué información tiene disponible"]
+                  ]
+                },
+                {
+                  "type": "callout",
+                  "style": "info",
+                  "title": "Error común",
+                  "content": "Usar RAG cuando alcanzaba con poner el documento entero en el prompt. Si el corpus es chico y estable, la infraestructura de chunking, embeddings e índice puede ser complejidad innecesaria."
+                }
+              ]
+            },
+            {
+              "title": "Estrategias de chunking",
+              "blocks": [
+                {
+                  "type": "text",
+                  "content": "Antes de poder buscar, hay que dividir los documentos en fragmentos (chunks) manejables. El tamaño y el criterio de corte afectan directamente la calidad de la búsqueda: chunks muy grandes diluyen la relevancia; chunks muy chicos pierden contexto."
+                },
+                {
+                  "type": "compare",
+                  "left": {
+                    "head": "Por tamaño fijo",
+                    "rows": [
+                      { "key": "Cómo", "value": "Cortar cada N caracteres o tokens, con un solape (overlap) entre chunks consecutivos para no partir ideas a la mitad." },
+                      { "key": "Ventaja", "value": "Simple y rápido." },
+                      { "key": "Riesgo", "value": "Ignora la estructura del documento." }
+                    ]
+                  },
+                  "right": {
+                    "head": "Por estructura",
+                    "rows": [
+                      { "key": "Cómo", "value": "Cortar respetando encabezados, párrafos o secciones del documento." },
+                      { "key": "Ventaja", "value": "Produce chunks semánticamente más coherentes." },
+                      { "key": "Riesgo", "value": "Tamaños desiguales, más complejo de implementar." }
+                    ]
+                  }
+                },
+                {
+                  "type": "code",
+                  "language": "python",
+                  "code": "def chunk_por_tamano(texto, tamano=800, solape=150):\n    chunks = []\n    inicio = 0\n    while inicio < len(texto):\n        fin = inicio + tamano\n        chunks.append(texto[inicio:fin])\n        inicio = fin - solape  # retrocede para mantener continuidad\n    return chunks"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "title": "Retrieval de calidad",
+          "subsections": [
+            {
+              "title": "Contextual retrieval",
+              "blocks": [
+                {
+                  "type": "text",
+                  "content": "Un chunk aislado puede volverse ambiguo fuera de su documento de origen: la frase \"el plazo se extendió 90 días\" no dice nada si no se sabe de qué contrato se está hablando. Contextual retrieval resuelve esto anteponiendo a cada chunk una breve descripción de dónde viene, generada con la ayuda de Claude antes de indexarlo, para que ese contexto viaje junto al chunk."
+                },
+                {
+                  "type": "code",
+                  "language": "python",
+                  "code": "import anthropic\n\nclient = anthropic.Anthropic()\n\ndef generar_contexto_de_chunk(documento_completo, chunk):\n    prompt = f\"\"\"\n<documento>\n{documento_completo}\n</documento>\n\nAcá hay un fragmento de ese documento:\n<fragmento>\n{chunk}\n</fragmento>\n\nEscribí 1 o 2 frases breves que sitúen este fragmento dentro del documento\n(de qué contrato/sección se trata, a qué parte/fecha corresponde), para que\ntenga sentido leído de forma aislada. Respondé solo con esas frases.\n\"\"\"\n    r = client.messages.create(\n        model=\"claude-haiku-4-5-20251001\", max_tokens=100,\n        messages=[{\"role\": \"user\", \"content\": prompt}],\n    )\n    return r.content[0].text\n\ncontexto = generar_contexto_de_chunk(documento_completo, chunk)\nchunk_enriquecido = f\"{contexto}\\n\\n{chunk}\"  # esto es lo que se embebe e indexa"
+                },
+                {
+                  "type": "callout",
+                  "style": "info",
+                  "title": "Costo de esta técnica",
+                  "content": "Generar contexto por chunk implica una llamada extra por fragmento durante la indexación (proceso offline, no en el camino crítico de cada consulta). Para corpus grandes conviene paralelizar estas llamadas y usar un modelo barato como Haiku para esta tarea."
+                }
+              ]
+            },
+            {
+              "title": "Embeddings y búsqueda vectorial",
+              "blocks": [
+                {
+                  "type": "text",
+                  "content": "Un embedding es una representación numérica (un vector) de un texto, donde textos con significado parecido quedan cerca en ese espacio vectorial. La Claude API no expone un endpoint de embeddings propio; en la práctica se combina con un proveedor externo (por ejemplo, Voyage AI) para esa etapa, y se usa Claude para la generación final."
+                },
+                {
+                  "type": "code",
+                  "language": "python",
+                  "code": "import numpy as np\n\ndef similitud_coseno(a, b):\n    a, b = np.array(a), np.array(b)\n    return np.dot(a, b) / (np.linalg.norm(a) * np.linalg.norm(b))\n\n# vectores ya calculados por el proveedor de embeddings\nchunks_embeddings = [(chunk_id, vector) for chunk_id, vector in base_vectorial]\nquery_vector = obtener_embedding(\"¿cuál es la política de devoluciones?\")\n\nranking = sorted(\n    chunks_embeddings,\n    key=lambda par: similitud_coseno(par[1], query_vector),\n    reverse=True,\n)\ntop_k = ranking[:5]"
+                }
+              ]
+            },
+            {
+              "title": "Búsqueda híbrida y re-ranking",
+              "blocks": [
+                {
+                  "type": "text",
+                  "content": "Los embeddings capturan similitud semántica, pero no rinden bien con términos exactos (códigos de producto, nombres propios, acrónimos). BM25 es un algoritmo clásico de búsqueda léxica basado en frecuencia de palabras que los complementa muy bien. Un pipeline maduro combina ambos y añade un paso de re-ranking para mejorar la precisión final."
+                },
+                {
+                  "type": "steps",
+                  "items": [
+                    {
+                      "title": "Retrieval inicial (20 candidatos)",
+                      "body": "Búsqueda vectorial y BM25 en paralelo. Barata pero con recall amplio."
+                    },
+                    {
+                      "title": "Fusión de rankings (RRF)",
+                      "body": "Combinar los dos rankings con reciprocal rank fusion para aprovechar las ventajas de cada uno."
+                    },
+                    {
+                      "title": "Re-ranking (top 5)",
+                      "body": "Un segundo paso más costoso pero más preciso reordena los 20 candidatos. Puede ser un modelo dedicado o el propio Claude puntuando relevancia."
+                    },
+                    {
+                      "title": "Generación con contexto",
+                      "body": "Los 5 chunks más relevantes se insertan en el prompt para la generación final."
+                    }
+                  ]
+                },
+                {
+                  "type": "code",
+                  "language": "python",
+                  "code": "from rank_bm25 import BM25Okapi\n\n# búsqueda léxica con BM25\ncorpus_tokenizado = [chunk.lower().split() for chunk in todos_los_chunks]\nbm25 = BM25Okapi(corpus_tokenizado)\nquery_tokens = \"código de error E04 fallo de pago\".lower().split()\nscores = bm25.get_scores(query_tokens)\ntop_k_bm25 = sorted(zip(todos_los_chunks, scores), key=lambda x: x[1], reverse=True)[:5]\n\n# fusión de rankings: vectorial + BM25\ndef reciprocal_rank_fusion(ranking_vectorial, ranking_bm25, k=60):\n    scores = {}\n    for rank, (chunk_id, _) in enumerate(ranking_vectorial):\n        scores[chunk_id] = scores.get(chunk_id, 0) + 1 / (k + rank)\n    for rank, (chunk_id, _) in enumerate(ranking_bm25):\n        scores[chunk_id] = scores.get(chunk_id, 0) + 1 / (k + rank)\n    return sorted(scores.items(), key=lambda x: x[1], reverse=True)\n\n# re-ranking con Claude (para corpus moderados)\ntool_relevancia = {\n    \"name\": \"puntuar_relevancia\",\n    \"description\": \"Puntúa qué tan relevante es un fragmento para la pregunta\",\n    \"input_schema\": {\n        \"type\": \"object\",\n        \"properties\": {\"puntaje\": {\"type\": \"number\", \"minimum\": 0, \"maximum\": 1}},\n        \"required\": [\"puntaje\"],\n    },\n}\n\ndef puntuar(pregunta, chunk):\n    r = client.messages.create(\n        model=\"claude-haiku-4-5-20251001\", max_tokens=50,\n        tools=[tool_relevancia], tool_choice={\"type\": \"tool\", \"name\": \"puntuar_relevancia\"},\n        messages=[{\"role\": \"user\", \"content\": f\"Pregunta: {pregunta}\\nFragmento: {chunk}\"}],\n    )\n    return r.content[0].input[\"puntaje\"]\n\ncandidatos_reordenados = sorted(candidatos_top_20, key=lambda c: puntuar(pregunta, c), reverse=True)[:5]"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "title": "Flujo completo y evaluación",
+          "subsections": [
+            {
+              "title": "El flujo RAG completo",
+              "blocks": [
+                {
+                  "type": "steps",
+                  "items": [
+                    {
+                      "title": "Indexación (offline)",
+                      "body": "Documentos → chunking → contextual retrieval → embeddings → base vectorial + índice BM25. Se hace una vez, no en el camino crítico de cada consulta."
+                    },
+                    {
+                      "title": "Query",
+                      "body": "Pregunta del usuario → embedding de la query."
+                    },
+                    {
+                      "title": "Retrieve",
+                      "body": "Búsqueda vectorial + BM25 → fusión → re-ranking → top-k chunks relevantes."
+                    },
+                    {
+                      "title": "Augment + Generate",
+                      "body": "Chunks insertados en el prompt con instrucción de citar solo lo que está en el contexto → respuesta de Claude."
+                    }
+                  ]
+                },
+                {
+                  "type": "code",
+                  "language": "python",
+                  "code": "contexto = \"\\n\\n---\\n\\n\".join(chunk_texto for chunk_texto, _ in top_k)\n\nprompt = f\"\"\"\n<contexto>\n{contexto}\n</contexto>\n\nRespondé la siguiente pregunta usando únicamente la información del contexto.\nSi la respuesta no está en el contexto, decí que no tenés esa información.\n\nPregunta: ¿cuál es la política de devoluciones?\n\"\"\"\n\nresponse = client.messages.create(\n    model=\"claude-sonnet-4-6\", max_tokens=500,\n    messages=[{\"role\": \"user\", \"content\": prompt}],\n)"
+                }
+              ]
+            },
+            {
+              "title": "RAG agéntico",
+              "blocks": [
+                {
+                  "type": "text",
+                  "content": "El flujo fijo busca una vez, siempre, antes de generar. La búsqueda agéntica invierte ese control: en vez de recuperar contexto de forma fija, se expone la búsqueda como una tool y es Claude quien decide si necesita buscar, con qué consulta, y si una búsqueda alcanza o conviene refinarla. Útil cuando la pregunta original no alcanza para una buena consulta, o cuando hace falta combinar información de varias búsquedas sucesivas."
+                },
+                {
+                  "type": "compare",
+                  "left": {
+                    "head": "RAG fijo",
+                    "rows": [
+                      { "key": "Control", "value": "El código decide cuándo y qué buscar." },
+                      { "key": "Costo", "value": "Predecible: siempre una búsqueda por query." },
+                      { "key": "Cuándo", "value": "Preguntas simples con una dimensión de búsqueda clara." }
+                    ]
+                  },
+                  "right": {
+                    "head": "RAG agéntico",
+                    "rows": [
+                      { "key": "Control", "value": "Claude decide si buscar, cuántas veces y con qué consulta." },
+                      { "key": "Costo", "value": "Variable: puede hacer 0, 1 o varias búsquedas." },
+                      { "key": "Cuándo", "value": "Preguntas complejas que necesitan combinar varias búsquedas o refinar la consulta." }
+                    ]
+                  }
+                },
+                {
+                  "type": "code",
+                  "language": "python",
+                  "code": "tool_buscar = {\n    \"name\": \"buscar_documentos\",\n    \"description\": (\n        \"Busca fragmentos relevantes en la base de conocimiento interna. \"\n        \"Usala todas las veces que necesites, refinando la consulta, hasta \"\n        \"tener suficiente información para responder con confianza.\"\n    ),\n    \"input_schema\": {\n        \"type\": \"object\",\n        \"properties\": {\"consulta\": {\"type\": \"string\"}},\n        \"required\": [\"consulta\"],\n    },\n}\n\ndef ejecutar_busqueda(consulta):\n    vector = obtener_embedding(consulta)\n    return \"\\n---\\n\".join(chunk for chunk, _ in buscar_top_k(vector, k=5))\n\n# mismo loop multi-turno de tool use, con \"buscar_documentos\" como única tool;\n# Claude puede llamarla 0, 1 o varias veces antes de responder"
+                },
+                {
+                  "type": "callout",
+                  "style": "warning",
+                  "title": "Poner un límite",
+                  "content": "El RAG agéntico es más flexible pero menos predecible en costo y latencia, porque el número de búsquedas queda en manos del modelo. Conviene reservarlo para preguntas genuinamente complejas y poner un límite de iteraciones para evitar loops de búsqueda sin fin."
+                }
+              ]
+            },
+            {
+              "title": "Evaluar un sistema RAG",
+              "blocks": [
+                {
+                  "type": "text",
+                  "content": "Un sistema RAG tiene dos componentes que conviene evaluar por separado: si el retrieval encuentra los fragmentos correctos, y si la generación produce una buena respuesta dado ese contexto. Mezclar ambos en una sola métrica dificulta saber qué arreglar cuando algo falla."
+                },
+                {
+                  "type": "code",
+                  "language": "python",
+                  "code": "# evaluar el retrieval: recall@k\n# dataset: lista de (pregunta, ids_de_chunks_relevantes_según_un_humano)\ndef recall_en_k(pregunta, ids_relevantes, k=5):\n    vector = obtener_embedding(pregunta)\n    recuperados = [chunk_id for chunk_id, _ in buscar_top_k(vector, k=k)]\n    encontrados = set(recuperados) & set(ids_relevantes)\n    return len(encontrados) / len(ids_relevantes)\n\nrecall_promedio = sum(recall_en_k(p, ids) for p, ids in dataset_eval) / len(dataset_eval)\nprint(f\"Recall@5: {recall_promedio:.1%}\")\n\n# evaluar la generación: grading por modelo (técnicas del módulo de evals)\n# comprobar si la respuesta final usa y cita la información recuperada\n# sin agregar datos que no estaban en el contexto"
+                },
+                {
+                  "type": "cards",
+                  "items": [
+                    {
+                      "icon": "📊",
+                      "title": "Recall@k",
+                      "description": "¿Qué proporción de los chunks realmente relevantes aparece entre los top-k recuperados? Métrica directa para diagnosticar el retrieval."
+                    },
+                    {
+                      "icon": "✅",
+                      "title": "Fidelidad",
+                      "description": "¿La respuesta usa solo información del contexto recuperado? Detecta alucinaciones mezcladas con datos reales del retrieval."
+                    },
+                    {
+                      "icon": "🎯",
+                      "title": "Relevancia",
+                      "description": "¿La respuesta responde efectivamente la pregunta? Puede evaluarse con LLM-as-judge usando una rúbrica explícita."
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

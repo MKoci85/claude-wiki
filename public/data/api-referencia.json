@@ -1,0 +1,184 @@
+{
+  "sections": [
+    {
+      "title": "Referencia de la API",
+      "articles": [
+        {
+          "title": "Parámetros del request",
+          "subsections": [
+            {
+              "title": "Parámetros obligatorios",
+              "blocks": [
+                {
+                  "type": "text",
+                  "content": "Estos son los campos que se envían en el cuerpo JSON al endpoint POST /v1/messages. Tres son obligatorios; el resto modifican el comportamiento o habilitan funciones adicionales."
+                },
+                {
+                  "type": "table",
+                  "head": ["Parámetro", "Tipo", "Descripción"],
+                  "rows": [
+                    ["model", "string", "El identificador del modelo, por ejemplo claude-sonnet-4-6. Determina costo por token, velocidad y capacidad de razonamiento."],
+                    ["messages", "array de objetos", "La conversación completa hasta este punto. Cada objeto tiene role (user o assistant) y content. La API es stateless: hay que reenviar todo el historial en cada llamada."],
+                    ["max_tokens", "integer", "Límite máximo de tokens a generar. El modelo puede detenerse antes si termina de forma natural. Si la respuesta llega justo a este límite, stop_reason será max_tokens."]
+                  ]
+                }
+              ]
+            },
+            {
+              "title": "Parámetros opcionales de comportamiento",
+              "blocks": [
+                {
+                  "type": "table",
+                  "head": ["Parámetro", "Tipo", "Descripción"],
+                  "rows": [
+                    ["system", "string", "Instrucciones de contexto, rol y reglas que aplican desde el primer turno. Se envía como campo separado, no dentro de messages."],
+                    ["temperature", "number · 0.0–1.0", "Controla aleatoriedad. Valores bajos = respuestas predecibles y enfocadas. Valores altos = más variación. No disponible en Opus 4.8+."],
+                    ["top_p", "number · 0.0–1.0", "Muestreo por núcleo: considera solo el conjunto de tokens cuya probabilidad acumulada alcanza este umbral. No disponible en Opus 4.8+."],
+                    ["top_k", "integer", "Limita el muestreo a los k tokens más probables en cada paso. Técnica más antigua, rara vez necesaria. No disponible en Opus 4.8+."],
+                    ["stop_sequences", "array de strings", "Secuencias de texto que, al aparecer, detienen la generación de inmediato. Útil para cortar la respuesta en un punto exacto y predecible."],
+                    ["stream", "boolean", "Si es true, la respuesta llega incrementalmente vía server-sent events en lugar de esperar el mensaje completo."],
+                    ["metadata", "object", "Información adicional, como un user_id propio para rastrear uso por usuario final sin exponer datos identificables a Anthropic."]
+                  ]
+                }
+              ]
+            },
+            {
+              "title": "Parámetros opcionales de herramientas y extensiones",
+              "blocks": [
+                {
+                  "type": "table",
+                  "head": ["Parámetro", "Tipo", "Descripción"],
+                  "rows": [
+                    ["tools", "array de objetos", "Define funciones externas que Claude puede invocar: nombre, descripción y un input_schema en JSON Schema. Claude decide cuándo y cómo usarlas."],
+                    ["tool_choice", "object", "Controla si Claude debe usar una herramienta: auto (decide solo), any (debe usar alguna), tool (fuerza una específica), o none."],
+                    ["thinking", "object", "Activa el razonamiento extendido (extended thinking), donde el modelo expone su proceso de pensamiento antes de responder. Requiere un budget_tokens."],
+                    ["mcp_servers", "array de objetos", "Conecta servidores MCP remotos para que Claude use herramientas externas directamente desde la API."],
+                    ["output_config", "object", "Configura el formato de salida. output_config.format con type: json_schema garantiza JSON válido con la estructura exacta indicada."]
+                  ]
+                },
+                {
+                  "type": "callout",
+                  "style": "info",
+                  "title": "temperature, top_p y top_k son mutuamente excluyentes",
+                  "content": "Usar más de uno a la vez produce resultados impredecibles. Para la mayoría de los casos de uso, ajustar solo temperature es suficiente."
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "title": "Stop reasons",
+          "subsections": [
+            {
+              "title": "Qué es stop_reason y por qué importa",
+              "blocks": [
+                {
+                  "type": "text",
+                  "content": "stop_reason indica por qué el modelo dejó de generar. Es la señal de control más importante para construir lógica de agente robusta: no leer solo el texto generado, sino siempre verificar stop_reason para saber qué debe hacer el código a continuación."
+                },
+                {
+                  "type": "table",
+                  "head": ["Valor", "Descripción", "Qué hacer"],
+                  "rows": [
+                    ["end_turn", "El modelo terminó su respuesta de forma natural.", "Caso normal. Procesar la respuesta."],
+                    ["max_tokens", "Se alcanzó el límite de max_tokens. La respuesta puede estar incompleta.", "Considerar continuar la generación o subir el límite según el caso."],
+                    ["stop_sequence", "El modelo generó una de las secuencias definidas en stop_sequences.", "Extraer el contenido hasta la secuencia y procesarlo."],
+                    ["tool_use", "Claude solicitó ejecutar una herramienta y espera el resultado.", "Ejecutar las tools del bloque content y devolver los resultados como tool_result."],
+                    ["pause_turn", "Pausa relacionada con herramientas del lado del servidor (búsqueda web, etc.).", "Solo reenviar la respuesta del asistente como está para que continúe."],
+                    ["refusal", "Claude declinó generar una respuesta por motivos de seguridad.", "La respuesta puede contener contenido parcial. No reintentar con el mismo input."],
+                    ["model_context_window_exceeded", "Se alcanzó el límite de la ventana de contexto del modelo.", "Reducir el historial de mensajes o usar compactación de contexto."]
+                  ]
+                }
+              ]
+            },
+            {
+              "title": "Verificar stop_reason en el código",
+              "blocks": [
+                {
+                  "type": "code",
+                  "language": "python",
+                  "code": "response = client.messages.create(\n    model=\"claude-sonnet-4-6\",\n    max_tokens=1024,\n    messages=mensajes,\n)\n\nmatch response.stop_reason:\n    case \"end_turn\":\n        return response.content[0].text\n    case \"max_tokens\":\n        # la respuesta puede estar truncada\n        continuar_generacion(response)\n    case \"tool_use\":\n        # extraer los bloques tool_use y ejecutarlos\n        bloques = [b for b in response.content if b.type == \"tool_use\"]\n        ejecutar_tools(bloques)\n    case \"refusal\":\n        raise ValueError(\"Claude declinó responder\")\n    case \"model_context_window_exceeded\":\n        mensajes = compactar_historial(mensajes)\n        reintentar()"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "title": "Códigos de error HTTP",
+          "subsections": [
+            {
+              "title": "Referencia de errores",
+              "blocks": [
+                {
+                  "type": "text",
+                  "content": "La API sigue un formato de error predecible. El cuerpo de la respuesta siempre incluye type y message dentro de un objeto error."
+                },
+                {
+                  "type": "table",
+                  "head": ["Código", "Tipo", "Descripción"],
+                  "rows": [
+                    ["400", "invalid_request_error", "Problema con el formato o contenido de la petición: un parámetro mal escrito, un modelo inexistente, o prefill en un modelo que ya no lo soporta."],
+                    ["401", "authentication_error", "Hay un problema con la API key: falta, está mal formada, o es inválida."],
+                    ["403", "permission_error", "La API key no tiene permiso para usar el recurso solicitado."],
+                    ["404", "not_found_error", "El recurso solicitado no existe."],
+                    ["413", "request_too_large", "La petición excede el tamaño máximo permitido (32 MB en endpoints estándar)."],
+                    ["429", "rate_limit_error", "Se superó un límite de tasa: peticiones por minuto, tokens de entrada por minuto, o tokens de salida por minuto. La respuesta incluye un header retry-after."],
+                    ["500", "api_error", "Error interno inesperado en los sistemas de Anthropic."],
+                    ["529", "overloaded_error", "La API está temporalmente sobrecargada por tráfico alto. No es un límite de la cuenta: reintentar con backoff exponencial."]
+                  ]
+                },
+                {
+                  "type": "callout",
+                  "style": "warning",
+                  "title": "Estrategia de reintento",
+                  "content": "Para 429 y 529, usar backoff exponencial empezando en 1-5 segundos. Para 400, 401, 403 y 404, reintentar no ayuda: hay que corregir la petición antes de volver a intentarlo."
+                }
+              ]
+            },
+            {
+              "title": "Manejo de errores en Python",
+              "blocks": [
+                {
+                  "type": "code",
+                  "language": "python",
+                  "code": "import anthropic\nimport time\n\ndef llamar_con_reintento(client, **kwargs, max_intentos=4):\n    for intento in range(max_intentos):\n        try:\n            return client.messages.create(**kwargs)\n        except anthropic.RateLimitError as e:\n            if intento == max_intentos - 1:\n                raise\n            espera = 2 ** intento  # 1s, 2s, 4s, 8s\n            time.sleep(espera)\n        except anthropic.APIStatusError as e:\n            if e.status_code in (400, 401, 403, 404):\n                raise  # no reintentar errores del cliente\n            if intento == max_intentos - 1:\n                raise\n            time.sleep(2 ** intento)"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "title": "Streaming",
+          "subsections": [
+            {
+              "title": "Secuencia de eventos SSE",
+              "blocks": [
+                {
+                  "type": "text",
+                  "content": "Con stream: true, la respuesta llega como una secuencia de eventos vía Server-Sent Events en lugar de un solo bloque JSON al final. Útil cuando se quiere mostrar la respuesta al usuario a medida que se genera."
+                },
+                {
+                  "type": "table",
+                  "head": ["Evento", "Descripción"],
+                  "rows": [
+                    ["message_start", "Llega primero, con un objeto Message vacío que define el inicio de la respuesta."],
+                    ["content_block_start", "Marca el inicio de un nuevo bloque de contenido (texto, tool_use, etc.)."],
+                    ["content_block_delta", "Llegan muchos de estos seguidos, cada uno con un fragmento incremental de texto o JSON."],
+                    ["content_block_stop", "Cierra el bloque de contenido actual."],
+                    ["message_delta", "Incluye cambios a nivel de mensaje, como el stop_reason final y el conteo de usage."],
+                    ["message_stop", "Señala que la respuesta terminó por completo."]
+                  ]
+                },
+                {
+                  "type": "code",
+                  "language": "python",
+                  "code": "with client.messages.stream(\n    model=\"claude-sonnet-4-6\",\n    max_tokens=1024,\n    messages=[{\"role\": \"user\", \"content\": \"Escribí un poema corto\"}],\n) as stream:\n    for text in stream.text_stream:\n        print(text, end=\"\", flush=True)\n\n# Para acceder al stop_reason y usage después del stream:\nresponse_final = stream.get_final_message()\nprint(response_final.stop_reason)\nprint(response_final.usage)"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

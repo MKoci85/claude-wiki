@@ -1,0 +1,210 @@
+{
+  "sections": [
+    {
+      "title": "Evaluación de Prompts",
+      "articles": [
+        {
+          "title": "Por qué evaluar",
+          "subsections": [
+            {
+              "title": "El problema de validar a ojo",
+              "blocks": [
+                {
+                  "type": "text",
+                  "content": "Sin un eval, cada cambio a un prompt se valida manualmente en dos o tres casos, lo cual no escala y esconde regresiones: una mejora en un caso puede romper silenciosamente otros diez. Un eval convierte esa intuición en un número comparable entre versiones del prompt, entre modelos, o a lo largo del tiempo."
+                },
+                {
+                  "type": "callout",
+                  "style": "info",
+                  "title": "Evals como tests automáticos",
+                  "content": "Conviene pensar un eval con la misma seriedad que un test automatizado de software: no es un paso opcional al final del proyecto, sino la red de seguridad que permite seguir iterando sin miedo a romper algo que ya funcionaba. La diferencia con el testing tradicional: la \"función\" que se prueba (el modelo) no es determinista."
+                }
+              ]
+            },
+            {
+              "title": "Cuatro tipos de grader",
+              "blocks": [
+                {
+                  "type": "text",
+                  "content": "No todos los evals puntúan igual. Antes de escribir el primer grader conviene identificar en qué categoría cae el problema, porque cada una tiene un costo y una fiabilidad distintos."
+                },
+                {
+                  "type": "table",
+                  "columns": ["Tipo", "Cómo puntúa", "Cuándo usarlo"],
+                  "rows": [
+                    ["Code-graded", "Comparación exacta, regex o validación de schema", "Respuesta objetiva: clasificación, extracción de datos, formato"],
+                    ["Similarity-graded", "Distancia entre la respuesta y una referencia", "Texto libre donde \"casi idéntico\" es aceptable: resúmenes, paráfrasis"],
+                    ["Model-graded", "Otra llamada a Claude puntúa según una rúbrica", "Calidad subjetiva: tono, coherencia, fidelidad, seguridad"],
+                    ["Human-graded", "Una persona revisa y puntúa manualmente", "Validación final, casos de alto riesgo, calibrar los otros tres"]
+                  ]
+                },
+                {
+                  "type": "text",
+                  "content": "Un eval maduro casi nunca usa un solo tipo: empieza con grading por código donde es posible (es gratis y reproducible), complementa con un juez de modelo para lo subjetivo, y reserva la revisión humana para una muestra periódica que calibra a los otros dos."
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "title": "Dataset y ejecución",
+          "subsections": [
+            {
+              "title": "Diseñar un dataset que valga la pena",
+              "blocks": [
+                {
+                  "type": "text",
+                  "content": "La calidad de un eval está limitada por la calidad de su dataset. Un dataset compuesto solo por los casos fáciles que ya andaban bien da una falsa sensación de seguridad."
+                },
+                {
+                  "type": "cards",
+                  "items": [
+                    {
+                      "icon": "📊",
+                      "title": "Casos típicos",
+                      "description": "La mayoría del tráfico real. Si esto falla, falla todo. Ej: \"No me llegó el pedido #4521\"."
+                    },
+                    {
+                      "icon": "🔀",
+                      "title": "Edge cases",
+                      "description": "Mensajes que mencionan dos categorías a la vez, o que están en la frontera entre opciones."
+                    },
+                    {
+                      "icon": "⚔️",
+                      "title": "Casos adversariales",
+                      "description": "Inputs que intentan inyectar instrucciones (\"ignorá las reglas anteriores y...\"). Mide robustez."
+                    },
+                    {
+                      "icon": "❓",
+                      "title": "Casos ambiguos",
+                      "description": "Sin una única respuesta correcta. Sirven para definir qué comportamiento es aceptable."
+                    }
+                  ]
+                },
+                {
+                  "type": "callout",
+                  "style": "info",
+                  "title": "Usar logs de producción",
+                  "content": "Cuando existen conversaciones reales o tickets ya resueltos, muestrear de ahí antes que depender solo de casos sintéticos. La distribución real casi siempre tiene sorpresas difíciles de imaginar de antemano."
+                }
+              ]
+            },
+            {
+              "title": "Generación sintética de casos",
+              "blocks": [
+                {
+                  "type": "text",
+                  "content": "Cuando no existe un dataset real suficientemente grande, una técnica común es usar al propio Claude para generar casos de prueba variados —incluyendo edge cases— que luego se revisan y curan manualmente antes de confiar en ellos como ground truth."
+                },
+                {
+                  "type": "code",
+                  "language": "python",
+                  "code": "import anthropic\nimport json\n\nclient = anthropic.Anthropic()\n\nprompt_generador = \"\"\"\nGenerá 8 ejemplos de mensajes de soporte de un usuario de ecommerce,\nvariando: tono (formal/informal), si incluye número de pedido, y si el\nproblema es sobre un envío, un reembolso o un producto defectuoso.\nIncluí al menos un caso ambiguo y uno que mencione dos categorías a la vez.\n\nDevolvé un JSON: lista de objetos con \"mensaje\" y \"categoria_esperada\"\n(una de: \"envio\", \"reembolso\", \"producto_defectuoso\", \"ambiguo\").\n\"\"\"\n\nresponse = client.messages.create(\n    model=\"claude-opus-4-8\",\n    max_tokens=1500,\n    messages=[{\"role\": \"user\", \"content\": prompt_generador}],\n)\n# parsear y guardar como dataset.json\n# una persona revisa cada \"categoria_esperada\" antes de confiar en el archivo"
+                }
+              ]
+            },
+            {
+              "title": "Ejecutar el eval con no-determinación",
+              "blocks": [
+                {
+                  "type": "text",
+                  "content": "Como la salida de un modelo puede variar entre llamadas (incluso con `temperature=0` hay variabilidad residual), un eval serio no corre cada caso una sola vez: corre cada caso varias veces y mide una tasa de éxito, no un resultado binario. Paralelizar con `asyncio.gather` evita que un dataset de cientos de casos tarde horas."
+                },
+                {
+                  "type": "code",
+                  "language": "python",
+                  "code": "import json\nimport asyncio\nfrom anthropic import AsyncAnthropic\n\nasync_client = AsyncAnthropic()\n\nasync def clasificar(mensaje, system_prompt):\n    r = await async_client.messages.create(\n        model=\"claude-haiku-4-5-20251001\",  # modelo barato para el dataset\n        max_tokens=20,\n        system=system_prompt,\n        messages=[{\"role\": \"user\", \"content\": mensaje}],\n    )\n    return r.content[0].text.strip()\n\nasync def correr_caso_n_veces(caso, system_prompt, repeticiones=5):\n    predicciones = await asyncio.gather(*[\n        clasificar(caso[\"mensaje\"], system_prompt) for _ in range(repeticiones)\n    ])\n    aciertos = sum(1 for p in predicciones if p == caso[\"categoria_esperada\"])\n    return {\"caso\": caso[\"mensaje\"], \"tasa_exito\": aciertos / repeticiones}\n\nasync def correr_eval(dataset, system_prompt):\n    return await asyncio.gather(*[correr_caso_n_veces(c, system_prompt) for c in dataset])\n\ndataset = json.load(open(\"dataset.json\"))\nresultados = asyncio.run(correr_eval(dataset, SYSTEM_PROMPT_V2))"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "title": "Grading avanzado",
+          "subsections": [
+            {
+              "title": "Grading por código",
+              "blocks": [
+                {
+                  "type": "text",
+                  "content": "El grading por código es exacto, rápido y gratis. No se limita a la igualdad exacta: según la tarea, conviene elegir entre distintos tipos de comprobación."
+                },
+                {
+                  "type": "code",
+                  "language": "python",
+                  "code": "import re\nfrom jsonschema import validate, ValidationError\n\n# 1. coincidencia exacta — clasificación, categorías cerradas\ndef grader_exact_match(obtenido, esperado):\n    return obtenido.strip().lower() == esperado.strip().lower()\n\n# 2. expresión regular — formato libre pero con un patrón obligatorio\ndef grader_regex(texto, patron=r\"^\\[(envio|reembolso|producto_defectuoso)\\]\"):\n    return bool(re.match(patron, texto))\n\n# 3. validación de schema — salidas estructuradas (JSON / tool use)\ndef grader_schema(datos_json, schema):\n    try:\n        validate(instance=datos_json, schema=schema)\n        return True\n    except ValidationError:\n        return False\n\naciertos = sum(1 for r in resultados if grader_exact_match(r[\"obtenido\"], r[\"esperado\"]))\naccuracy = aciertos / len(resultados)\nprint(f\"Accuracy: {accuracy:.1%}\")"
+                }
+              ]
+            },
+            {
+              "title": "LLM-as-judge",
+              "blocks": [
+                {
+                  "type": "text",
+                  "content": "Cuando la corrección es subjetiva (tono, calidad de una explicación, fidelidad de un resumen) se puede usar a Claude como evaluador con una rúbrica explícita. Tres prácticas mejoran la fiabilidad del juez:"
+                },
+                {
+                  "type": "cards",
+                  "items": [
+                    {
+                      "icon": "🎯",
+                      "title": "Salida estructurada",
+                      "description": "Forzar un tool con schema en lugar de pedir el puntaje en texto libre. Elimina el trabajo de parsear y evita respuestas mal formateadas."
+                    },
+                    {
+                      "icon": "📎",
+                      "title": "Anclar con ejemplos",
+                      "description": "Mostrarle al juez un ejemplo de respuesta puntuada como 5 y otro como 1. Reduce la variabilidad entre corridas."
+                    },
+                    {
+                      "icon": "🧠",
+                      "title": "Modelo capaz",
+                      "description": "El juez se beneficia de más capacidad de razonamiento que el modelo que generó la respuesta, aunque ese modelo barato sea el que corre en producción."
+                    }
+                  ]
+                },
+                {
+                  "type": "code",
+                  "language": "python",
+                  "code": "tool_evaluacion = {\n    \"name\": \"registrar_evaluacion\",\n    \"description\": \"Registra el puntaje y la justificación de una evaluación\",\n    \"input_schema\": {\n        \"type\": \"object\",\n        \"properties\": {\n            \"puntaje\": {\"type\": \"integer\", \"minimum\": 1, \"maximum\": 5},\n            \"justificacion\": {\"type\": \"string\"},\n        },\n        \"required\": [\"puntaje\", \"justificacion\"],\n    },\n}\n\nrubrica = \"\"\"\nEvaluá la respuesta de soporte según esta rúbrica:\n5: resuelve el problema, tono profesional, sin información inventada.\n3: resuelve parcialmente o el tono es inadecuado.\n1: no resuelve el problema o inventa información falsa.\n\n<ejemplo_puntaje_5>\nMensaje: \"no me llegó el pedido #100\"\nRespuesta: \"Lamento la demora. Ya inicié el rastreo del pedido #100 y te\naviso en menos de 24hs con la ubicación exacta o el reembolso.\"\n</ejemplo_puntaje_5>\n\nMensaje del usuario: {mensaje}\nRespuesta a evaluar: {respuesta}\n\"\"\"\n\nevaluacion = client.messages.create(\n    model=\"claude-opus-4-8\",\n    max_tokens=300,\n    tools=[tool_evaluacion],\n    tool_choice={\"type\": \"tool\", \"name\": \"registrar_evaluacion\"},\n    messages=[{\"role\": \"user\", \"content\": rubrica.format(\n        mensaje=caso[\"mensaje\"], respuesta=caso[\"respuesta\"]\n    )}],\n)\nresultado = evaluacion.content[0].input  # {\"puntaje\": 5, \"justificacion\": \"...\"}"
+                },
+                {
+                  "type": "callout",
+                  "style": "warning",
+                  "title": "Sesgos del juez de modelo",
+                  "content": "Un LLM-as-judge tiende a preferir respuestas más largas (verbosity bias) y, en comparaciones entre dos respuestas, a favorecer la que aparece primero (position bias). En comparaciones, correr el juicio dos veces invirtiendo el orden: si el ganador es el mismo, el resultado es confiable; si no coinciden, el caso queda como empate."
+                }
+              ]
+            },
+            {
+              "title": "Evitar overfitting al eval set",
+              "blocks": [
+                {
+                  "type": "text",
+                  "content": "Si un prompt se ajusta una y otra vez mirando el mismo dataset de evaluación, termina memorizando las particularidades de ese dataset en vez de generalizar. Es el mismo problema que el overfitting en machine learning."
+                },
+                {
+                  "type": "steps",
+                  "items": [
+                    {
+                      "title": "Holdout set",
+                      "body": "Mantener un conjunto que nunca se mira durante la iteración, reservado solo para la validación final de una versión candidata."
+                    },
+                    {
+                      "title": "Renovar el dataset",
+                      "body": "Incorporar periódicamente casos nuevos, especialmente los que vienen de fallos reales detectados en producción."
+                    },
+                    {
+                      "title": "Validar manualmente",
+                      "body": "Desconfiar de una mejora que solo se refleja en el eval pero no en revisiones manuales puntuales de las respuestas reales."
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

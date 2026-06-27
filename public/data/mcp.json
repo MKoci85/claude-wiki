@@ -1,0 +1,590 @@
+{
+  "title": "MCP",
+  "sections": [
+    {
+      "title": "Fundamentos",
+      "articles": [
+        {
+          "id": "mcp-que-es",
+          "title": "¿Qué es MCP?",
+          "summary": "Un protocolo abierto para conectar Claude Code con bases de datos, navegadores, APIs y repositorios sin salir de la sesión",
+          "subsections": [
+            {
+              "title": "Definición",
+              "blocks": [
+                {
+                  "type": "text",
+                  "content": "MCP (Model Context Protocol) estandariza cómo los modelos de lenguaje se conectan con sistemas externos. Claude Code lo usa para acceder a herramientas que van más allá del filesystem local — de forma segura, declarativa y sin interrumpir el flujo de trabajo."
+                },
+                {
+                  "type": "cards",
+                  "items": [
+                    {
+                      "title": "🧩 Extensible por diseño",
+                      "body": "Cualquier herramienta con un servidor MCP se integra igual — bases de datos, servicios de nube, APIs internas, navegadores automatizados."
+                    },
+                    {
+                      "title": "🔒 Credenciales bajo control",
+                      "body": "Los tres scopes permiten decidir con precisión qué credenciales comparte el equipo y cuáles son personales, sin mezclarlas."
+                    },
+                    {
+                      "title": "⚡ Tool Search: sin overhead",
+                      "body": "Claude Code carga las definiciones de herramientas bajo demanda, no todas de golpe. 10+ servidores conectados sin saturar el contexto."
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "title": "En números",
+              "blocks": [
+                {
+                  "type": "stats",
+                  "items": [
+                    {
+                      "number": "~95%",
+                      "label": "reducción de consumo de contexto vs clientes MCP tradicionales"
+                    },
+                    {
+                      "number": "3",
+                      "label": "scopes para controlar visibilidad de cada servidor"
+                    },
+                    {
+                      "number": "10+",
+                      "label": "servidores simultáneos sin impacto en la ventana de contexto"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "Comandos",
+      "articles": [
+        {
+          "id": "mcp-agregar",
+          "title": "Agregar servidores",
+          "summary": "Comandos para registrar servidores MCP en distintos scopes y transportes",
+          "subsections": [
+            {
+              "title": "Servidor stdio (local, por defecto)",
+              "blocks": [
+                {
+                  "type": "code",
+                  "lang": "bash",
+                  "content": "claude mcp add playwright -- npx -y @playwright/mcp --headless"
+                }
+              ]
+            },
+            {
+              "title": "Servidor HTTP remoto",
+              "blocks": [
+                {
+                  "type": "code",
+                  "lang": "bash",
+                  "content": "claude mcp add --transport http github https://api.githubcopilot.com/mcp"
+                }
+              ]
+            },
+            {
+              "title": "Con variables de entorno",
+              "blocks": [
+                {
+                  "type": "code",
+                  "lang": "bash",
+                  "content": "claude mcp add -e API_KEY=xxx -e DB_URL=yyy myserver -- npx my-server"
+                }
+              ]
+            },
+            {
+              "title": "Desde JSON directo",
+              "blocks": [
+                {
+                  "type": "text",
+                  "content": "Útil para configuraciones complejas con múltiples argumentos:"
+                },
+                {
+                  "type": "code",
+                  "lang": "bash",
+                  "content": "claude mcp add-json postgres '{\"command\":\"npx\",\"args\":[\"-y\",\"@mcp/postgres\"],\"env\":{\"DB\":\"$DATABASE_URL\"}}'"
+                }
+              ]
+            },
+            {
+              "title": "Con scope explícito",
+              "blocks": [
+                {
+                  "type": "code",
+                  "lang": "bash",
+                  "content": "claude mcp add --scope project shared-db -- npx @mcp/postgres\nclaude mcp add --scope user brave -- npx @brave/brave-search-mcp-server\nclaude mcp add --scope local secret-tool -- npx my-private-server"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "mcp-gestionar",
+          "title": "Gestionar servidores",
+          "summary": "Listar, inspeccionar y eliminar servidores MCP registrados",
+          "subsections": [
+            {
+              "title": "Comandos de gestión",
+              "blocks": [
+                {
+                  "type": "code",
+                  "lang": "bash",
+                  "content": "# Listar todos los servidores y su estado\nclaude mcp list\n\n# Inspeccionar un servidor concreto (config + estado de conexión)\nclaude mcp get playwright\n\n# Eliminar un servidor\nclaude mcp remove playwright\n\n# Eliminar de un scope específico (si existe en varios)\nclaude mcp remove --scope project playwright"
+                }
+              ]
+            },
+            {
+              "title": "Referencia rápida de comandos",
+              "blocks": [
+                {
+                  "type": "table",
+                  "headers": ["Comando", "Descripción", "Flags útiles"],
+                  "rows": [
+                    ["mcp add <nombre> -- <cmd>", "Agrega un servidor stdio al scope local", "--scope, -e KEY=VAL, --transport"],
+                    ["mcp add --transport http <nombre> <url>", "Agrega un servidor HTTP/remoto", "--scope project para compartir"],
+                    ["mcp add-json <nombre> '<json>'", "Agrega desde configuración JSON literal", "Útil para configs con múltiples args"],
+                    ["mcp list", "Lista servidores y estado de conexión", "Muestra scope, estado, errores"],
+                    ["mcp get <nombre>", "Inspecciona config y estado de un servidor", "—"],
+                    ["mcp remove <nombre>", "Elimina un servidor", "--scope si existe en varios"],
+                    ["mcp add-from-claude-desktop", "Importa servidores de Claude Desktop", "Importa al scope local por defecto"]
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "mcp-sesion",
+          "title": "Comandos en sesión",
+          "summary": "El comando /mcp para gestionar servidores durante una sesión interactiva",
+          "subsections": [
+            {
+              "title": "Panel de gestión MCP",
+              "blocks": [
+                {
+                  "type": "code",
+                  "lang": "bash",
+                  "content": "# Abrir el panel de gestión MCP (también maneja OAuth 2.1)\n/mcp\n\n# Habilitar / deshabilitar un servidor en esta sesión\n/mcp enable playwright\n/mcp disable playwright\n\n# Habilitar / deshabilitar todos\n/mcp enable all\n/mcp disable all"
+                },
+                {
+                  "type": "callout",
+                  "kind": "info",
+                  "content": "El comando `/mcp` también guía el flujo OAuth 2.1 para servidores remotos que requieren autenticación."
+                }
+              ]
+            },
+            {
+              "title": "Importar desde Claude Desktop",
+              "blocks": [
+                {
+                  "type": "code",
+                  "lang": "bash",
+                  "content": "claude mcp add-from-claude-desktop"
+                },
+                {
+                  "type": "text",
+                  "content": "Útil para migrar una configuración existente de Claude.app. Importa al scope local por defecto. Los servidores importados se pueden mover de scope después."
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "Scopes",
+      "articles": [
+        {
+          "id": "mcp-scopes",
+          "title": "Dónde vive cada servidor",
+          "summary": "Los tres scopes determinan quién puede ver un servidor MCP y en qué proyectos está disponible",
+          "subsections": [
+            {
+              "title": "Los tres scopes",
+              "blocks": [
+                {
+                  "type": "text",
+                  "content": "El scope determina quién puede ver un servidor MCP y en qué proyectos está disponible. Elegirlo bien evita filtrar credenciales al equipo o forzar a cada desarrollador a reconfigurar lo mismo."
+                },
+                {
+                  "type": "table",
+                  "headers": ["Scope", "Flag", "Archivo", "Quién", "Proyectos", "Git"],
+                  "rows": [
+                    ["Local", "--scope local", "~/.claude.json (por path de proyecto)", "Solo vos", "Solo el proyecto actual", "No se versiona"],
+                    ["Project", "--scope project", ".mcp.json en la raíz del proyecto", "Todo el equipo", "Solo este proyecto", "Se commitea al repo"],
+                    ["User", "--scope user", "~/.claude.json (global)", "Solo vos", "Todos tus proyectos", "No se versiona"]
+                  ]
+                },
+                {
+                  "type": "callout",
+                  "kind": "info",
+                  "content": "Si el mismo nombre de servidor está definido en más de un scope, el orden de resolución es: **local → project → user** (gana el primero)."
+                }
+              ]
+            },
+            {
+              "title": "Scope local (por defecto)",
+              "blocks": [
+                {
+                  "type": "text",
+                  "content": "Solo vos, solo este proyecto. El scope por defecto cuando no especificás nada. Ideal para experimentar con un servidor nuevo o cuando las credenciales son tuyas y no del equipo."
+                },
+                {
+                  "type": "code",
+                  "lang": "bash",
+                  "content": "# El --scope local es implícito\nclaude mcp add playwright -- npx -y @playwright/mcp --headless\n\n# Con credenciales personales\nclaude mcp add -e PERSONAL_TOKEN=$MY_TOKEN internal-tool -- npx my-tool"
+                }
+              ]
+            },
+            {
+              "title": "Scope project (equipo)",
+              "blocks": [
+                {
+                  "type": "text",
+                  "content": "Todo el equipo, en este proyecto. Se guarda en `.mcp.json` y se versiona con Git. Las credenciales van como referencias `$VAR`, nunca como valores literales."
+                },
+                {
+                  "type": "code",
+                  "lang": "bash",
+                  "content": "# Servidor de equipo: se guarda en .mcp.json y se commitea\nclaude mcp add --scope project github --transport http https://api.githubcopilot.com/mcp\n\n# Con referencia a variable de entorno (el valor real no se commitea)\nclaude mcp add --scope project -e DB_URL=$DATABASE_URL postgres -- npx @mcp/postgres\n\n# Cada dev del equipo tiene su propia variable DATABASE_URL\n# El servidor es compartido, las credenciales no"
+                }
+              ]
+            },
+            {
+              "title": "Scope user (global)",
+              "blocks": [
+                {
+                  "type": "text",
+                  "content": "Solo vos, en todos tus proyectos. Herramientas personales que usás siempre, independientemente del proyecto."
+                },
+                {
+                  "type": "code",
+                  "lang": "bash",
+                  "content": "# Disponible en todos tus proyectos\nclaude mcp add --scope user brave-search -- npx -y @brave/brave-search-mcp-server\n\n# Herramientas de productividad personal\nclaude mcp add --scope user obsidian -- npx @obsidian/mcp-server\nclaude mcp add --scope user linear -- npx @linear/mcp-server"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "Transportes",
+      "articles": [
+        {
+          "id": "mcp-transportes",
+          "title": "Stdio vs HTTP",
+          "summary": "El transporte define cómo Claude Code se comunica con el servidor MCP",
+          "subsections": [
+            {
+              "title": "Comparativa",
+              "blocks": [
+                {
+                  "type": "compare",
+                  "left": {
+                    "label": "stdio — Recomendado para local",
+                    "items": [
+                      "El servidor corre como proceso hijo del shell",
+                      "Comunicación por stdin/stdout — sin red",
+                      "Hereda variables de entorno del shell",
+                      "Latencia mínima (proceso local)",
+                      "No requiere OAuth ni tokens adicionales",
+                      "Solo funciona en la máquina local"
+                    ]
+                  },
+                  "right": {
+                    "label": "HTTP — Recomendado para remoto",
+                    "items": [
+                      "El servidor corre en la nube o infraestructura propia",
+                      "Conexión via HTTPS con OAuth 2.1",
+                      "Servidor centralizado compartible con el equipo",
+                      "Accesible desde cualquier máquina",
+                      "Requiere configuración de autenticación",
+                      "Mayor latencia que stdio"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "title": "Flujo OAuth 2.1 para servidores HTTP",
+              "blocks": [
+                {
+                  "type": "steps",
+                  "items": [
+                    {
+                      "title": "Agregar el servidor HTTP",
+                      "description": "El servidor queda registrado pero aún sin token de acceso."
+                    },
+                    {
+                      "title": "Iniciar autenticación con /mcp",
+                      "description": "Desde la sesión interactiva, /mcp detecta que el servidor necesita auth y abre el flujo OAuth 2.1 en el navegador."
+                    },
+                    {
+                      "title": "Autorizar en el navegador",
+                      "description": "El navegador abre la página de autorización del proveedor (GitHub, Atlassian, etc.). El usuario aprueba los permisos solicitados."
+                    },
+                    {
+                      "title": "Token guardado automáticamente",
+                      "description": "Claude Code recibe el token de acceso y lo guarda de forma segura. Las próximas sesiones reutilizan el token sin volver a pedir autorización (hasta que expire)."
+                    }
+                  ]
+                },
+                {
+                  "type": "code",
+                  "lang": "bash",
+                  "content": "# 1. Registrar el servidor HTTP\nclaude mcp add --scope project github --transport http https://api.githubcopilot.com/mcp\n\n# 2. Iniciar auth desde la sesión\n/mcp"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "Tool Search",
+      "articles": [
+        {
+          "id": "mcp-tool-search",
+          "title": "Lazy loading de herramientas",
+          "summary": "Cómo Claude Code carga definiciones de herramientas bajo demanda para reducir el consumo de contexto",
+          "subsections": [
+            {
+              "title": "El problema con los clientes MCP tradicionales",
+              "blocks": [
+                {
+                  "type": "text",
+                  "content": "La mayoría de los clientes MCP cargan todas las definiciones de todas las herramientas de todos los servidores al inicio de cada sesión. Al conectar 5 servidores con 20 herramientas cada uno, los schemas de las 100 herramientas se inyectan en el contexto — sin importar si se van a usar. Esto puede consumir decenas de miles de tokens solo de definiciones."
+                },
+                {
+                  "type": "compare",
+                  "left": {
+                    "label": "🐌 Otros clientes MCP",
+                    "items": [
+                      "100% de las definiciones cargadas al inicio",
+                      "Todos los schemas en contexto desde el primer mensaje",
+                      "El consumo crece linealmente con cada servidor añadido",
+                      "10 servidores = contexto saturado antes de empezar"
+                    ]
+                  },
+                  "right": {
+                    "label": "⚡ Claude Code con Tool Search",
+                    "items": [
+                      "~5% del consumo de contexto tradicional",
+                      "Solo se carga el schema de las tools que se van a invocar",
+                      "10+ servidores conectados sin saturar la ventana",
+                      "El costo en tokens no escala con la cantidad de servidores"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "title": "Cómo funciona",
+              "blocks": [
+                {
+                  "type": "steps",
+                  "items": [
+                    {
+                      "title": "Registro de servidores disponibles",
+                      "description": "Al iniciar la sesión, Claude Code registra los servidores conectados pero no carga sus herramientas. Solo sabe que existen."
+                    },
+                    {
+                      "title": "Búsqueda bajo demanda",
+                      "description": "Cuando la tarea requiere una capacidad específica, Claude Code busca entre los servidores disponibles cuál puede cubrirla — similar a una búsqueda semántica sobre los metadatos del servidor."
+                    },
+                    {
+                      "title": "Carga del schema específico",
+                      "description": "Solo se carga el schema de la herramienta que se va a invocar. El resto de las herramientas del mismo servidor y de los otros servidores permanecen fuera del contexto."
+                    },
+                    {
+                      "title": "Invocación y resultado",
+                      "description": "La herramienta se invoca con los parámetros correctos y el resultado se integra en el contexto. El schema puede ser descargado del contexto después si ya no es necesario."
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "Configuración",
+      "articles": [
+        {
+          "id": "mcp-configuracion",
+          "title": "El archivo .mcp.json",
+          "summary": "La configuración compartida de servidores MCP para equipos vive en .mcp.json en la raíz del proyecto",
+          "subsections": [
+            {
+              "title": "Configuración completa",
+              "blocks": [
+                {
+                  "type": "code",
+                  "lang": "json",
+                  "label": ".mcp.json",
+                  "content": "{\n  \"mcpServers\": {\n    \"playwright\": {\n      \"command\": \"npx\",\n      \"args\": [\"-y\", \"@playwright/mcp\", \"--headless\"]\n    },\n    \"github\": {\n      \"type\": \"http\",\n      \"url\": \"https://api.githubcopilot.com/mcp\",\n      \"headers\": {\n        \"Authorization\": \"Bearer $GITHUB_TOKEN\"\n      }\n    },\n    \"postgres\": {\n      \"command\": \"npx\",\n      \"args\": [\"-y\", \"@modelcontextprotocol/server-postgres\"],\n      \"env\": {\n        \"POSTGRES_CONNECTION_STRING\": \"$DATABASE_URL\"\n      }\n    }\n  }\n}"
+                }
+              ]
+            },
+            {
+              "title": "Variables de entorno en .mcp.json",
+              "blocks": [
+                {
+                  "type": "text",
+                  "content": "Las variables de entorno se pueden usar en estos campos:"
+                },
+                {
+                  "type": "cards",
+                  "items": [
+                    {
+                      "title": "✅ Permitido",
+                      "body": "command, args (cualquier elemento del array), url, headers (valores), env (valores). Sintaxis soportada: $VAR y ${VAR}."
+                    },
+                    {
+                      "title": "❌ Prohibido",
+                      "body": "Pegar tokens directamente en .mcp.json. Commitar .mcp.json con secretos hardcodeados. Usar valores literales sensibles en headers."
+                    }
+                  ]
+                },
+                {
+                  "type": "code",
+                  "lang": "json",
+                  "label": "Con headers custom y variables",
+                  "content": "{\n  \"mcpServers\": {\n    \"internal-api\": {\n      \"type\": \"http\",\n      \"url\": \"https://api.internal.company.com/mcp\",\n      \"headers\": {\n        \"Authorization\": \"Bearer ${API_TOKEN}\",\n        \"X-Team-ID\": \"${TEAM_ID}\",\n        \"X-Environment\": \"development\"\n      }\n    }\n  }\n}"
+                },
+                {
+                  "type": "callout",
+                  "kind": "warning",
+                  "content": "Si una variable no existe al iniciar la sesión → warning, pero intenta conectar igual."
+                }
+              ]
+            },
+            {
+              "title": "Servidores populares",
+              "blocks": [
+                {
+                  "type": "table",
+                  "headers": ["Servidor", "Paquete / URL", "Descripción"],
+                  "rows": [
+                    ["🐘 PostgreSQL", "@modelcontextprotocol/server-postgres", "Consultas SQL, inspección de schema, explain plans."],
+                    ["🎭 Playwright", "@playwright/mcp", "Automatización de navegador, screenshots, testing E2E."],
+                    ["🐙 GitHub", "api.githubcopilot.com/mcp", "Issues, PRs, repos, code search. HTTP + OAuth."],
+                    ["🔍 Brave Search", "@brave/brave-search-mcp-server", "Búsqueda web en tiempo real desde la sesión."],
+                    ["📋 Linear", "mcp.linear.app/sse", "Issues, proyectos, ciclos. HTTP + OAuth 2.1."],
+                    ["📁 Filesystem", "@modelcontextprotocol/server-filesystem", "Acceso a directorios específicos fuera del proyecto."]
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "Seguridad",
+      "articles": [
+        {
+          "id": "mcp-seguridad",
+          "title": "Lo que hay que saber antes de conectar un servidor",
+          "summary": "Consideraciones de seguridad, permisos y mejores prácticas para servidores MCP",
+          "subsections": [
+            {
+              "title": "Riesgos a considerar",
+              "blocks": [
+                {
+                  "type": "cards",
+                  "items": [
+                    {
+                      "title": "🔑 Nunca hardcodear credenciales",
+                      "body": ".mcp.json se commitea al repo. Cualquier token incluido directamente queda expuesto en el historial de git para siempre. Usá siempre referencias $VAR."
+                    },
+                    {
+                      "title": "⚠️ Prompt injection via tool result",
+                      "body": "Un servidor MCP comprometido puede retornar contenido diseñado para manipular el comportamiento de Claude. Verificá el origen de servidores de terceros antes de usarlos en scope project."
+                    },
+                    {
+                      "title": "🌐 Servidores HTTP: revisá qué dominios permitís",
+                      "body": "Al agregar un servidor HTTP, estás permitiendo que Claude Code envíe datos a ese dominio. Con sandboxing, agregá el dominio a allowedDomains."
+                    },
+                    {
+                      "title": "🔐 OAuth 2.1: mínimo privilegio",
+                      "body": "Los tokens OAuth se guardan localmente. Si el token tiene scopes amplios (acceso de escritura a todos los repos de una org), configurá los servidores con el principio de mínimo privilegio."
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "title": "Permisos para servidores MCP",
+              "blocks": [
+                {
+                  "type": "code",
+                  "lang": "json",
+                  "label": "Bloquear servidor completo",
+                  "content": "{\n  \"permissions\": {\n    \"deny\": [\"mcp__puppeteer\"]\n  }\n}\n// Patrón: mcp__<nombre-del-servidor>"
+                },
+                {
+                  "type": "code",
+                  "lang": "json",
+                  "label": "Permitir solo tools específicas",
+                  "content": "{\n  \"permissions\": {\n    \"allow\": [\n      \"mcp__github__list_issues\",\n      \"mcp__github__get_issue\",\n      \"mcp__github__list_prs\"\n    ],\n    \"deny\": [\"mcp__github\"]\n  }\n}\n// Patrón: mcp__<servidor>__<nombre-de-herramienta>"
+                },
+                {
+                  "type": "code",
+                  "lang": "json",
+                  "label": "Bloquear solo tools destructivas",
+                  "content": "{\n  \"permissions\": {\n    \"deny\": [\n      \"mcp__github__delete_repository\",\n      \"mcp__github__delete_branch\"\n    ]\n  }\n}\n// El resto de las herramientas del servidor siguen disponibles"
+                }
+              ]
+            },
+            {
+              "title": "Mejores prácticas",
+              "blocks": [
+                {
+                  "type": "cards",
+                  "items": [
+                    {
+                      "title": "🔒 Scope por sensibilidad",
+                      "body": "Servidores con credenciales del equipo → scope project (con referencias $VAR). Credenciales personales o experimentales → scope local o user."
+                    },
+                    {
+                      "title": "⚡ Empezar con scope local",
+                      "body": "Probá el servidor en scope local primero. Una vez verificado que funciona y no expone nada sensible, promovelo a scope project para el equipo."
+                    },
+                    {
+                      "title": "📦 Versionar sin secretos",
+                      "body": "Commitear .mcp.json estandariza la configuración del equipo — pero solo si todos los valores sensibles son referencias $VAR. Documentá las variables requeridas en el README."
+                    },
+                    {
+                      "title": "🔍 Auditar periódicamente",
+                      "body": "claude mcp list muestra todos los servidores y su estado. Revisá regularmente que no haya servidores obsoletos o con credenciales vencidas."
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "title": "Checklist de seguridad",
+              "blocks": [
+                {
+                  "type": "callout",
+                  "kind": "warning",
+                  "content": "**Antes de agregar un servidor MCP al scope project:**\n\n- Nunca hardcodear tokens o secrets en .mcp.json — siempre referencias $VAR.\n- Scope project para servidores del equipo, scope local para experimentos y credenciales personales.\n- El transporte SSE está deprecado — usá HTTP con OAuth 2.1 para servidores remotos.\n- Usá `deny: [\"mcp__servidor\"]` para bloquear servidores completos, o `mcp__servidor__tool` para tools específicas.\n- Con sandboxing activo, agregar el dominio del servidor HTTP a allowedDomains o el servidor fallará.\n- `~/.claude.json` (scope local/user de MCP) ≠ `.claude/settings.local.json` (settings del proyecto). Son archivos distintos."
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

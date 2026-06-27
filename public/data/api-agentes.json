@@ -1,0 +1,222 @@
+{
+  "sections": [
+    {
+      "title": "Agentes y Workflows",
+      "articles": [
+        {
+          "title": "Workflows vs. Agentes",
+          "subsections": [
+            {
+              "title": "La diferencia fundamental",
+              "blocks": [
+                {
+                  "type": "text",
+                  "content": "Con tool use y MCP como piezas sueltas, queda la pregunta de cómo orquestarlas en un sistema completo. Hay dos grandes familias de patrones, y conocer la diferencia evita tanto la sobre-ingeniería como la subestimación de la complejidad necesaria."
+                },
+                {
+                  "type": "compare",
+                  "left": {
+                    "head": "Workflows",
+                    "rows": [
+                      { "key": "Quién decide la ruta", "value": "El código. Hay pasos fijos, condiciones explícitas y rutas conocidas de antemano." },
+                      { "key": "El modelo decide", "value": "Solo el contenido de cada paso, no la estructura del proceso." },
+                      { "key": "Cuándo usar", "value": "Cuando la tarea es predecible y el camino correcto se puede definir de antemano." }
+                    ]
+                  },
+                  "right": {
+                    "head": "Agentes",
+                    "rows": [
+                      { "key": "Quién decide la ruta", "value": "El modelo. Decide dinámicamente qué hacer a continuación en un bucle abierto." },
+                      { "key": "El modelo decide", "value": "Qué herramienta usar, con qué parámetros, y cuándo la tarea está completa." },
+                      { "key": "Cuándo usar", "value": "Cuando el camino correcto no se puede predecir de antemano porque depende del input." }
+                    ]
+                  }
+                },
+                {
+                  "type": "callout",
+                  "style": "info",
+                  "title": "Recomendación práctica",
+                  "content": "Empezar por el workflow más simple que resuelva el problema, y subir en complejidad —hacia un agente más autónomo— solo cuando la tarea realmente lo requiere. La mayoría de los casos de uso se resuelven con workflows bien diseñados."
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "title": "Patrones de workflow",
+          "subsections": [
+            {
+              "title": "Paralelización",
+              "blocks": [
+                {
+                  "type": "text",
+                  "content": "Cuando varias subtareas son independientes entre sí, ejecutarlas en paralelo y combinar los resultados al final es mucho más eficiente que encadenarlas secuencialmente."
+                },
+                {
+                  "type": "code",
+                  "language": "python",
+                  "code": "import asyncio\nfrom anthropic import AsyncAnthropic\n\nasync_client = AsyncAnthropic()\n\nasync def analizar_reseña(texto):\n    r = await async_client.messages.create(\n        model=\"claude-haiku-4-5-20251001\", max_tokens=100,\n        messages=[{\"role\": \"user\", \"content\": f\"Sentimiento (positivo/negativo/neutro) de: {texto}\"}],\n    )\n    return r.content[0].text\n\nasync def analizar_todas(reseñas):\n    tareas = [analizar_reseña(r) for r in reseñas]\n    return await asyncio.gather(*tareas)  # todas las llamadas en paralelo\n\n# 100 reseñas en paralelo vs. 100 llamadas secuenciales: diferencia de minutos"
+                }
+              ]
+            },
+            {
+              "title": "Chaining (encadenamiento)",
+              "blocks": [
+                {
+                  "type": "text",
+                  "content": "Una tarea compleja se divide en pasos secuenciales, donde la salida de un paso es la entrada del siguiente. Suele incluir un \"gate\" —una verificación intermedia— para detectar errores temprano en vez de propagarlos hasta el final."
+                },
+                {
+                  "type": "steps",
+                  "items": [
+                    {
+                      "title": "Extraer requisitos",
+                      "body": "Primer paso: identificar qué se necesita del input del usuario."
+                    },
+                    {
+                      "title": "Gate: ¿requisitos completos?",
+                      "body": "Verificación programática antes de continuar. Si faltan datos, pedir más info en vez de seguir con un input incompleto."
+                    },
+                    {
+                      "title": "Generar borrador",
+                      "body": "Con los requisitos validados, generar el contenido."
+                    },
+                    {
+                      "title": "Revisar y pulir",
+                      "body": "Un prompt final con foco único en calidad y formato."
+                    }
+                  ]
+                },
+                {
+                  "type": "code",
+                  "language": "python",
+                  "code": "def generar_contrato(brief_cliente):\n    requisitos = pedir_a_claude(f\"Extraé los requisitos clave de: {brief_cliente}\")\n\n    if \"falta\" in requisitos.lower():  # gate\n        return {\"error\": \"requisitos incompletos, pedir más info al cliente\"}\n\n    borrador = pedir_a_claude(f\"Redactá un borrador con estos requisitos: {requisitos}\")\n    version_final = pedir_a_claude(f\"Revisá y pulí el lenguaje legal de: {borrador}\")\n    return {\"contrato\": version_final}"
+                }
+              ]
+            },
+            {
+              "title": "Routing (enrutamiento)",
+              "blocks": [
+                {
+                  "type": "text",
+                  "content": "Un primer paso clasifica la entrada y la deriva a uno de varios caminos especializados, cada uno con su propio prompt e incluso su propio modelo. Es el patrón natural para combinar un modelo barato (que clasifica) con modelos más capaces según la complejidad de cada categoría."
+                },
+                {
+                  "type": "code",
+                  "language": "python",
+                  "code": "PROMPTS_POR_CATEGORIA = {\n    \"tecnico\": (\"claude-opus-4-8\", \"Sos soporte técnico nivel 2...\"),\n    \"facturacion\": (\"claude-sonnet-4-6\", \"Sos soporte de facturación...\"),\n    \"faq\": (\"claude-haiku-4-5-20251001\", \"Respondé preguntas frecuentes brevemente...\"),\n}\n\ndef enrutar_y_responder(mensaje):\n    # modelo barato para clasificar\n    categoria = pedir_a_claude(\n        f\"Clasificá en tecnico/facturacion/faq (una palabra): {mensaje}\",\n        modelo=\"claude-haiku-4-5-20251001\",\n    ).strip()\n\n    modelo, system_prompt = PROMPTS_POR_CATEGORIA.get(categoria, PROMPTS_POR_CATEGORIA[\"faq\"])\n    return pedir_a_claude(mensaje, modelo=modelo, system=system_prompt)"
+                }
+              ]
+            },
+            {
+              "title": "Evaluator-optimizer",
+              "blocks": [
+                {
+                  "type": "text",
+                  "content": "Un modelo genera una respuesta; otro (o el mismo, en otra llamada) la evalúa contra criterios explícitos y devuelve feedback específico. Si no pasa, el generador reintenta incorporando ese feedback, hasta aprobar o agotar un número máximo de intentos. Funciona bien para traducciones, código con tests que deben pasar, o textos contra una guía de estilo."
+                },
+                {
+                  "type": "code",
+                  "language": "python",
+                  "code": "def generar_con_evaluacion(tarea, criterios, max_intentos=3):\n    feedback = \"\"\n    for intento in range(max_intentos):\n        borrador = pedir_a_claude(f\"{tarea}\\n\\nFeedback de la iteración anterior: {feedback}\")\n        evaluacion = pedir_a_claude(\n            f\"Evaluá si este texto cumple estos criterios: {criterios}\\n\\nTexto: {borrador}\\n\\n\"\n            \"Si cumple todo, respondé exactamente 'OK'. Si no, devolvé feedback específico y accionable.\"\n        )\n        if evaluacion.strip() == \"OK\":\n            return borrador\n        feedback = evaluacion\n    return borrador  # se devuelve el último intento aunque no haya aprobado"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "title": "Agentes autónomos",
+          "subsections": [
+            {
+              "title": "Orchestrator-workers",
+              "blocks": [
+                {
+                  "type": "text",
+                  "content": "La paralelización asume que las subtareas ya están definidas de antemano por el código. En el patrón orchestrator-workers, un modelo orquestador decide dinámicamente en qué subtareas dividir el trabajo, las despacha a workers (en paralelo), y sintetiza sus resultados en una respuesta única."
+                },
+                {
+                  "type": "code",
+                  "language": "python",
+                  "code": "tool_definir_subtareas = {\n    \"name\": \"definir_subtareas\",\n    \"description\": \"Define en qué subtareas independientes dividir un trabajo de investigación\",\n    \"input_schema\": {\n        \"type\": \"object\",\n        \"properties\": {\"subtareas\": {\"type\": \"array\", \"items\": {\"type\": \"string\"}}},\n        \"required\": [\"subtareas\"],\n    },\n}\n\ndef investigar(pregunta_compleja):\n    # orquestador decide la división\n    plan = client.messages.create(\n        model=\"claude-opus-4-8\", max_tokens=400,\n        tools=[tool_definir_subtareas],\n        tool_choice={\"type\": \"tool\", \"name\": \"definir_subtareas\"},\n        messages=[{\"role\": \"user\", \"content\": f\"Dividí en 2 a 4 subtareas independientes: {pregunta_compleja}\"}],\n    )\n    subtareas = plan.content[0].input[\"subtareas\"]\n\n    resultados = asyncio.run(resolver_en_paralelo(subtareas))  # workers en paralelo\n\n    return pedir_a_claude(f\"Sintetizá estos hallazgos en una respuesta coherente:\\n{resultados}\")"
+                }
+              ]
+            },
+            {
+              "title": "El loop de agente con límites",
+              "blocks": [
+                {
+                  "type": "text",
+                  "content": "Un agente retoma el loop de tool use, pero con más autonomía: en cada iteración evalúa el estado del entorno y decide el próximo paso sin un camino fijo. Es indispensable definir condiciones de corte para evitar loops sin fin."
+                },
+                {
+                  "type": "code",
+                  "language": "python",
+                  "code": "def agente(objetivo, tools, max_iteraciones=8):\n    mensajes = [{\"role\": \"user\", \"content\": objetivo}]\n\n    for i in range(max_iteraciones):\n        response = client.messages.create(\n            model=\"claude-sonnet-4-6\", max_tokens=1500, tools=tools, messages=mensajes\n        )\n        mensajes.append({\"role\": \"assistant\", \"content\": response.content})\n\n        if response.stop_reason != \"tool_use\":\n            return response  # el agente considera la tarea terminada\n\n        resultados = ejecutar_y_recolectar_tools(response.content)\n        mensajes.append({\"role\": \"user\", \"content\": resultados})\n\n    raise RuntimeError(\"el agente no convergió dentro del límite de iteraciones\")"
+                },
+                {
+                  "type": "callout",
+                  "style": "warning",
+                  "title": "Siempre definir un límite",
+                  "content": "Sin `max_iteraciones` u otro mecanismo de corte, un agente puede entrar en loop infinito frente a un error persistente o una tarea mal definida. El límite no es un edge case: es parte del diseño."
+                }
+              ]
+            },
+            {
+              "title": "Gestión de contexto largo",
+              "blocks": [
+                {
+                  "type": "text",
+                  "content": "Cada iteración del loop agrega mensajes al historial. En tareas largas, ese historial puede acercarse al límite de la ventana de contexto, y cada llamada se vuelve más cara porque se reenvía todo el historial. Dos técnicas para controlarlo:"
+                },
+                {
+                  "type": "compare",
+                  "left": {
+                    "head": "Compactar historial",
+                    "rows": [
+                      { "key": "Cuándo", "value": "Cuando el historial supera un umbral de tokens." },
+                      { "key": "Cómo", "value": "Resumir los turnos más viejos en un párrafo condensado y reemplazarlos por ese resumen." },
+                      { "key": "Conservar", "value": "Los turnos recientes intactos (los últimos 4-6 mensajes)." }
+                    ]
+                  },
+                  "right": {
+                    "head": "Truncar resultados",
+                    "rows": [
+                      { "key": "Cuándo", "value": "Antes de agregar el resultado de una tool al historial." },
+                      { "key": "Cómo", "value": "Quedarse con la parte relevante (ej: primeras N líneas de un log, campos clave de un JSON)." },
+                      { "key": "Conservar", "value": "Solo lo que el agente necesita para el próximo paso." }
+                    ]
+                  }
+                },
+                {
+                  "type": "code",
+                  "language": "python",
+                  "code": "def compactar_si_hace_falta(mensajes, umbral_tokens=50000, conservar_ultimos=4):\n    if estimar_tokens(mensajes) < umbral_tokens:\n        return mensajes\n\n    historial_viejo = mensajes[:-conservar_ultimos]\n    resumen = pedir_a_claude(\n        f\"Resumí en pocos párrafos lo relevante de esto para continuar la tarea:\\n{historial_viejo}\"\n    )\n    return [\n        {\"role\": \"user\", \"content\": f\"Resumen de lo actuado hasta ahora:\\n{resumen}\"}\n    ] + mensajes[-conservar_ultimos:]"
+                }
+              ]
+            },
+            {
+              "title": "Human-in-the-loop y observabilidad",
+              "blocks": [
+                {
+                  "type": "text",
+                  "content": "Para acciones irreversibles o de alto impacto (enviar email, cobrar, borrar registros), insertar un punto de pausa que requiera aprobación humana antes de ejecutar, en lugar de dejar el loop completamente automático de punta a punta."
+                },
+                {
+                  "type": "code",
+                  "language": "python",
+                  "code": "import logging\n\nACCIONES_QUE_REQUIEREN_APROBACION = {\"enviar_email\", \"cobrar_tarjeta\", \"borrar_registro\"}\n\ndef ejecutar_con_aprobacion(bloque_tool_use):\n    if bloque_tool_use.name in ACCIONES_QUE_REQUIEREN_APROBACION:\n        aprobado = input(f\"¿Aprobás ejecutar {bloque_tool_use.name} con {bloque_tool_use.input}? (s/n) \")\n        if aprobado.lower() != \"s\":\n            return \"Acción cancelada por el usuario\"\n    return ejecutar_tool(bloque_tool_use.name, bloque_tool_use.input)\n\n# logging de cada paso para depurar por qué el agente tomó un camino\nlogging.basicConfig(level=logging.INFO)\n\ndef agente_con_logging(objetivo, tools, max_iteraciones=8):\n    mensajes = [{\"role\": \"user\", \"content\": objetivo}]\n    for i in range(max_iteraciones):\n        response = client.messages.create(\n            model=\"claude-sonnet-4-6\", max_tokens=1500, tools=tools, messages=mensajes\n        )\n        logging.info(\n            \"iteración=%d stop_reason=%s tokens_salida=%d\",\n            i, response.stop_reason, response.usage.output_tokens,\n        )\n        for bloque in response.content:\n            if bloque.type == \"tool_use\":\n                logging.info(\"tool=%s input=%s\", bloque.name, bloque.input)\n        mensajes.append({\"role\": \"assistant\", \"content\": response.content})\n        if response.stop_reason != \"tool_use\":\n            return response\n        resultados = ejecutar_y_recolectar_tools(response.content)\n        mensajes.append({\"role\": \"user\", \"content\": resultados})"
+                },
+                {
+                  "type": "callout",
+                  "style": "info",
+                  "title": "Sin logging no hay debugging",
+                  "content": "Cuando un agente toma un camino inesperado o se queda dando vueltas sin converger, la única forma práctica de entender por qué es tener un registro de cada paso: qué herramienta se llamó, con qué parámetros, qué devolvió, cuánto tardó y cuántos tokens consumió. Sin ese registro, depurar un agente de varios pasos se reduce a adivinar."
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

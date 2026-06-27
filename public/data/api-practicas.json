@@ -1,0 +1,169 @@
+{
+  "sections": [
+    {
+      "title": "Guías Prácticas",
+      "articles": [
+        {
+          "title": "Streaming de respuestas",
+          "subsections": [
+            {
+              "title": "¿Qué es streaming?",
+              "blocks": [
+                {
+                  "type": "text",
+                  "content": "En lugar de esperar la respuesta completa, recibes tokens uno a uno mientras se generan. Permite UX más responsiva."
+                }
+              ]
+            },
+            {
+              "title": "Streaming en Python",
+              "blocks": [
+                {
+                  "type": "code",
+                  "language": "python",
+                  "code": "import anthropic\n\nclient = anthropic.Anthropic()\n\nwith client.messages.stream(\n    model=\"claude-opus-4-8\",\n    max_tokens=1024,\n    messages=[{\"role\": \"user\", \"content\": \"Cuéntame un chiste\"}]\n) as stream:\n    for text in stream.text_stream:\n        print(text, end=\"\", flush=True)"
+                }
+              ]
+            },
+            {
+              "title": "Streaming en JavaScript",
+              "blocks": [
+                {
+                  "type": "code",
+                  "language": "javascript",
+                  "code": "import Anthropic from \"@anthropic-ai/sdk\";\n\nconst client = new Anthropic();\n\nconst stream = await client.messages.stream({\n  model: \"claude-opus-4-8\",\n  max_tokens: 1024,\n  messages: [{role: \"user\", content: \"Cuéntame un chiste\"}]\n});\n\nfor await (const chunk of stream) {\n  if (chunk.type === \"content_block_delta\") {\n    process.stdout.write(chunk.delta.text);\n  }\n}"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "title": "Manejo de errores",
+          "subsections": [
+            {
+              "title": "Errores comunes",
+              "blocks": [
+                {
+                  "type": "table",
+                  "columns": ["Error", "Código", "Solución"],
+                  "rows": [
+                    ["API key inválida", "401", "Verifica que la key sea correcta y esté activa"],
+                    ["Modelo no encontrado", "404", "Usa un modelo disponible (claude-opus-4-8, etc)"],
+                    ["Límite de rate excedido", "429", "Espera un momento e intenta de nuevo"],
+                    ["Contexto muy largo", "400", "Reduce el número de tokens en tu mensaje"],
+                    ["Parámetro inválido", "400", "Revisa los parámetros esperados"]
+                  ]
+                }
+              ]
+            },
+            {
+              "title": "Reintentos",
+              "blocks": [
+                {
+                  "type": "code",
+                  "language": "python",
+                  "code": "import anthropic\nimport time\n\nclient = anthropic.Anthropic()\n\nmax_retries = 3\nfor attempt in range(max_retries):\n    try:\n        message = client.messages.create(\n            model=\"claude-opus-4-8\",\n            max_tokens=1024,\n            messages=[{\"role\": \"user\", \"content\": \"Hola\"}]\n        )\n        print(message.content[0].text)\n        break\n    except anthropic.RateLimitError:\n        if attempt < max_retries - 1:\n            wait_time = 2 ** attempt\n            print(f\"Rate limit, esperando {wait_time}s...\")\n            time.sleep(wait_time)\n        else:\n            raise"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "title": "Rate Limiting",
+          "subsections": [
+            {
+              "title": "Entender límites de rate",
+              "blocks": [
+                {
+                  "type": "text",
+                  "content": "La API tiene límites para evitar abuso: máximo requests por minuto, tokens por minuto, etc. Los límites varían según tu plan."
+                },
+                {
+                  "type": "callout",
+                  "style": "info",
+                  "title": "Headers de rate limit",
+                  "content": "La respuesta incluye headers que muestran tu uso actual: rate-limit-limit-requests, rate-limit-remaining-requests, rate-limit-reset-requests"
+                }
+              ]
+            },
+            {
+              "title": "Estrategia de reintentos exponencial",
+              "blocks": [
+                {
+                  "type": "text",
+                  "content": "Si recibis error 429 (too many requests), espera un tiempo exponencial antes de reintentar (1s, 2s, 4s, etc)."
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "title": "Mejores prácticas",
+          "subsections": [
+            {
+              "title": "Seguridad",
+              "blocks": [
+                {
+                  "type": "cards",
+                  "cards": [
+                    {
+                      "title": "Guarda keys en .env",
+                      "description": "Usa variables de entorno, nunca hardcodees"
+                    },
+                    {
+                      "title": "Valida inputs",
+                      "description": "Sanitiza inputs de usuarios antes de enviar a la API"
+                    },
+                    {
+                      "title": "Maneja tokens seguros",
+                      "description": "No loguees requests completos que contengan datos sensibles"
+                    },
+                    {
+                      "title": "Monitorea costos",
+                      "description": "Usa token counting para alertas si costos suben"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "title": "Performance",
+              "blocks": [
+                {
+                  "type": "cards",
+                  "cards": [
+                    {
+                      "title": "Usa streaming",
+                      "description": "Para mejor UX en aplicaciones interactivas"
+                    },
+                    {
+                      "title": "Batch API",
+                      "description": "Para procesamiento masivo sin prisa"
+                    },
+                    {
+                      "title": "Cachea respuestas",
+                      "description": "Si la misma pregunta se repite frecuentemente"
+                    },
+                    {
+                      "title": "Elige modelo apropiado",
+                      "description": "Usa Haiku para velocidad, Opus para complejidad"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "title": "Costo",
+              "blocks": [
+                {
+                  "type": "text",
+                  "content": "Monitorea uso en console.anthropic.com. Considera usar Batch API (50% descuento) para trabajos no urgentes. Usa Haiku para tareas simples y económicas."
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

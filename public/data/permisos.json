@@ -1,0 +1,456 @@
+{
+  "title": "Permisos",
+  "description": "Control granular sobre qué puede hacer Claude Code: modos, reglas, configuración y sandboxing.",
+  "sections": [
+    {
+      "title": "El sistema de Permisos",
+      "articles": [
+        {
+          "id": "permisos-pipeline",
+          "title": "El pipeline de evaluación",
+          "summary": "Antes de ejecutar cualquier herramienta, el SDK recorre cinco pasos en orden. El primer paso que resuelve la decisión gana — los siguientes no se evalúan.",
+          "blocks": [
+            {
+              "type": "text",
+              "content": "Cada vez que Claude quiere usar una herramienta, el SDK evalúa una cadena de cinco decisiones. El orden importa: una deny rule puede bloquear algo incluso si el modo activo es `bypassPermissions`."
+            },
+            {
+              "type": "steps",
+              "items": [
+                {
+                  "title": "Hooks",
+                  "body": "Se ejecutan primero. Pueden aprobar, denegar o pasar la decisión al siguiente paso. También pueden modificar el tool call antes de que se ejecute. Siempre corren, sin excepción."
+                },
+                {
+                  "title": "Deny rules",
+                  "body": "Se chequean `disallowed_tools` y las reglas deny de `settings.json`. Si hay un match, la herramienta se bloquea **incluso en `bypassPermissions`**. Prioridad máxima."
+                },
+                {
+                  "title": "Permission mode",
+                  "body": "Se aplica el modo activo. `bypassPermissions` aprueba todo lo que llega aquí. `acceptEdits` aprueba operaciones de archivo. Los demás modos pasan al siguiente paso."
+                },
+                {
+                  "title": "Allow rules",
+                  "body": "Se chequean `allowed_tools` y las reglas allow de `settings.json`. Si la herramienta está listada, se aprueba automáticamente sin llamar al callback."
+                },
+                {
+                  "title": "canUseTool callback",
+                  "body": "Si nada anterior resolvió la decisión, se llama tu callback para aprobación en runtime. En modo `dontAsk` este paso se saltea y la herramienta se **deniega**."
+                }
+              ]
+            },
+            {
+              "type": "callout",
+              "variant": "tip",
+              "title": "El orden importa",
+              "content": "Las deny rules se evalúan **antes** que el permission mode. Esto significa que podés usar `bypassPermissions` pero bloquear herramientas específicas con `disallowed_tools` — algo que `allowed_tools` no puede hacer en ese modo."
+            }
+          ]
+        },
+        {
+          "id": "permisos-modos",
+          "title": "Los seis modos de permiso",
+          "summary": "Cada modo define un comportamiento global para herramientas no resueltas por hooks, deny rules o allow rules. Se configura al inicio o se cambia dinámicamente durante el streaming.",
+          "blocks": [
+            {
+              "type": "table",
+              "headers": ["Modo", "Auto-aprueba", "Llama canUseTool", "Deny rules", "Ejecución", "Riesgo"],
+              "rows": [
+                ["`default`", "No", "Sí", "Aplica", "Completa", "Bajo"],
+                ["`dontAsk`", "Solo allowedTools", "No", "Aplica", "Completa", "Bajo"],
+                ["`acceptEdits`", "Solo archivos", "Para el resto", "Aplica", "Completa", "Medio"],
+                ["`bypassPermissions`", "Todo", "No", "Aplica", "Completa", "Alto"],
+                ["`plan`", "No", "No", "Aplica", "Solo lectura", "Ninguno"],
+                ["`auto`", "Clasificador ML", "Si el clasificador pasa", "Aplica", "Completa", "Variable"]
+              ]
+            },
+            {
+              "type": "cards",
+              "title": "Descripción de cada modo",
+              "items": [
+                {
+                  "title": "default",
+                  "description": "Modo estándar. No aprueba nada automáticamente. Toda herramienta no resuelta por allow rules llega al callback `canUseTool`. Punto de partida ideal."
+                },
+                {
+                  "title": "dontAsk",
+                  "description": "Convierte cualquier prompt de permiso en una denegación silenciosa. Las herramientas no pre-aprobadas se rechazan sin llamar a `canUseTool`. Define una superficie fija."
+                },
+                {
+                  "title": "acceptEdits",
+                  "description": "Auto-aprueba todas las operaciones de archivo dentro del working directory. Claude edita código libremente. Comandos Bash u otras herramientas siguen requiriendo aprobación."
+                },
+                {
+                  "title": "bypassPermissions",
+                  "description": "Aprueba todas las herramientas sin prompts. Claude tiene acceso total al sistema. Los hooks y deny rules siguen siendo efectivos. Solo en entornos controlados."
+                },
+                {
+                  "title": "plan",
+                  "description": "Previene completamente la ejecución de herramientas. Claude analiza y crea planes detallados, pero no hace ningún cambio. `AskUserQuestion` sigue disponible."
+                },
+                {
+                  "title": "auto (TS only)",
+                  "description": "Un clasificador de modelo evalúa cada tool call y decide si aprobarlo. Solo disponible en TypeScript. Reduce fricción sin abrir todo con `bypassPermissions`."
+                }
+              ]
+            },
+            {
+              "type": "callout",
+              "variant": "warning",
+              "title": "Herencia en subagentes con bypassPermissions",
+              "content": "Cuando usás `bypassPermissions`, todos los subagentes heredan este modo y **no se puede sobreescribir**. Los subagentes pueden tener system prompts distintos y comportamiento menos restringido. Habilitarlo les da acceso autónomo completo al sistema."
+            }
+          ]
+        },
+        {
+          "id": "permisos-allow-deny",
+          "title": "Allow & Deny rules: control declarativo",
+          "summary": "allowed_tools y disallowed_tools agregan entradas a las listas de aprobación y denegación. No controlan qué herramientas existen — controlan si se aprueban automáticamente.",
+          "blocks": [
+            {
+              "type": "compare",
+              "title": "allowed_tools vs disallowed_tools",
+              "left": {
+                "label": "allowed_tools ✅",
+                "items": [
+                  "Las herramientas listadas se aprueban automáticamente sin pasar por `canUseTool`",
+                  "Las no listadas siguen cayendo al permission mode y al callback",
+                  "No restringe `bypassPermissions` — las no listadas igual se aprueban en ese modo",
+                  "Úsalo junto con `dontAsk` para superficie mínima"
+                ]
+              },
+              "right": {
+                "label": "disallowed_tools 🚫",
+                "items": [
+                  "Las herramientas listadas **siempre** se deniegan",
+                  "Prioridad sobre cualquier modo, incluyendo `bypassPermissions`",
+                  "Es la única forma de garantizar que una herramienta nunca se ejecute",
+                  "Un deny bare (`Bash`) oculta la herramienta del contexto de Claude"
+                ]
+              }
+            },
+            {
+              "type": "callout",
+              "variant": "warning",
+              "title": "Trampa frecuente",
+              "content": "`allowedTools: [\"Read\"]` junto con `permissionMode: \"bypassPermissions\"` **no restringe nada**. Las herramientas no listadas no son denegadas — siguen cayendo al modo, donde `bypassPermissions` las aprueba todas. Para superficie mínima usá `dontAsk` + `allowedTools`, no `bypassPermissions` + `allowedTools`."
+            },
+            {
+              "type": "code",
+              "lang": "javascript",
+              "label": "Combinaciones recomendadas",
+              "content": "// Agente headless con superficie mínima\nconst options = {\n  allowedTools: [\"Read\", \"Glob\", \"Grep\"],\n  permissionMode: \"dontAsk\" // todo lo demás: denied\n};\n\n// bypassPermissions con Bash bloqueado explícitamente\n// allowed_tools NO sirve para esto — hay que usar disallowed_tools\nconst options = {\n  permissionMode: \"bypassPermissions\",\n  disallowedTools: [\"Bash\"] // garantiza bloqueo incluso en bypass\n};"
+            },
+            {
+              "type": "code",
+              "lang": "json",
+              "label": ".claude/settings.json — reglas declarativas por proyecto",
+              "content": "{\n  \"permissions\": {\n    \"allow\": [\"Read\", \"Grep\"],\n    \"deny\": [\"Bash\", \"Write\"],\n    \"ask\": [\"Edit\"]\n  }\n}"
+            }
+          ]
+        },
+        {
+          "id": "permisos-dinamico",
+          "title": "Cambio dinámico de modo",
+          "summary": "Podés cambiar el permission mode mientras el streaming está activo. El nuevo modo toma efecto inmediatamente. Esto permite patrones de confianza progresiva.",
+          "blocks": [
+            {
+              "type": "steps",
+              "items": [
+                {
+                  "title": "Empezar restrictivo",
+                  "body": "Iniciá con `plan` o `default`. Claude analiza el código y propone qué cambiaría. Revisás el plan antes de que ejecute nada."
+                },
+                {
+                  "title": "Evaluar la propuesta",
+                  "body": "Si el plan se ve bien y los cambios están dentro del scope esperado, llamás `setPermissionMode(\"acceptEdits\")` para que proceda con las ediciones."
+                },
+                {
+                  "title": "Escalar si es necesario",
+                  "body": "Si el agente necesita comandos de sistema además de editar archivos, podés escalar a `bypassPermissions` solo en ese punto — en un entorno aislado donde confíes en las operaciones."
+                },
+                {
+                  "title": "Bloquear si algo se sale del scope",
+                  "body": "Podés volver a `dontAsk` para cortar el acceso inmediatamente si el agente intenta algo fuera de lo esperado."
+                }
+              ]
+            },
+            {
+              "type": "code",
+              "lang": "python",
+              "label": "Python — confianza progresiva",
+              "content": "async def main():\n    q = query(\n        prompt=\"Refactorizá el módulo de auth\",\n        options=ClaudeAgentOptions(\n            permission_mode=\"plan\",  # empieza sin ejecución\n        ),\n    )\n    # Claude analiza y propone — revisás el plan\n    await q.set_permission_mode(\"acceptEdits\")  # ok, que edite\n    async for message in q:\n        if hasattr(message, \"result\"):\n            print(message.result)"
+            },
+            {
+              "type": "code",
+              "lang": "javascript",
+              "label": "TypeScript — confianza progresiva",
+              "content": "async function main() {\n  const q = query({\n    prompt: \"Refactorizá el módulo de auth\",\n    options: { permissionMode: \"plan\" } // empieza sin ejecución\n  });\n  // Claude analiza y propone — revisás el plan\n  await q.setPermissionMode(\"acceptEdits\"); // ok, que edite\n  for await (const message of q) {\n    if (\"result\" in message) console.log(message.result);\n  }\n}"
+            },
+            {
+              "type": "callout",
+              "variant": "tip",
+              "title": "El patrón más efectivo",
+              "content": "Arrancá con `plan` para tareas complejas o de alto impacto. Una vez que el plan te convence, cambiá dinámicamente a `acceptEdits` o `default` para que ejecute. Obtenés lo mejor de los dos mundos: exhaustividad al planificar, velocidad al ejecutar."
+            }
+          ]
+        },
+        {
+          "id": "permisos-comportamiento",
+          "title": "Cómo piensa Claude según el modo",
+          "summary": "Cada modo no solo cambia qué herramientas puede usar Claude — cambia su estrategia de razonamiento. Esta dimensión es menos obvia pero igual de importante.",
+          "blocks": [
+            {
+              "type": "compare",
+              "title": "default vs plan: dos filosofías",
+              "left": {
+                "label": "default — actúa para entender",
+                "items": [
+                  "Tiene red de seguridad: puede ejecutar pasos intermedios y corregir",
+                  "Actúa de forma incremental sin necesitar mucho contexto previo",
+                  "Abre el archivo, lee, edita, corrige sobre la marcha",
+                  "El contexto se construye mientras avanza"
+                ]
+              },
+              "right": {
+                "label": "plan — entiende para actuar",
+                "items": [
+                  "El plan es el producto final — no puede corregir errores ejecutando más pasos",
+                  "Explora, busca contexto adicional, hace preguntas antes de comprometerse",
+                  "Propone el plan completo de una vez, con todos los cambios necesarios",
+                  "Más exhaustivo en el análisis previo"
+                ]
+              }
+            },
+            {
+              "type": "callout",
+              "variant": "info",
+              "title": "La analogía",
+              "content": "**default** = el desarrollador ágil: empieza a codear, se topa con un error, lo corrige, sigue. Si algo sale mal, hay un `git reset`.\n\n**plan** = el cirujano: estudia las radiografías, revisa los antecedentes, y planifica cada incisión antes de tocar al paciente. No hay margen para improvisar en el quirófano."
+            },
+            {
+              "type": "table",
+              "headers": ["Modo", "Estrategia de razonamiento"],
+              "rows": [
+                ["`default`", "Actúa de forma incremental. Usa la ejecución como feedback para corregir el rumbo."],
+                ["`dontAsk`", "Diseña el approach alrededor de las herramientas disponibles. No intenta lo que sabe que está bloqueado."],
+                ["`acceptEdits`", "Fluye en ediciones de código, pero pausa cuando necesita salir del filesystem. Prefiere soluciones basadas en edición."],
+                ["`bypassPermissions`", "Decisiones más directas, encadena operaciones sin interrupciones. Máxima eficiencia, mínima cautela."],
+                ["`plan`", "Explora antes de comprometerse. El plan es el producto final — necesita estar seguro antes de proponerlo."],
+                ["`auto`", "Propone operaciones granulares y bien justificadas, porque cada una pasa por evaluación independiente del clasificador."]
+              ]
+            },
+            {
+              "type": "cards",
+              "title": "¿Cuándo conviene cada estrategia?",
+              "items": [
+                {
+                  "title": "Usá default cuando…",
+                  "description": "La tarea es concreta y acotada, podés supervisar los cambios mientras suceden, y estás en un repo con git — los errores son reversibles."
+                },
+                {
+                  "title": "Usá plan cuando…",
+                  "description": "Querés revisar el alcance antes de que toque algo, la tarea afecta muchos archivos, o los cambios son difíciles o costosos de revertir."
+                },
+                {
+                  "title": "Usá dontAsk cuando…",
+                  "description": "Tenés un agente headless con herramientas predefinidas y no querés ninguna intervención humana en runtime."
+                },
+                {
+                  "title": "Usá acceptEdits cuando…",
+                  "description": "Estás prototipando rápido en un directorio aislado y confiás en las ediciones de Claude, pero querés supervisión para comandos de sistema."
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "permisos-sintaxis",
+          "title": "Sintaxis avanzada y casos trampa",
+          "summary": "Los especificadores de herramientas permiten aprobar o bloquear invocaciones específicas, no solo herramientas enteras. La interacción entre herramientas crea escenarios no obvios.",
+          "blocks": [
+            {
+              "type": "code",
+              "lang": "javascript",
+              "label": "Sintaxis base de especificadores",
+              "content": "// Dos formas de especificar una regla\n// Tool ← bloquea/permite toda invocación de la herramienta\n// Tool(especificador) ← bloquea/permite solo invocaciones que coincidan\n\nBash              // todas las invocaciones de Bash\nBash(npm run build)  // exactamente ese comando\nBash(npm run *)      // cualquier npm run ...\nRead(.env)           // leer cualquier .env en cualquier nivel\nRead(/src/**/*.ts)   // leer .ts bajo /src/ relativo a project root\nWebFetch(domain:api.example.com)  // fetch solo a ese dominio"
+            },
+            {
+              "type": "code",
+              "lang": "javascript",
+              "label": "Patrones glob para Bash — el * incluye espacios",
+              "content": "// El * en reglas de Bash coincide con cualquier secuencia, incluyendo espacios\n\"Bash(npm run *)\"      // npm run build, npm run test, npm run dev...\n\"Bash(* --version)\"    // node --version, python --version...\n\"Bash(git * main)\"     // git checkout main, git merge main...\n\n// Diferencia crítica: espacio antes del *\n\"Bash(ls *)\"   // ✓ ls -la  ✗ lsof  ← word boundary por el espacio\n\"Bash(ls*)\"    // ✓ ls -la  ✓ lsof  ← sin boundary\n\n// El :* al final es equivalente al espacio + *\n\"Bash(ls:*)\"   // equivalente a \"Bash(ls *)\""
+            },
+            {
+              "type": "callout",
+              "variant": "info",
+              "title": "Seguridad con operadores de shell",
+              "content": "Claude Code entiende `&&`, `||`, `;`, `|`, `|&`, `&` y newlines — y evalúa cada subcomando por separado. Una regla `Bash(safe-cmd *)` no le da permiso para ejecutar `safe-cmd && evil-cmd`. Claude Code parsea el comando completo, lo divide en subcomandos y evalúa cada parte de forma independiente. Si algún subcomando no tiene permiso, el comando compuesto completo se bloquea."
+            },
+            {
+              "type": "code",
+              "lang": "javascript",
+              "label": "Paths para Read y Edit — prefijos y puntos de anclaje",
+              "content": "// El prefijo del path determina el punto de anclaje:\n//   //path  → ruta absoluta desde raíz del filesystem\n//   ~/path  → relativo al home directory\n//   /path   → relativo al project root\n//   path    → relativo al directorio actual\n\nRead(//Users/alice/.ssh/**)  // absoluta — doble barra\nRead(~/.zshrc)               // home\nEdit(/src/**/*.ts)           // project root\nRead(*.env)                  // directorio actual\n\n// .env es especial: coincide a cualquier profundidad\nRead(.env)      // equivalente a Read(**/.env)\nRead(//**/.env) // cualquier .env en todo el filesystem\n\n// ⚠️ Trampa: Read(/Users/alice/file) NO es absoluta\n// Es relativa al project root. Para absoluta: Read(//Users/alice/file)"
+            },
+            {
+              "type": "table",
+              "headers": ["Trampa", "Config que falla", "Por qué", "Config robusta"],
+              "rows": [
+                ["Deny Read pero no Bash", "`deny: [\"Read(.env)\"]`", "`cat .env` ejecutado desde Bash no usa la herramienta Read", "Agregar también `deny: [\"Bash(cat *.env)\"]`"],
+                ["WebFetch con dominio restringido", "`allow: [\"WebFetch(domain:api.internal.com)\"]`", "Bash puede usar `curl` o `wget` para llegar a cualquier URL", "Agregar `deny: [\"Bash(curl *)\", \"Bash(wget *)\"]`"],
+                ["allowed_tools + bypassPermissions", "`allowedTools: [\"Read\"], permissionMode: \"bypassPermissions\"`", "No listadas no son denegadas — bypass las aprueba todas", "Usar `dontAsk` en vez de `bypassPermissions`"],
+                ["Deny bare vs especificador", "`deny: [\"Bash\"]`", "Claude no ve la herramienta en su contexto — no puede ni proponerla", "Usar `deny: [\"Bash(rm *)\"]` si solo querés bloquear comandos específicos"]
+              ]
+            }
+          ]
+        },
+        {
+          "id": "permisos-settings",
+          "title": "Configuración en settings.json",
+          "summary": "Las reglas se definen declarativamente en .claude/settings.json y aplican a todo el proyecto. Hay cinco niveles de precedencia — el deny siempre gana entre niveles.",
+          "blocks": [
+            {
+              "type": "code",
+              "lang": "json",
+              "label": ".claude/settings.json — configuración completa",
+              "content": "{\n  \"defaultMode\": \"default\",\n  \"permissions\": {\n    \"allow\": [\n      \"Bash(npm run *)\",\n      \"Bash(git commit *)\",\n      \"Bash(* --version)\",\n      \"WebFetch(domain:api.github.com)\"\n    ],\n    \"ask\": [\n      \"Bash(git push *)\"\n    ],\n    \"deny\": [\n      \"Bash(rm -rf *)\",\n      \"Bash(curl *)\",\n      \"Read(//**/.env)\"\n    ]\n  }\n}"
+            },
+            {
+              "type": "code",
+              "lang": "json",
+              "label": "Agente read-only — puede explorar, nunca modificar",
+              "content": "{\n  \"defaultMode\": \"dontAsk\",\n  \"permissions\": {\n    \"allow\": [\n      \"Read\",\n      \"Bash(ls *)\", \"Bash(find * -type f)\",\n      \"Bash(grep *)\", \"Bash(cat *)\",\n      \"Bash(git log *)\", \"Bash(git diff *)\", \"Bash(git status)\"\n    ],\n    \"deny\": [\n      \"Edit\", \"Write\",\n      \"Bash(git commit *)\", \"Bash(git push *)\",\n      \"Bash(rm *)\", \"Bash(curl *)\", \"Bash(wget *)\"\n    ]\n  }\n}"
+            },
+            {
+              "type": "code",
+              "lang": "json",
+              "label": "Control de MCP servers y subagentes",
+              "content": "{\n  \"permissions\": {\n    \"allow\": [\n      \"mcp__github__create_issue\",\n      \"mcp__github__list_issues\",\n      \"Agent(Explore)\"\n    ],\n    \"deny\": [\n      \"mcp__puppeteer\",\n      \"Agent(Plan)\"\n    ]\n  }\n}"
+            },
+            {
+              "type": "steps",
+              "items": [
+                {
+                  "title": "Managed settings",
+                  "body": "MDM / server-managed. No puede ser sobreescrito por ningún otro nivel. Si un tool está denegado acá, nada puede permitirlo."
+                },
+                {
+                  "title": "Command line args",
+                  "body": "`--allowedTools` / `--disallowedTools`. Overrides temporales por sesión. Por encima de cualquier settings.json."
+                },
+                {
+                  "title": "Local project settings",
+                  "body": "`.claude/settings.local.json` — no se commitea. Para overrides personales que no querés compartir con el equipo."
+                },
+                {
+                  "title": "Shared project settings",
+                  "body": "`.claude/settings.json` — se commitea. Las reglas del equipo que aplican a todos los desarrolladores del proyecto."
+                },
+                {
+                  "title": "User settings",
+                  "body": "`~/.claude/settings.json` — global para el usuario. Aplica a todos los proyectos. Útil para reglas personales cross-proyecto."
+                }
+              ]
+            },
+            {
+              "type": "callout",
+              "variant": "warning",
+              "title": "Deny cross-level",
+              "content": "Si `user settings` tiene un deny y `project settings` tiene un allow para el mismo tool, **el deny gana**. No importa cuál está \"más arriba\" en la jerarquía — una regla deny desde cualquier nivel bloquea la herramienta. Solo los managed settings pueden ignorar reglas de niveles inferiores con `allowManagedPermissionRulesOnly: true`."
+            },
+            {
+              "type": "callout",
+              "variant": "info",
+              "title": "Comandos Bash pre-aprobados (read-only built-in)",
+              "content": "Claude Code tiene una lista built-in de comandos que se ejecutan sin prompt en cualquier modo: `ls`, `cat`, `echo`, `pwd`, `head`, `tail`, `grep`, `find`, `wc`, `which`, `diff`, `stat`, `du`, `cd`, `git log`, `git status`, `git diff`. No necesitás listarlos en `allowedTools`. Si querés bloquear alguno, agregá explícitamente `deny: [\"Bash(cat *)\"]`."
+            }
+          ]
+        },
+        {
+          "id": "permisos-sandboxing",
+          "title": "Sandboxing",
+          "summary": "El sandboxing va un nivel más abajo que los permisos: restringe a nivel OS lo que los comandos Bash pueden tocar — filesystem y red — independientemente de qué herramientas estén permitidas.",
+          "blocks": [
+            {
+              "type": "compare",
+              "title": "Sin sandboxing vs Con sandboxing",
+              "left": {
+                "label": "Sin sandboxing ❌",
+                "items": [
+                  "Cada comando Bash requiere aprobación manual",
+                  "Approval fatigue: click repetido sin leer bien",
+                  "Claude no puede trabajar de forma autónoma",
+                  "Prompt injection puede exfiltrar datos"
+                ]
+              },
+              "right": {
+                "label": "Con sandboxing ✅",
+                "items": [
+                  "Límites definidos de antemano, menos prompts",
+                  "Claude trabaja libremente dentro del sandbox",
+                  "Aplica a todos los subprocesos: kubectl, npm, terraform…",
+                  "Notificación inmediata si algo intenta salir del límite"
+                ]
+              }
+            },
+            {
+              "type": "callout",
+              "variant": "warning",
+              "title": "Sandboxing efectivo requiere ambas capas",
+              "content": "Sin aislamiento de red, un agente comprometido puede exfiltrar archivos sensibles como SSH keys. Sin aislamiento de filesystem, puede backdoorear recursos del sistema para ganar acceso de red. Las dos restricciones se complementan — configurar solo una deja brechas."
+            },
+            {
+              "type": "table",
+              "headers": ["Plataforma", "Tecnología", "Instalación"],
+              "rows": [
+                ["macOS", "Seatbelt (built-in)", "Sin instalación extra"],
+                ["Linux", "bubblewrap + socat", "`sudo apt-get install bubblewrap socat`"],
+                ["WSL2", "bubblewrap + socat", "Solo WSL2, no WSL1"],
+                ["Windows nativo", "No soportado", "Planeado"]
+              ]
+            },
+            {
+              "type": "code",
+              "lang": "bash",
+              "label": "Activar sandboxing",
+              "content": "# Desde una sesión de Claude Code\n/sandbox\n\n# O en settings.json\n# \"sandbox\": { \"enabled\": true }"
+            },
+            {
+              "type": "code",
+              "lang": "json",
+              "label": "Configuración completa de sandbox",
+              "content": "{\n  \"sandbox\": {\n    \"enabled\": true,\n    \"autoAllowBashIfSandboxed\": true,\n    \"failIfUnavailable\": false,\n    \"allowUnsandboxedCommands\": true,\n    \"filesystem\": {\n      \"allowWrite\": [\"~/.kube\", \"/tmp\"],\n      \"denyWrite\": [\"~/.ssh\"],\n      \"denyRead\": [\"~/.ssh\", \"~/.aws\"],\n      \"allowRead\": [\".\"]\n    },\n    \"network\": {\n      \"allowedDomains\": [\n        \"registry.npmjs.org\",\n        \"api.github.com\"\n      ],\n      \"deniedDomains\": [\"internal.corp.com\"]\n    },\n    \"excludedCommands\": [\"docker\", \"watchman\"]\n  }\n}"
+            },
+            {
+              "type": "callout",
+              "variant": "info",
+              "title": "Herramientas que requieren excludedCommands",
+              "content": "**docker** — accede al Docker socket del host, que el sandbox bloquea. **watchman** — incompatible con el sandbox; si usás Jest, considerá `jest --no-watchman`. **WSL2 + Windows bins** — `cmd.exe`, `powershell.exe` y binarios bajo `/mnt/c/` no pueden lanzarse desde el sandbox en WSL2."
+            },
+            {
+              "type": "compare",
+              "title": "Permissions vs Sandboxing",
+              "left": {
+                "label": "Permissions",
+                "items": [
+                  "Controlan qué herramientas puede usar Claude",
+                  "Se evalúan antes de que corra cualquier tool",
+                  "Aplican a todas las tools: Bash, Read, Edit, WebFetch, MCP"
+                ]
+              },
+              "right": {
+                "label": "Sandboxing",
+                "items": [
+                  "Controlan qué puede tocar cada comando a nivel OS",
+                  "Se enfuerzan después, a nivel kernel",
+                  "Solo aplican a Bash y sus subprocesos"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

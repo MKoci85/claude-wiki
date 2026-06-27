@@ -1,0 +1,617 @@
+﻿<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Examen de Práctica — Claude Certified Architect (CCA-F)</title>
+<style>
+  :root{
+    --bg:#ffffff;
+    --text:#1d1d1f;
+    --text-secondary:#6e6e73;
+    --accent:#0071e3;
+    --accent-dark:#0058b0;
+    --accent-light:#e8f1fc;
+    --surface:#f5f5f7;
+    --success:#1d7d3f;
+    --success-bg:#e9f7ee;
+    --danger:#d8332a;
+    --danger-bg:#fdeceb;
+    --radius-card:18px;
+    --radius-pill:980px;
+    --shadow-card:0 2px 20px rgba(0,0,0,0.08);
+    --ease:cubic-bezier(0.25,0.46,0.45,0.94);
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--bg);
+    color:var(--text);
+    font-family:"SF Pro Display","SF Pro Text",-apple-system,BlinkMacSystemFont,"Helvetica Neue",Arial,sans-serif;
+    -webkit-font-smoothing:antialiased;
+    line-height:1.6;
+  }
+  #app{max-width:760px;margin:0 auto;padding:0 20px 80px;}
+  a{color:var(--accent);text-decoration:none;}
+  b{font-weight:600;}
+
+  /* ---------- Topbar ---------- */
+  .topbar{
+    position:sticky;top:0;z-index:10;
+    backdrop-filter:blur(20px);
+    background:rgba(255,255,255,0.78);
+    border-bottom:1px solid rgba(0,0,0,0.08);
+    padding:14px 20px;
+    margin:0 -20px;
+  }
+  .topbar-row{display:flex;align-items:center;justify-content:space-between;max-width:760px;margin:0 auto;}
+  .topbar-left{font-size:13px;font-weight:500;color:var(--text-secondary);}
+  .topbar-left b{color:var(--text);}
+  .timer{
+    font-size:15px;font-weight:600;letter-spacing:0.02em;
+    padding:6px 14px;border-radius:var(--radius-pill);
+    background:var(--surface);
+  }
+  .timer.low{background:var(--danger-bg);color:var(--danger);}
+  .progress-track{height:4px;background:var(--surface);border-radius:4px;margin-top:10px;overflow:hidden;max-width:760px;margin-left:auto;margin-right:auto;}
+  .progress-fill{height:100%;background:var(--accent);border-radius:4px;transition:width 0.3s var(--ease);}
+
+  /* ---------- Hero / Intro ---------- */
+  .eyebrow{
+    font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:0.06em;
+    color:var(--accent);margin:0 0 10px;
+  }
+  h1{font-size:34px;font-weight:700;letter-spacing:-0.02em;margin:0 0 6px;}
+  .subtitle{font-size:17px;color:var(--text-secondary);margin:0 0 28px;}
+  .hero{padding:64px 0 8px;}
+  .disclaimer{
+    background:var(--surface);border-radius:var(--radius-card);
+    padding:18px 20px;font-size:14px;color:var(--text-secondary);margin-bottom:32px;
+  }
+  .domain-list{display:flex;flex-direction:column;gap:10px;margin-bottom:36px;}
+  .domain-row{
+    display:flex;align-items:center;justify-content:space-between;
+    background:var(--surface);border-radius:14px;padding:14px 18px;
+  }
+  .domain-row .name{font-size:15px;font-weight:500;}
+  .domain-row .meta{font-size:13px;color:var(--text-secondary);white-space:nowrap;margin-left:12px;}
+  .btn-primary{
+    display:inline-block;background:var(--accent);color:#fff;border:none;
+    font-size:17px;font-weight:600;padding:13px 30px;border-radius:var(--radius-pill);
+    cursor:pointer;transition:background 0.3s var(--ease);
+  }
+  .btn-primary:hover{background:var(--accent-dark);}
+  .btn-secondary{
+    display:inline-block;background:transparent;color:var(--text);
+    border:1px solid rgba(0,0,0,0.15);font-size:16px;font-weight:600;
+    padding:12px 26px;border-radius:var(--radius-pill);cursor:pointer;
+    transition:border-color 0.3s var(--ease);
+  }
+  .btn-secondary:hover{border-color:rgba(0,0,0,0.35);}
+  .btn-secondary:disabled, .btn-primary:disabled{opacity:0.35;cursor:not-allowed;}
+  .actions{display:flex;gap:14px;align-items:center;flex-wrap:wrap;margin-top:8px;}
+
+  /* ---------- Question card ---------- */
+  .question-wrap{padding-top:28px;}
+  .domain-tag{
+    display:inline-block;font-size:12px;font-weight:600;text-transform:uppercase;
+    letter-spacing:0.05em;color:var(--accent);background:var(--accent-light);
+    padding:5px 12px;border-radius:var(--radius-pill);margin-bottom:16px;
+  }
+  .q-number{font-size:13px;color:var(--text-secondary);margin-bottom:14px;font-weight:500;}
+  .situation-card{
+    background:var(--surface);border-radius:14px;padding:16px 18px;margin-bottom:18px;
+    font-size:14.5px;color:var(--text);line-height:1.55;
+  }
+  .situation-label{
+    display:block;font-size:11px;font-weight:700;text-transform:uppercase;
+    letter-spacing:0.07em;color:var(--text-secondary);margin-bottom:6px;
+  }
+  .q-text{font-size:19px;font-weight:600;letter-spacing:-0.01em;margin:0 0 22px;line-height:1.45;}
+  .options{display:flex;flex-direction:column;gap:12px;margin-bottom:28px;}
+  .option{
+    display:flex;align-items:flex-start;gap:14px;
+    background:var(--surface);border:1.5px solid transparent;border-radius:14px;
+    padding:14px 16px;cursor:pointer;transition:all 0.2s var(--ease);font-size:15.5px;
+  }
+  .option:hover{border-color:rgba(0,113,227,0.3);}
+  .option.selected{background:var(--accent-light);border-color:var(--accent);}
+  .option-letter{
+    flex:none;width:26px;height:26px;border-radius:50%;background:#fff;
+    border:1.5px solid rgba(0,0,0,0.15);display:flex;align-items:center;justify-content:center;
+    font-size:13px;font-weight:600;color:var(--text-secondary);
+  }
+  .option.selected .option-letter{background:var(--accent);border-color:var(--accent);color:#fff;}
+
+  .navrow{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:8px;}
+  .navrow-center{flex:1;display:flex;justify-content:center;}
+  .link-btn{
+    background:none;border:none;color:var(--accent);font-size:14px;font-weight:600;
+    cursor:pointer;padding:8px 4px;
+  }
+
+  /* navigator grid */
+  .navgrid-panel{
+    margin:16px 0 4px;background:var(--surface);border-radius:14px;padding:16px;
+  }
+  .navgrid{display:flex;flex-wrap:wrap;gap:8px;}
+  .navgrid-item{
+    width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+    font-size:11px;font-weight:600;cursor:pointer;background:#fff;color:var(--text-secondary);
+    border:1.5px solid rgba(0,0,0,0.12);
+  }
+  .navgrid-item.answered{background:var(--accent);color:#fff;border-color:var(--accent);}
+  .navgrid-item.current{box-shadow:0 0 0 2px var(--accent);}
+
+  /* ---------- Results ---------- */
+  .score-hero{text-align:center;padding:48px 0 16px;}
+  .score-circle{
+    width:180px;height:180px;border-radius:50%;margin:0 auto 20px;
+    display:flex;align-items:center;justify-content:center;flex-direction:column;
+    background:conic-gradient(var(--accent) calc(var(--pct) * 1%), var(--surface) 0);
+    position:relative;
+  }
+  .score-circle::before{
+    content:"";position:absolute;inset:10px;background:#fff;border-radius:50%;
+  }
+  .score-circle .num{position:relative;font-size:40px;font-weight:700;letter-spacing:-0.02em;}
+  .score-circle .lbl{position:relative;font-size:13px;color:var(--text-secondary);font-weight:500;}
+  .score-note{font-size:14px;color:var(--text-secondary);max-width:480px;margin:0 auto 36px;}
+
+  .domain-bars{display:flex;flex-direction:column;gap:16px;margin-bottom:36px;}
+  .domain-bar-row .top{display:flex;justify-content:space-between;font-size:14px;margin-bottom:6px;}
+  .domain-bar-row .top .name{font-weight:500;}
+  .domain-bar-row .top .score{color:var(--text-secondary);}
+  .bar-track{height:8px;background:var(--surface);border-radius:8px;overflow:hidden;}
+  .bar-fill{height:100%;background:var(--accent);border-radius:8px;}
+
+  /* ---------- Review ---------- */
+  .filter-row{display:flex;gap:10px;margin-bottom:24px;}
+  .filter-btn{
+    background:var(--surface);border:none;border-radius:var(--radius-pill);
+    padding:9px 18px;font-size:14px;font-weight:600;color:var(--text-secondary);cursor:pointer;
+  }
+  .filter-btn.active{background:var(--accent);color:#fff;}
+  .review-item{border-radius:var(--radius-card);background:var(--surface);padding:20px;margin-bottom:14px;}
+  .review-item .situation-card{background:#fff;}
+  .review-item .q-text{font-size:17px;margin-bottom:14px;}
+  .review-opt{
+    display:flex;gap:10px;padding:10px 12px;border-radius:10px;font-size:14px;margin-bottom:6px;background:#fff;
+  }
+  .review-opt.correct{background:var(--success-bg);color:var(--success);font-weight:600;}
+  .review-opt.incorrect-selected{background:var(--danger-bg);color:var(--danger);font-weight:600;}
+  .review-explain{font-size:14px;color:var(--text-secondary);margin-top:12px;padding-top:12px;border-top:1px solid rgba(0,0,0,0.08);}
+  .result-icon{font-size:13px;font-weight:700;padding:3px 10px;border-radius:var(--radius-pill);display:inline-block;margin-bottom:10px;}
+  .result-icon.ok{background:var(--success-bg);color:var(--success);}
+  .result-icon.bad{background:var(--danger-bg);color:var(--danger);}
+
+  footer.note{font-size:13px;color:var(--text-secondary);text-align:center;margin-top:48px;}
+  .lang-switch{display:flex;gap:4px;margin-bottom:24px;background:var(--surface);border-radius:var(--radius-pill);padding:3px;width:fit-content;}
+  .lang-btn{border:none;background:transparent;font-size:13px;font-weight:600;padding:6px 18px;border-radius:var(--radius-pill);cursor:pointer;color:var(--text-secondary);transition:all 0.2s var(--ease);}
+  .lang-btn.active{background:#fff;color:var(--text);box-shadow:0 1px 6px rgba(0,0,0,0.1);}
+  @media (max-width:480px){
+    h1{font-size:27px;}
+    .q-text{font-size:18px;}
+    .score-circle{width:150px;height:150px;}
+  }
+</style>
+</head>
+<body>
+<div id="app"></div>
+
+<script>
+const questionPool = {1:[],2:[],3:[],4:[],5:[]};
+let POOL_TOTAL = 0;
+let currentLang = 'es';
+let examTitle = 'Claude Certified Architect — Foundations (CCA-F)';
+
+/* ====================== METADATA DE DOMINIOS ====================== */
+const DOMAINS = [
+  {id:1, name:'Arquitectura Agentic y Orquestación', weight:27},
+  {id:2, name:'Configuración y Flujos de Claude Code', weight:20},
+  {id:3, name:'Diseño de Herramientas e Integración MCP', weight:18},
+  {id:4, name:'Prompt Engineering y Salida Estructurada', weight:20},
+  {id:5, name:'Gestión de Contexto y Confiabilidad', weight:15}
+];
+
+const EXAM_COUNTS = {1:16, 2:12, 3:11, 4:12, 5:9};
+const EXAM_LENGTH = Object.values(EXAM_COUNTS).reduce((a,b)=>a+b,0);
+const TOTAL_SECONDS = 120*60;
+
+function domainName(id){return DOMAINS.find(d=>d.id===id).name;}
+
+/* ====================== CARGA DE PREGUNTAS ====================== */
+async function loadQuestions(lang){
+  lang = lang || currentLang;
+  const file = lang === 'en' ? 'examen_cca_f_en.json' : 'examen_cca_f.json';
+  try{
+    const res = await fetch(file);
+    const data = await res.json();
+    examTitle = data.exam.title || examTitle;
+    for(const domain of data.exam.domains){
+      const dom = DOMAINS.find(d => d.id === domain.id);
+      if(dom) dom.name = domain.name;
+      const isEn = domain.questions[0] && 'text' in domain.questions[0];
+      questionPool[domain.id] = domain.questions.map(q => ({
+        domain: domain.id,
+        situation: isEn ? '' : (q.situation || ''),
+        q: isEn ? q.text : q.q,
+        options: q.options,
+        correct: isEn ? q.correctAnswer : q.correct,
+        explanation: q.explanation
+      }));
+    }
+    POOL_TOTAL = data.exam.domains.reduce((s,d)=>s+d.questions.length, 0);
+    currentLang = lang;
+    if(state.screen === 'intro') render();
+  }catch(e){
+    const msg = lang === 'en'
+      ? 'Error loading questions. Make sure '+file+' is accessible.'
+      : 'Error al cargar las preguntas. Verificá que '+file+' esté accesible.';
+    document.getElementById('app').innerHTML = '<p style="padding:40px;text-align:center;color:var(--danger);">'+msg+'</p>';
+    console.error(e);
+  }
+}
+
+function setLang(lang){
+  if(lang === currentLang) return;
+  questionPool[1] = []; questionPool[2] = []; questionPool[3] = []; questionPool[4] = []; questionPool[5] = [];
+  POOL_TOTAL = 0;
+  state.screen = 'intro';
+  currentLang = lang;
+  render();
+  loadQuestions(lang);
+}
+
+function shuffle(arr){
+  const a = arr.slice();
+  for(let i=a.length-1;i>0;i--){
+    const j = Math.floor(Math.random()*(i+1));
+    [a[i],a[j]] = [a[j],a[i]];
+  }
+  return a;
+}
+
+function interleave(lists){
+  const result = [];
+  const idx = lists.map(()=>0);
+  let remaining = true;
+  while(remaining){
+    remaining = false;
+    for(let i=0;i<lists.length;i++){
+      if(idx[i] < lists[i].length){
+        result.push(lists[i][idx[i]]);
+        idx[i]++;
+        remaining = true;
+      }
+    }
+  }
+  return result;
+}
+
+/* Toma N preguntas al azar de un pool de dominio y mezcla el orden de sus opciones,
+   reasignando el índice correcto, para que cada ejecución sea distinta. */
+function sampleDomain(domainId, n){
+  const pool = shuffle(questionPool[domainId]);
+  return pool.slice(0, n).map(q=>{
+    const order = shuffle([0,1,2,3]);
+    const newOptions = order.map(i=>q.options[i]);
+    const newCorrect = order.indexOf(q.correct);
+    return {domain:q.domain, situation:q.situation, q:q.q, options:newOptions, correct:newCorrect, explanation:q.explanation};
+  });
+}
+
+function sampleExam(){
+  const perDomain = DOMAINS.map(d=>sampleDomain(d.id, EXAM_COUNTS[d.id]));
+  return interleave(perDomain);
+}
+
+/* ====================== ESTADO ====================== */
+let QUESTIONS = [];
+let TOTAL_Q = 0;
+
+const state = {
+  screen:'intro',
+  current:0,
+  answers:[],
+  timeLeft:TOTAL_SECONDS,
+  timerId:null,
+  navOpen:false,
+  reviewFilter:'all'
+};
+
+function formatTime(s){
+  const m = Math.floor(s/60);
+  const sec = s%60;
+  return String(m).padStart(2,'0')+':'+String(sec).padStart(2,'0');
+}
+
+function startTimer(){
+  if(state.timerId) return;
+  state.timerId = setInterval(()=>{
+    state.timeLeft--;
+    if(state.timeLeft<=0){
+      state.timeLeft = 0;
+      clearInterval(state.timerId);
+      finishExam();
+      return;
+    }
+    const t = document.getElementById('timerDisplay');
+    if(t){
+      t.textContent = formatTime(state.timeLeft);
+      t.className = 'timer'+(state.timeLeft<=300?' low':'');
+    }
+  },1000);
+}
+
+async function startExam(){
+  if(POOL_TOTAL === 0){
+    const loadingText = currentLang === 'en' ? 'Loading questions…' : 'Cargando preguntas…';
+    document.getElementById('app').innerHTML = '<div class="hero" style="padding:64px 0;text-align:center;"><p style="color:var(--text-secondary);font-size:17px;">'+loadingText+'</p></div>';
+    await loadQuestions(currentLang);
+  }
+  QUESTIONS = sampleExam();
+  TOTAL_Q = QUESTIONS.length;
+  state.screen='exam';
+  state.current=0;
+  state.answers = new Array(TOTAL_Q).fill(null);
+  state.timeLeft = TOTAL_SECONDS;
+  state.navOpen = false;
+  startTimer();
+  render();
+}
+
+function selectOption(qIdx, optIdx){
+  state.answers[qIdx]=optIdx;
+  render();
+}
+
+function goTo(i){
+  state.current = Math.max(0, Math.min(TOTAL_Q-1, i));
+  state.navOpen=false;
+  render();
+}
+function next(){goTo(state.current+1);}
+function prev(){goTo(state.current-1);}
+function toggleNav(){state.navOpen=!state.navOpen; render();}
+
+function finishExam(){
+  if(state.timerId){clearInterval(state.timerId); state.timerId=null;}
+  state.screen='results';
+  render();
+}
+
+function confirmFinish(){
+  const unanswered = state.answers.filter(a=>a===null).length;
+  if(unanswered>0){
+    const msg = currentLang === 'en'
+      ? 'You have '+unanswered+' unanswered question(s). Do you want to finish anyway?'
+      : 'Tenés '+unanswered+' pregunta(s) sin responder. ¿Querés finalizar igual?';
+    if(!confirm(msg)) return;
+  }
+  finishExam();
+}
+
+function restart(){
+  state.screen='intro';
+  state.current=0;
+  state.answers=[];
+  state.timeLeft=TOTAL_SECONDS;
+  state.navOpen=false;
+  state.reviewFilter='all';
+  if(state.timerId){clearInterval(state.timerId);state.timerId=null;}
+  render();
+}
+
+function goReview(filter){
+  state.screen='review';
+  state.reviewFilter=filter||'all';
+  render();
+}
+
+function setReviewFilter(f){
+  state.reviewFilter=f;
+  render();
+}
+
+function computeScore(){
+  let correct=0;
+  const byDomain={};
+  DOMAINS.forEach(d=>byDomain[d.id]={correct:0,total:0});
+  QUESTIONS.forEach((q,i)=>{
+    byDomain[q.domain].total++;
+    if(state.answers[i]===q.correct){correct++; byDomain[q.domain].correct++;}
+  });
+  return {correct, total:TOTAL_Q, byDomain};
+}
+
+/* ====================== RENDER ====================== */
+function render(){
+  const app = document.getElementById('app');
+  if(state.screen==='intro') app.innerHTML = renderIntro();
+  else if(state.screen==='exam') app.innerHTML = renderExam();
+  else if(state.screen==='results') app.innerHTML = renderResults();
+  else if(state.screen==='review') app.innerHTML = renderReview();
+}
+
+function renderIntro(){
+  const isEn = currentLang === 'en';
+  const poolSize = POOL_TOTAL > 0 ? POOL_TOTAL : '...';
+  const rows = DOMAINS.map(d=>{
+    const size = POOL_TOTAL > 0 ? questionPool[d.id].length : '...';
+    const connector = isEn ? 'of' : 'de';
+    const label = isEn ? 'in the pool' : 'en el pool';
+    return '<div class="domain-row"><span class="name">'+d.name+'</span><span class="meta">'+d.weight+'% · '+EXAM_COUNTS[d.id]+' '+connector+' '+size+' '+label+'</span></div>';
+  }).join('');
+  return `
+  <div class="hero">
+    <div class="lang-switch">
+      <button class="lang-btn${isEn?'':' active'}" onclick="setLang('es')">ES</button>
+      <button class="lang-btn${isEn?' active':''}" onclick="setLang('en')">EN</button>
+    </div>
+    <p class="eyebrow">${isEn?'Unofficial Practice Exam':'Examen de práctica no oficial'}</p>
+    <h1>${examTitle}</h1>
+    <p class="subtitle">${isEn?EXAM_LENGTH+' questions · 120 minutes · multiple choice':EXAM_LENGTH+' preguntas · 120 minutos · opción múltiple'}</p>
+  </div>
+  <div class="disclaimer">
+    ${isEn
+      ?'This material is an unofficial simulation inspired by the case/scenario structure of the real exam and the domains and weights published by Anthropic for the CCA-F. It does not reproduce real exam questions and is not affiliated with or endorsed by Anthropic.'
+      :'Este material es una simulación no oficial, inspirada en la estructura de casos/escenario del examen real y en los dominios y pesos publicados por Anthropic para el CCA-F. No reproduce preguntas reales del examen oficial ni está afiliado o avalado por Anthropic.'}
+    <br><br>
+    ${isEn
+      ?'The complete pool has <b>'+poolSize+' questions</b>. Each time you start an exam, '+EXAM_LENGTH+' are randomly selected respecting each domain\'s weight, and option order is shuffled — so every attempt is different.'
+      :'El set completo tiene un pool de <b>'+poolSize+' preguntas</b>. Cada vez que comenzás un examen se sortean al azar '+EXAM_LENGTH+', respetando el peso de cada dominio, y el orden de las opciones también se mezcla — así cada intento es distinto.'}
+  </div>
+  <div class="domain-list">${rows}</div>
+  <div class="actions">
+    <button class="btn-primary" onclick="startExam()">${isEn?'Start Exam':'Comenzar examen'}</button>
+  </div>
+  `;
+}
+
+function renderExam(){
+  const i = state.current;
+  const q = QUESTIONS[i];
+  const selected = state.answers[i];
+  const isEn = currentLang === 'en';
+  const optionsHtml = q.options.map((opt,oi)=>{
+    const sel = selected===oi ? ' selected' : '';
+    const letter = String.fromCharCode(65+oi);
+    return `<div class="option${sel}" onclick="selectOption(${i},${oi})">
+      <span class="option-letter">${letter}</span>
+      <span>${opt}</span>
+    </div>`;
+  }).join('');
+
+  const navGrid = QUESTIONS.map((qq,qi)=>{
+    let cls='navgrid-item';
+    if(state.answers[qi]!==null) cls+=' answered';
+    if(qi===i) cls+=' current';
+    return `<div class="${cls}" onclick="goTo(${qi})">${qi+1}</div>`;
+  }).join('');
+
+  const answeredCount = state.answers.filter(a=>a!==null).length;
+  const sitHtml = q.situation
+    ? '<div class="situation-card"><span class="situation-label">'+(isEn?'Scenario':'Situación')+'</span>'+q.situation+'</div>'
+    : '';
+
+  return `
+  <div class="topbar">
+    <div class="topbar-row">
+      <div class="topbar-left">${isEn?'Question':'Pregunta'} <b>${i+1}</b> ${isEn?'of':'de'} ${TOTAL_Q} · ${answeredCount} ${isEn?'answered':'respondidas'}</div>
+      <div id="timerDisplay" class="timer${state.timeLeft<=300?' low':''}">${formatTime(state.timeLeft)}</div>
+    </div>
+    <div class="progress-track"><div class="progress-fill" style="width:${((i+1)/TOTAL_Q*100)}%"></div></div>
+  </div>
+  <div class="question-wrap">
+    <div class="domain-tag">${domainName(q.domain)}</div>
+    <p class="q-number">${isEn?'Question':'Pregunta'} ${i+1}</p>
+    ${sitHtml}
+    <p class="q-text">${q.q}</p>
+    <div class="options">${optionsHtml}</div>
+
+    ${state.navOpen?`<div class="navgrid-panel"><div class="navgrid">${navGrid}</div></div>`:''}
+
+    <div class="navrow">
+      <button class="btn-secondary" onclick="prev()" ${i===0?'disabled':''}>${isEn?'Previous':'Anterior'}</button>
+      <div class="navrow-center"><button class="link-btn" onclick="toggleNav()">${state.navOpen?(isEn?'Hide map':'Ocultar mapa'):(isEn?'Question map':'Mapa de preguntas')}</button></div>
+      ${i===TOTAL_Q-1
+        ? '<button class="btn-primary" onclick="confirmFinish()">'+(isEn?'Finish exam':'Finalizar examen')+'</button>'
+        : '<button class="btn-primary" onclick="next()">'+(isEn?'Next':'Siguiente')+'</button>'}
+    </div>
+    <div class="actions" style="margin-top:18px;">
+      <button class="link-btn" onclick="confirmFinish()">${isEn?'Finish exam now':'Finalizar examen ahora'}</button>
+    </div>
+  </div>
+  `;
+}
+
+function renderResults(){
+  const s = computeScore();
+  const pct = Math.round(s.correct/s.total*100);
+  const isEn = currentLang === 'en';
+  const domainBars = DOMAINS.map(d=>{
+    const b = s.byDomain[d.id];
+    const p = b.total ? Math.round(b.correct/b.total*100) : 0;
+    return `<div class="domain-bar-row">
+      <div class="top"><span class="name">${d.name}</span><span class="score">${b.correct}/${b.total} · ${p}%</span></div>
+      <div class="bar-track"><div class="bar-fill" style="width:${p}%"></div></div>
+    </div>`;
+  }).join('');
+
+  return `
+  <div class="score-hero">
+    <p class="eyebrow">${isEn?'Result':'Resultado'}</p>
+    <div class="score-circle" style="--pct:${pct}">
+      <span class="num">${pct}%</span>
+      <span class="lbl">${s.correct} / ${s.total} ${isEn?'correct':'correctas'}</span>
+    </div>
+    <p class="score-note">${isEn?'Anthropic does not publish an official passing score. Use this result as a reference of your domain-level performance, not as an exact prediction of passing the real exam.':'Anthropic no publica un puntaje de aprobación oficial conocido públicamente. Usá este resultado como referencia de tu dominio por área, no como predicción exacta de aprobar el examen real.'}</p>
+  </div>
+  <h1 style="font-size:20px;margin-bottom:18px;">${isEn?'Performance by Domain':'Desempeño por dominio'}</h1>
+  <div class="domain-bars">${domainBars}</div>
+  <div class="actions">
+    <button class="btn-primary" onclick="goReview('all')">${isEn?'Review all answers':'Revisar todas las respuestas'}</button>
+    <button class="btn-secondary" onclick="goReview('incorrect')">${isEn?'Review only errors':'Revisar solo errores'}</button>
+    <button class="btn-secondary" onclick="restart()">${isEn?'New exam (different questions)':'Nuevo examen (preguntas distintas)'}</button>
+  </div>
+  `;
+}
+
+function renderReview(){
+  const isEn = currentLang === 'en';
+  let items = QUESTIONS.map((q,i)=>({q,i}));
+  if(state.reviewFilter==='incorrect'){
+    items = items.filter(({q,i})=>state.answers[i]!==q.correct);
+  }
+
+  const html = items.map(({q,i})=>{
+    const selected = state.answers[i];
+    const isCorrect = selected===q.correct;
+    const optsHtml = q.options.map((opt,oi)=>{
+      let cls='review-opt';
+      if(oi===q.correct) cls+=' correct';
+      else if(oi===selected) cls+=' incorrect-selected';
+      const letter = String.fromCharCode(65+oi);
+      return `<div class="${cls}">${letter}. ${opt}</div>`;
+    }).join('');
+    const icon = selected===null
+      ? '<span class="result-icon bad">'+(isEn?'UNANSWERED':'SIN RESPONDER')+'</span>'
+      : (isCorrect ? '<span class="result-icon ok">'+(isEn?'CORRECT':'CORRECTA')+'</span>' : '<span class="result-icon bad">'+(isEn?'INCORRECT':'INCORRECTA')+'</span>');
+    const sitHtml = q.situation
+      ? '<div class="situation-card"><span class="situation-label">'+(isEn?'Scenario':'Situación')+'</span>'+q.situation+'</div>'
+      : '';
+
+    return `<div class="review-item">
+      <div class="domain-tag">${domainName(q.domain)}</div>
+      ${icon}
+      ${sitHtml}
+      <p class="q-text">${i+1}. ${q.q}</p>
+      ${optsHtml}
+      <div class="review-explain">${q.explanation}</div>
+    </div>`;
+  }).join('');
+
+  return `
+  <div class="hero" style="padding-top:40px;">
+    <p class="eyebrow">${isEn?'Review':'Revisión'}</p>
+    <h1 style="font-size:26px;">${isEn?'Answer Review':'Revisión de respuestas'}</h1>
+  </div>
+  <div class="filter-row">
+    <button class="filter-btn${state.reviewFilter==='all'?' active':''}" onclick="setReviewFilter('all')">${isEn?'All':'Todas'} (${QUESTIONS.length})</button>
+    <button class="filter-btn${state.reviewFilter==='incorrect'?' active':''}" onclick="setReviewFilter('incorrect')">${isEn?'Only errors':'Solo errores'} (${QUESTIONS.filter((q,i)=>state.answers[i]!==q.correct).length})</button>
+  </div>
+  ${html || '<p style="color:var(--text-secondary);">'+(isEn?'No questions match this filter. Great job!':'No hay preguntas que coincidan con este filtro. ¡Buen trabajo!')+'</p>'}
+  <div class="actions" style="margin-top:24px;">
+    <button class="btn-secondary" onclick="state.screen='results';render();">${isEn?'Back to results':'Volver al resultado'}</button>
+    <button class="btn-primary" onclick="restart()">${isEn?'New exam (different questions)':'Nuevo examen (preguntas distintas)'}</button>
+  </div>
+  <footer class="note">${isEn?'Unofficial practice material · Not affiliated with Anthropic · Pool of '+POOL_TOTAL+' questions':'Material de práctica no oficial · No afiliado a Anthropic · Pool de '+POOL_TOTAL+' preguntas'}</footer>
+  `;
+}
+
+loadQuestions('es');
+render();
+</script>
+</body>
+</html>

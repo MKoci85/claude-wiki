@@ -1,0 +1,446 @@
+{
+  "sections": [
+    {
+      "title": "Capacidades Avanzadas",
+      "articles": [
+        {
+          "title": "MCP Connector",
+          "subsections": [
+            {
+              "title": "¿Qué es el MCP Connector?",
+              "blocks": [
+                {
+                  "type": "text",
+                  "content": "El MCP Connector permite conectar servidores MCP (Model Context Protocol) directamente desde la Messages API, sin implementar un cliente MCP propio. Claude puede usar las herramientas de esos servidores como si fueran tools normales."
+                },
+                {
+                  "type": "callout",
+                  "style": "info",
+                  "title": "MCP: el USB-C para IA",
+                  "content": "MCP es el estándar abierto para conectar IA con sistemas externos: bases de datos, APIs, calendarios, Notion, Jira, etc. El MCP Connector es el acceso directo a ese ecosistema desde la API, sin gestionar tú el cliente."
+                },
+                {
+                  "type": "compare",
+                  "left": {
+                    "head": "MCP Connector (API)",
+                    "rows": [
+                      { "key": "Caso de uso", "value": "Servidores remotos con URL pública (HTTPS)." },
+                      { "key": "Ventaja", "value": "Sin código extra. Anthropic maneja la conexión." },
+                      { "key": "Limitación", "value": "Solo soporta tools (no resources ni prompts MCP)." }
+                    ]
+                  },
+                  "right": {
+                    "head": "Cliente MCP propio",
+                    "rows": [
+                      { "key": "Caso de uso", "value": "Servidores locales (stdio), resources, prompts MCP." },
+                      { "key": "Ventaja", "value": "Control total. Soporta toda la spec de MCP." },
+                      { "key": "Limitación", "value": "Requiere implementar y gestionar el cliente." }
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "title": "Cómo funciona",
+              "blocks": [
+                {
+                  "type": "steps",
+                  "items": [
+                    {
+                      "title": "Definir el servidor",
+                      "body": "Añadís el servidor en el array `mcp_servers` con su URL, nombre y token de autenticación opcional."
+                    },
+                    {
+                      "title": "Configurar tools",
+                      "body": "En el array `tools` creás un `mcp_toolset` que apunta al servidor. Podés habilitar/deshabilitar tools específicas."
+                    },
+                    {
+                      "title": "Claude usa las tools",
+                      "body": "Claude llama las tools del servidor cuando la consulta lo requiere. Las respuestas llegan como `mcp_tool_result` en el contenido."
+                    }
+                  ]
+                },
+                {
+                  "type": "code",
+                  "language": "python",
+                  "code": "import anthropic\n\nclient = anthropic.Anthropic()\n\nresponse = client.beta.messages.create(\n    model=\"claude-opus-4-8\",\n    max_tokens=1000,\n    messages=[{\"role\": \"user\", \"content\": \"¿Qué eventos tengo hoy?\"}],\n    mcp_servers=[\n        {\n            \"type\": \"url\",\n            \"url\": \"https://mi-servidor-mcp.example.com/sse\",\n            \"name\": \"google-calendar\",\n            \"authorization_token\": \"mi-token-oauth\"\n        }\n    ],\n    tools=[\n        {\n            \"type\": \"mcp_toolset\",\n            \"mcp_server_name\": \"google-calendar\"\n        }\n    ],\n    betas=[\"mcp-client-2025-11-20\"]\n)"
+                }
+              ]
+            },
+            {
+              "title": "Configuración de tools",
+              "blocks": [
+                {
+                  "type": "cards",
+                  "items": [
+                    {
+                      "icon": "✅",
+                      "title": "Todas las tools",
+                      "description": "Sin `default_config` ni `configs`: Claude ve todas las tools del servidor."
+                    },
+                    {
+                      "icon": "🔒",
+                      "title": "Allowlist",
+                      "description": "`default_config.enabled: false` + habilitar herramientas específicas en `configs`."
+                    },
+                    {
+                      "icon": "🚫",
+                      "title": "Denylist",
+                      "description": "Habilitar todas por defecto y deshabilitar las peligrosas (delete, share, etc.) en `configs`."
+                    },
+                    {
+                      "icon": "🔗",
+                      "title": "Múltiples servidores",
+                      "description": "Podés conectar varios servidores en un mismo request. Cada uno necesita su `mcp_toolset`."
+                    }
+                  ]
+                },
+                {
+                  "type": "callout",
+                  "style": "warning",
+                  "title": "Requisitos",
+                  "content": "El servidor MCP debe ser accesible públicamente por HTTPS. No se pueden usar servidores locales (stdio) con el MCP Connector. Requiere el beta header `anthropic-beta: mcp-client-2025-11-20`."
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "title": "Extended Thinking",
+          "subsections": [
+            {
+              "title": "¿Qué es Extended Thinking?",
+              "blocks": [
+                {
+                  "type": "text",
+                  "content": "Extended Thinking permite que Claude genere un bloque de razonamiento interno antes de la respuesta final, útil en problemas que requieren varios pasos lógicos (matemática, debugging, planificación). Se controla con un presupuesto de tokens (`budget_tokens`) dedicado exclusivamente a ese razonamiento."
+                },
+                {
+                  "type": "compare",
+                  "left": {
+                    "head": "Sin Extended Thinking",
+                    "rows": [
+                      { "key": "Respuesta", "value": "Directa, sin proceso visible." },
+                      { "key": "Costo", "value": "Solo tokens de entrada y salida." },
+                      { "key": "Ideal para", "value": "Tareas simples, respuestas rápidas." }
+                    ]
+                  },
+                  "right": {
+                    "head": "Con Extended Thinking",
+                    "rows": [
+                      { "key": "Respuesta", "value": "Incluye bloques `thinking` con el razonamiento." },
+                      { "key": "Costo", "value": "Tokens de entrada + salida + tokens de thinking." },
+                      { "key": "Ideal para", "value": "Matemáticas, debugging, análisis profundo, lógica compleja." }
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "title": "Cómo activarlo",
+              "blocks": [
+                {
+                  "type": "code",
+                  "language": "python",
+                  "code": "import anthropic\n\nclient = anthropic.Anthropic()\n\nresponse = client.messages.create(\n    model=\"claude-sonnet-4-6\",\n    max_tokens=16000,\n    thinking={\n        \"type\": \"enabled\",\n        \"budget_tokens\": 10000  # máximo tokens para razonar\n    },\n    messages=[{\n        \"role\": \"user\",\n        \"content\": \"¿Hay infinitos números primos de la forma 4n+3?\"\n    }]\n)\n\nfor block in response.content:\n    if block.type == \"thinking\":\n        print(f\"Razonamiento: {block.thinking}\")\n    elif block.type == \"text\":\n        print(f\"Respuesta: {block.text}\")"
+                },
+                {
+                  "type": "callout",
+                  "style": "info",
+                  "title": "Thinking con tool use multi-turno",
+                  "content": "`budget_tokens` debe ser menor que `max_tokens`. Presupuestos mayores a 32K generalmente no mejoran la calidad. En conversaciones multi-turno con tools, el bloque `thinking` incluye una `signature` que lo autentica y debe reenviarse intacto dentro del mensaje `assistant`. Modificarlo, truncarlo o eliminarlo invalida la firma y produce un error."
+                }
+              ]
+            },
+            {
+              "title": "Cuándo usarlo",
+              "blocks": [
+                {
+                  "type": "cards",
+                  "items": [
+                    {
+                      "icon": "✅",
+                      "title": "Úsalo para",
+                      "description": "Problemas matemáticos, debugging complejo, análisis lógico multi-paso, decisiones con muchas variables."
+                    },
+                    {
+                      "icon": "❌",
+                      "title": "Evítalo para",
+                      "description": "Preguntas simples, chatbots de FAQ, generación creativa directa, cuando la velocidad es crítica."
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "title": "Multimodal: Imágenes y PDFs",
+          "subsections": [
+            {
+              "title": "Imágenes",
+              "blocks": [
+                {
+                  "type": "text",
+                  "content": "Claude puede recibir imágenes (codificadas en base64 o por URL) junto con texto en el mismo mensaje, y razonar sobre su contenido: describirlas, leer texto en ellas, comparar gráficos, analizar capturas de pantalla de UI. Un mismo mensaje puede incluir varias imágenes para comparaciones. Soporta PNG, JPEG, GIF, WebP."
+                },
+                {
+                  "type": "code",
+                  "language": "python",
+                  "code": "import anthropic\nimport base64\n\nclient = anthropic.Anthropic()\n\ndef codificar(ruta):\n    with open(ruta, \"rb\") as f:\n        return base64.b64encode(f.read()).decode(\"utf-8\")\n\nresponse = client.messages.create(\n    model=\"claude-sonnet-4-6\", max_tokens=400,\n    messages=[{\n        \"role\": \"user\",\n        \"content\": [\n            {\"type\": \"image\", \"source\": {\"type\": \"base64\", \"media_type\": \"image/png\", \"data\": codificar(\"pantalla_antes.png\")}},\n            {\"type\": \"image\", \"source\": {\"type\": \"base64\", \"media_type\": \"image/png\", \"data\": codificar(\"pantalla_despues.png\")}},\n            {\"type\": \"text\", \"text\": \"Comparando estas dos capturas, ¿qué cambió?\"},\n        ],\n    }],\n)"
+                },
+                {
+                  "type": "callout",
+                  "style": "info",
+                  "title": "El costo escala con la resolución",
+                  "content": "El consumo de tokens de una imagen crece con su tamaño en píxeles. Para capturas muy grandes o fotos en alta resolución donde el detalle fino no es necesario, redimensionarlas antes de enviarlas reduce el costo sin perder la información relevante."
+                }
+              ]
+            },
+            {
+              "title": "PDFs",
+              "blocks": [
+                {
+                  "type": "text",
+                  "content": "Los PDFs se envían como un bloque de tipo `document`. Claude los procesa de forma visual y textual a la vez: puede leer el texto, pero también ver tablas, gráficos y diagramas dentro del documento, algo que un extractor de texto plano perdería."
+                },
+                {
+                  "type": "code",
+                  "language": "python",
+                  "code": "import base64\n\nwith open(\"reporte_anual.pdf\", \"rb\") as f:\n    pdf_b64 = base64.b64encode(f.read()).decode(\"utf-8\")\n\nresponse = client.messages.create(\n    model=\"claude-sonnet-4-6\", max_tokens=600,\n    messages=[{\n        \"role\": \"user\",\n        \"content\": [\n            {\"type\": \"document\", \"source\": {\"type\": \"base64\", \"media_type\": \"application/pdf\", \"data\": pdf_b64}},\n            {\"type\": \"text\", \"text\": \"Resumí los riesgos mencionados en la sección 4\"},\n        ],\n    }],\n)"
+                }
+              ]
+            },
+            {
+              "title": "Citations",
+              "blocks": [
+                {
+                  "type": "text",
+                  "content": "Activando `citations` sobre un documento fuente, Claude ancla cada afirmación de su respuesta a un fragmento exacto del documento original, devolviendo referencias verificables. Funciona sobre PDFs (citando por página) y sobre documentos de texto plano (citando por rango de caracteres). Es especialmente valioso en RAG: pasar cada chunk recuperado como un documento independiente con citas habilitadas permite mostrar en la UI exactamente de qué chunk vino cada frase."
+                },
+                {
+                  "type": "code",
+                  "language": "python",
+                  "code": "# citations sobre un documento de texto\nresponse = client.messages.create(\n    model=\"claude-sonnet-4-6\", max_tokens=500,\n    messages=[{\n        \"role\": \"user\",\n        \"content\": [\n            {\n                \"type\": \"document\",\n                \"source\": {\"type\": \"text\", \"media_type\": \"text/plain\", \"data\": texto_politica},\n                \"citations\": {\"enabled\": True},\n            },\n            {\"type\": \"text\", \"text\": \"¿Cuánto tiempo se conservan los datos del usuario?\"},\n        ],\n    }],\n)\n# cada bloque de texto de la respuesta puede traer un campo \"citations\"\n# con el documento y el rango exacto que respalda esa frase\n\n# citations en RAG: cada chunk como documento independiente\ndocumentos = [\n    {\n        \"type\": \"document\",\n        \"source\": {\"type\": \"text\", \"media_type\": \"text/plain\", \"data\": chunk_texto},\n        \"citations\": {\"enabled\": True},\n    }\n    for chunk_texto, _ in top_k\n]\n\nresponse = client.messages.create(\n    model=\"claude-sonnet-4-6\", max_tokens=500,\n    messages=[{\"role\": \"user\", \"content\": documentos + [{\"type\": \"text\", \"text\": \"¿cuál es la política de devoluciones?\"}]}],\n)"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "title": "Prompt Caching",
+          "subsections": [
+            {
+              "title": "Cómo funciona el cache",
+              "blocks": [
+                {
+                  "type": "text",
+                  "content": "Cuando una parte grande y estable del prompt se repite entre llamadas (un system prompt largo, definiciones de herramientas, un documento de referencia), marcarla con `cache_control: {\"type\": \"ephemeral\"}` hace que el servidor reutilice ese procesamiento en requests siguientes. Una lectura de cache cuesta una fracción del precio normal de input, aunque escribir el cache por primera vez cuesta algo más que una request sin cache."
+                },
+                {
+                  "type": "table",
+                  "columns": ["TTL", "Costo de escritura", "Cuándo conviene"],
+                  "rows": [
+                    ["5 minutos (default)", "Más barato", "Sesiones interactivas con turnos frecuentes (cada lectura renueva el temporizador)"],
+                    ["1 hora (extendido)", "Más caro", "Agentes con pausas largas, jobs programados, cuando el hueco entre requests supera los 5 minutos"]
+                  ]
+                }
+              ]
+            },
+            {
+              "title": "Reglas del cache",
+              "blocks": [
+                {
+                  "type": "cards",
+                  "items": [
+                    {
+                      "icon": "🎯",
+                      "title": "Prefijo exacto",
+                      "description": "Si un solo token cambia en el contenido anterior al breakpoint, o se cambia de modelo, el resultado es un cache miss completo, no parcial."
+                    },
+                    {
+                      "icon": "📏",
+                      "title": "Mínimo de tokens",
+                      "description": "Por debajo de cierto umbral (del orden de miles de tokens según el modelo), el contenido no llega a cachearse."
+                    },
+                    {
+                      "icon": "🔢",
+                      "title": "Hasta 4 breakpoints",
+                      "description": "Práctica común: uno al final de las herramientas, otro al final del system prompt, y dejar la cola de conversación sin marcar (porque cambia en cada turno)."
+                    }
+                  ]
+                },
+                {
+                  "type": "code",
+                  "language": "python",
+                  "code": "herramientas = [tool_clima, tool_calendario]\nherramientas[-1][\"cache_control\"] = {\"type\": \"ephemeral\"}  # breakpoint #1: cachea todas las tools\n\nresponse = client.messages.create(\n    model=\"claude-sonnet-4-6\",\n    max_tokens=500,\n    tools=herramientas,\n    system=[\n        {\n            \"type\": \"text\",\n            \"text\": documentacion_interna_completa,  # varios miles de tokens, estable\n            \"cache_control\": {\"type\": \"ephemeral\", \"ttl\": \"1h\"},  # breakpoint #2: TTL extendido\n        }\n    ],\n    messages=[{\"role\": \"user\", \"content\": \"¿Cómo configuro el rate limiting?\"}],\n)\n\n# verificar si se usó el cache\nprint(response.usage.cache_creation_input_tokens, response.usage.cache_read_input_tokens)"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "title": "Files API",
+          "subsections": [
+            {
+              "title": "¿Qué es la Files API?",
+              "blocks": [
+                {
+                  "type": "text",
+                  "content": "La Files API permite subir archivos una vez y reutilizarlos en múltiples requests usando un `file_id`. Evita reenviar y re-codificar el mismo documento o imagen pesada en cada llamada a la API."
+                },
+                {
+                  "type": "stats",
+                  "stats": [
+                    {
+                      "label": "Tamaño máximo",
+                      "value": "500 MB",
+                      "note": "Por archivo"
+                    },
+                    {
+                      "label": "Almacenamiento",
+                      "value": "500 GB",
+                      "note": "Por organización"
+                    },
+                    {
+                      "label": "Operaciones",
+                      "value": "Gratis",
+                      "note": "Upload, list, delete"
+                    },
+                    {
+                      "label": "Estado",
+                      "value": "Beta",
+                      "note": "Header requerido"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "title": "Formatos soportados",
+              "blocks": [
+                {
+                  "type": "table",
+                  "columns": ["Tipo", "MIME type", "Bloque de contenido", "Uso"],
+                  "rows": [
+                    ["PDF", "`application/pdf`", "`document`", "Análisis de documentos"],
+                    ["Texto plano", "`text/plain`", "`document`", "Procesamiento de texto"],
+                    ["Imagen", "`image/jpeg`, `image/png`, `image/gif`, `image/webp`", "`image`", "Análisis visual"],
+                    ["Datasets", "Varios", "`container_upload`", "Code execution tool"]
+                  ]
+                }
+              ]
+            },
+            {
+              "title": "Flujo básico",
+              "blocks": [
+                {
+                  "type": "steps",
+                  "items": [
+                    {
+                      "title": "Subir el archivo",
+                      "body": "Usás `POST /v1/files` con el archivo. La respuesta incluye un `file_id` único."
+                    },
+                    {
+                      "title": "Guardar el file_id",
+                      "body": "El `file_id` persiste hasta que lo eliminés. Podés reutilizarlo en cualquier request futura."
+                    },
+                    {
+                      "title": "Referenciar en messages",
+                      "body": "En vez de enviar el archivo completo, incluís `{ \"type\": \"file\", \"file_id\": \"...\" }` en el source del bloque."
+                    }
+                  ]
+                },
+                {
+                  "type": "code",
+                  "language": "python",
+                  "code": "import anthropic\n\nclient = anthropic.Anthropic()\n\n# 1. Subir el archivo una sola vez\nwith open(\"balance_anual.pdf\", \"rb\") as f:\n    archivo = client.beta.files.upload(\n        file=(\"balance_anual.pdf\", f, \"application/pdf\"),\n        betas=[\"files-api-2025-04-14\"],\n    )\n\n# 2. Reutilizarlo en múltiples requests, sin volver a codificarlo\nfor pregunta in [\"Resume el documento\", \"¿Cuál es la conclusión?\", \"Lista los riesgos\"]:\n    response = client.beta.messages.create(\n        model=\"claude-opus-4-8\",\n        max_tokens=1024,\n        betas=[\"files-api-2025-04-14\"],\n        messages=[{\n            \"role\": \"user\",\n            \"content\": [\n                {\"type\": \"text\", \"text\": pregunta},\n                {\n                    \"type\": \"document\",\n                    \"source\": {\"type\": \"file\", \"file_id\": archivo.id}\n                }\n            ]\n        }],\n    )\n    print(response.content[0].text)"
+                }
+              ]
+            },
+            {
+              "title": "Gestión de archivos",
+              "blocks": [
+                {
+                  "type": "cards",
+                  "items": [
+                    {
+                      "icon": "📋",
+                      "title": "Listar archivos",
+                      "description": "`client.beta.files.list()` — devuelve todos los archivos subidos en tu workspace."
+                    },
+                    {
+                      "icon": "🔍",
+                      "title": "Ver metadata",
+                      "description": "`client.beta.files.retrieve_metadata(file_id)` — nombre, tipo, tamaño y fecha de creación."
+                    },
+                    {
+                      "icon": "🗑️",
+                      "title": "Eliminar",
+                      "description": "`client.beta.files.delete(file_id)` — los archivos eliminados no se pueden recuperar."
+                    },
+                    {
+                      "icon": "⬇️",
+                      "title": "Descargar",
+                      "description": "Solo archivos generados por code execution. Los que subiste vos no son descargables por la API."
+                    }
+                  ]
+                },
+                {
+                  "type": "callout",
+                  "style": "warning",
+                  "title": "Requisitos",
+                  "content": "Requiere el beta header `anthropic-beta: files-api-2025-04-14`. Los archivos se comparten entre todas las API keys del mismo workspace."
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "title": "Code Execution",
+          "subsections": [
+            {
+              "title": "Python en un sandbox de Anthropic",
+              "blocks": [
+                {
+                  "type": "text",
+                  "content": "La herramienta `code_execution` le da a Claude un entorno aislado (un sandbox administrado por Anthropic) donde puede correr Python de verdad: calcular, generar gráficos con matplotlib, procesar datasets, crear archivos. Es distinta de la herramienta `bash`: si se usan ambas en la misma conversación, son dos entornos de ejecución separados, sin estado compartido entre uno y otro."
+                },
+                {
+                  "type": "compare",
+                  "left": {
+                    "head": "code_execution",
+                    "rows": [
+                      { "key": "Qué hace", "value": "Sandbox Python: calcular, graficar, analizar datos." },
+                      { "key": "Estado", "value": "Persiste entre llamadas dentro de la misma conversación." },
+                      { "key": "Salida", "value": "Texto, imágenes (matplotlib), archivos con file_id." }
+                    ]
+                  },
+                  "right": {
+                    "head": "bash",
+                    "rows": [
+                      { "key": "Qué hace", "value": "Shell completa: instalar paquetes, git, scripts, comandos del sistema." },
+                      { "key": "Estado", "value": "Sesión de shell persistente entre comandos." },
+                      { "key": "Salida", "value": "stdout/stderr de los comandos." }
+                    ]
+                  }
+                },
+                {
+                  "type": "code",
+                  "language": "python",
+                  "code": "import anthropic\n\nclient = anthropic.Anthropic()\n\n# code_execution: Claude calcula y puede generar gráficos\nresponse = client.beta.messages.create(\n    model=\"claude-sonnet-4-6\",\n    max_tokens=2000,\n    tools=[{\"type\": \"code_execution_20250825\", \"name\": \"code_execution\"}],\n    betas=[\"code-execution-2025-08-25\"],\n    messages=[{\"role\": \"user\", \"content\": \"Calculá la media y el desvío estándar de [12, 15, 11, 19, 22, 14] y grafiá un histograma\"}],\n)\n\n# la respuesta incluye bloques de tipo \"tool_result\" con el output del código\n# y eventualmente referencias a archivos generados (gráficos como file_id)"
+                },
+                {
+                  "type": "callout",
+                  "style": "info",
+                  "title": "Combinar con Files API",
+                  "content": "La herramienta de code execution y la Files API se complementan: podés subir un dataset CSV con la Files API para que code execution lo procese, y recuperar los gráficos generados también por file_id. Los archivos generados por code execution sí son descargables, a diferencia de los que subiste vos."
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

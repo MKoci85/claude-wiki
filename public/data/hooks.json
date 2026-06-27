@@ -1,0 +1,909 @@
+{
+  "id": "hooks",
+  "title": "Hooks",
+  "summary": "El sistema de hooks de Claude Code: puntos de extensión para validar, bloquear, observar y automatizar el ciclo de vida del agente.",
+  "sections": [
+    {
+      "title": "El sistema de Hooks",
+      "articles": [
+        {
+          "id": "hooks-overview",
+          "title": "¿Qué son los Hooks?",
+          "summary": "Comandos shell, endpoints HTTP, herramientas MCP y prompts que se ejecutan automáticamente en puntos específicos del ciclo de vida de Claude Code.",
+          "source": null,
+          "subsections": [
+            {
+              "title": "Definición",
+              "blocks": [
+                {
+                  "type": "text",
+                  "content": "Los hooks son puntos de extensión que te dejan interceptar y controlar el comportamiento de Claude Code en tiempo real. Podés usarlos para bloquear comandos peligrosos, inyectar contexto, ejecutar linters automáticamente o registrar auditorías."
+                },
+                {
+                  "type": "cards",
+                  "items": [
+                    {
+                      "icon": "🎯",
+                      "title": "Disparados automáticamente",
+                      "body": "Cada hook se activa en un evento específico del ciclo de vida. No necesitás invocarlos manualmente."
+                    },
+                    {
+                      "icon": "🛡️",
+                      "title": "Control total",
+                      "body": "Podés permitir, bloquear, modificar o redirigir cualquier acción de Claude antes de que ocurra."
+                    },
+                    {
+                      "icon": "🔌",
+                      "title": "Cinco tipos",
+                      "body": "Command (shell), HTTP, MCP Tool, Prompt y Agent. Cada tipo tiene sus propias capacidades."
+                    },
+                    {
+                      "icon": "📍",
+                      "title": "Alcance configurable",
+                      "body": "Usuario (todas tus sesiones), proyecto (el repo) o local (solo tu máquina, no commiteado)."
+                    },
+                    {
+                      "icon": "🔍",
+                      "title": "Matchers precisos",
+                      "body": "Filtran cuándo actuar: solo para Bash, solo para archivos *.ts, solo al iniciar sesión."
+                    },
+                    {
+                      "icon": "📊",
+                      "title": "JSON en, JSON out",
+                      "body": "Reciben contexto como JSON en stdin. Responden con JSON estructurado o exit codes simples."
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "title": "Diferencia clave con el sistema de permisos",
+              "blocks": [
+                {
+                  "type": "callout",
+                  "variant": "info",
+                  "icon": "💡",
+                  "content": "El sistema de permisos controla qué puede hacer Claude de forma genérica. Los hooks te dejan definir lógica personalizada y dinámica — por ejemplo, permitir git push solo a ramas que no sean main, o bloquear escrituras en ciertos directorios según el día."
+                }
+              ]
+            },
+            {
+              "title": "El ciclo de vida de una sesión",
+              "blocks": [
+                {
+                  "type": "steps",
+                  "items": [
+                    { "title": "SessionStart", "body": "Al iniciar o reanudar una sesión." },
+                    { "title": "UserPromptSubmit", "body": "Cuando el usuario envía cada prompt." },
+                    { "title": "PreToolUse", "body": "Antes de ejecutar cada tool call." },
+                    { "title": "PostToolUse", "body": "Después de que cada tool call ejecutó." },
+                    { "title": "Stop", "body": "Cuando Claude termina de responder." }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "hooks-tipos",
+          "title": "Los cinco tipos de hooks",
+          "summary": "Command, HTTP, MCP Tool, Prompt y Agent. Cada tipo tiene un mecanismo diferente y brilla en escenarios distintos.",
+          "source": null,
+          "subsections": [
+            {
+              "title": "Los cinco tipos",
+              "blocks": [
+                {
+                  "type": "cards",
+                  "items": [
+                    {
+                      "icon": "🖥️",
+                      "title": "Command Hook",
+                      "body": "Corre un script de shell. Recibe el contexto como JSON en stdin y comunica resultados vía exit codes y stdout. Timeout: 600s. Ideal para scripts bash, Python, validaciones locales."
+                    },
+                    {
+                      "icon": "🌐",
+                      "title": "HTTP Hook",
+                      "body": "Envía el contexto como POST a una URL. El endpoint responde con el mismo formato JSON. Timeout: 600s. Ideal para servicios web, APIs internas, CI/CD."
+                    },
+                    {
+                      "icon": "🔌",
+                      "title": "MCP Tool Hook",
+                      "body": "Llama a una herramienta en un servidor MCP ya conectado. El resultado textual se trata como stdout de un command hook. Timeout: 600s."
+                    },
+                    {
+                      "icon": "🤖",
+                      "title": "Prompt Hook",
+                      "body": "Envía un prompt a un modelo Claude para evaluación en un solo turno. Devuelve una decisión sí/no como JSON. Sin herramientas. Timeout: 30s. Ideal para clasificación semántica."
+                    },
+                    {
+                      "icon": "⚙️",
+                      "title": "Agent Hook (experimental)",
+                      "body": "Lanza un subagente que puede usar Read, Grep y Glob para verificar condiciones complejas. El más poderoso y el más lento. Timeout: 60s. Puede cambiar en futuras versiones."
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "title": "Shell form vs Exec form (Command hooks)",
+              "blocks": [
+                {
+                  "type": "table",
+                  "headers": ["Forma", "Cómo funciona", "Cuándo usar"],
+                  "rows": [
+                    ["Shell form (sin args)", "El comando se pasa a sh -c. Soporta pipes, &&, redirecciones.", "Lógica compleja en el campo command. Acceso a shell features."],
+                    ["Exec form (con args: [])", "Se ejecuta directamente sin shell. Claude Code expande placeholders ${...} antes de ejecutar.", "Cuando el path tiene espacios o usás ${CLAUDE_PROJECT_DIR}."],
+                    ["Windows", "Shell form usa Git Bash o PowerShell. Exec form requiere un ejecutable real (.exe), no .cmd.", "Entornos Windows."]
+                  ]
+                }
+              ]
+            },
+            {
+              "title": "Alcance de configuración",
+              "blocks": [
+                {
+                  "type": "table",
+                  "headers": ["Alcance", "Archivo", "Descripción"],
+                  "rows": [
+                    ["Usuario", "~/.claude/settings.json", "Aplica a todos tus proyectos."],
+                    ["Proyecto", ".claude/settings.json", "Commitable al repo, compartido con el equipo."],
+                    ["Local", ".claude/settings.local.json", "Gitignored, solo en tu máquina."],
+                    ["Plugin", "hooks/hooks.json", "Se activa cuando el plugin está habilitado."]
+                  ]
+                }
+              ]
+            },
+            {
+              "title": "¿Cuál tipo usar según la situación?",
+              "blocks": [
+                {
+                  "type": "table",
+                  "headers": ["Situación", "Tipo recomendado", "Por qué"],
+                  "rows": [
+                    ["Validar contra sistema externo (Jira, GitHub)", "http", "Credenciales y lógica viven en tu servidor, no en scripts distribuidos."],
+                    ["Regla semántica — '¿esto parece peligroso?'", "prompt", "Solo funciona para decisiones binarias allow/deny."],
+                    ["Validación que requiere explorar el filesystem", "agent", "El único tipo que puede usar Grep, Glob y Read adaptativamente."],
+                    ["Usar herramienta MCP ya conectada", "mcp_tool", "Reutilizá la conexión y autenticación ya establecida."],
+                    ["Lógica condicional, llamadas a binarios locales", "command", "Total flexibilidad — cualquier lenguaje, cualquier herramienta local."],
+                    ["Logging que no debe bloquear el flujo", "command + async: true", "Claude no espera — el hook corre en background."],
+                    ["Combinar decisión semántica + corrección", "prompt + command", "El prompt detecta, el command inyecta additionalContext con instrucciones."]
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "hooks-eventos",
+          "title": "Los 30+ eventos del ciclo de vida",
+          "summary": "Cada evento representa un momento específico en el ciclo de vida de Claude Code. Algunos permiten bloquear la acción, otros son solo observacionales.",
+          "source": null,
+          "subsections": [
+            {
+              "title": "Stats generales",
+              "blocks": [
+                {
+                  "type": "stats",
+                  "items": [
+                    { "value": "30+", "label": "eventos disponibles en el ciclo de vida" },
+                    { "value": "14", "label": "eventos que pueden bloquear acciones" },
+                    { "value": "5", "label": "tipos de handlers disponibles" }
+                  ]
+                }
+              ]
+            },
+            {
+              "title": "Eventos: una vez por sesión",
+              "blocks": [
+                {
+                  "type": "table",
+                  "headers": ["Evento", "Cuándo ocurre", "¿Puede bloquear?"],
+                  "rows": [
+                    ["SessionStart", "Al iniciar o reanudar una sesión. Matcher: startup, resume, clear, compact.", "No"],
+                    ["Setup", "Solo con --init-only o -p --init/--maintenance. Para CI, no para sesiones normales.", "No"],
+                    ["SessionEnd", "Al terminar la sesión. Para limpieza, logging, o guardar estado.", "No — la sesión ya terminó"],
+                    ["PreCompact", "Antes de que ocurra la compactación del contexto. Matcher: manual, auto.", "⛔ Sí"],
+                    ["PostCompact", "Después de la compactación.", "No"]
+                  ]
+                }
+              ]
+            },
+            {
+              "title": "Eventos: una vez por turno",
+              "blocks": [
+                {
+                  "type": "table",
+                  "headers": ["Evento", "Cuándo ocurre", "¿Puede bloquear?"],
+                  "rows": [
+                    ["UserPromptSubmit", "Cuando el usuario envía un prompt. Puede bloquear, agregar contexto, o renombrar la sesión. Timeout reducido a 30s.", "⛔ Sí"],
+                    ["UserPromptExpansion", "Cuando un slash command como /deploy se expande antes de llegar a Claude.", "⛔ Sí"],
+                    ["Stop", "Cuando Claude termina de responder. Exit code 2 hace que Claude continúe en lugar de detenerse.", "⛔ Especial: exit 2 = continúa"],
+                    ["StopFailure", "Cuando el turno termina por error de API (rate limit, sobrecarga). Output ignorado.", "No"]
+                  ]
+                }
+              ]
+            },
+            {
+              "title": "Eventos: en cada tool call",
+              "blocks": [
+                {
+                  "type": "table",
+                  "headers": ["Evento", "Cuándo ocurre", "¿Puede bloquear?"],
+                  "rows": [
+                    ["PreToolUse", "Antes de ejecutar cualquier tool call. Puede bloquear, modificar argumentos (updatedInput), o inyectar contexto. El hook más usado.", "⛔ Sí"],
+                    ["PostToolUse", "Después de que un tool call ejecutó exitosamente. Puede mostrar stderr a Claude y modificar el output (updatedToolOutput).", "No — pero puede modificar el output"],
+                    ["PostToolUseFailure", "Después de que un tool call falló.", "No"],
+                    ["PostToolBatch", "Después de un batch completo de tool calls paralelos, antes del próximo llamado al modelo.", "⛔ Puede detener el agentic loop"],
+                    ["PermissionRequest", "Cuando aparece un diálogo de permiso. El hook puede decidir automáticamente.", "⛔ Puede denegar"],
+                    ["PermissionDenied", "Cuando un tool call es denegado por el clasificador. retry: true permite reintentar.", "No — pero puede autorizar reintento"]
+                  ]
+                }
+              ]
+            },
+            {
+              "title": "Eventos: subagentes y tareas",
+              "blocks": [
+                {
+                  "type": "table",
+                  "headers": ["Evento", "Cuándo ocurre", "¿Puede bloquear?"],
+                  "rows": [
+                    ["SubagentStart", "Cuando se lanza un subagente.", "No"],
+                    ["SubagentStop", "Cuando termina un subagente. Similar a Stop.", "⛔ Sí"],
+                    ["TaskCreated", "Cuando se crea una tarea.", "⛔ Puede revertir la creación"],
+                    ["TaskCompleted", "Cuando se completa una tarea.", "⛔ Puede prevenir que se marque completa"],
+                    ["TeammateIdle", "Cuando un compañero de equipo está por quedar idle.", "⛔ Puede prevenir idle"]
+                  ]
+                }
+              ]
+            },
+            {
+              "title": "Eventos: observacionales y especiales",
+              "blocks": [
+                {
+                  "type": "table",
+                  "headers": ["Evento", "Cuándo ocurre", "¿Puede bloquear?"],
+                  "rows": [
+                    ["Notification", "Cuando Claude Code envía una notificación: permission_prompt, idle_prompt, auth_success, elicitation_dialog.", "No"],
+                    ["MessageDisplay", "Mientras el texto del asistente se muestra. Puede reemplazar el texto visual (displayContent) — no afecta el transcript.", "No — solo visual"],
+                    ["FileChanged", "Cuando un archivo vigilado cambia en disco. El matcher especifica qué archivos vigilar.", "No"],
+                    ["CwdChanged", "Cuando el directorio de trabajo cambia. Acceso a CLAUDE_ENV_FILE.", "No"],
+                    ["InstructionsLoaded", "Cuando se carga un CLAUDE.md o .claude/rules/*.md. Solo observabilidad.", "No"],
+                    ["ConfigChange", "Cuando un archivo de configuración cambia durante una sesión.", "⛔ Sí (excepto policy_settings)"],
+                    ["WorktreeCreate", "Reemplaza el comportamiento de git para crear worktrees. Devuelve el path en stdout.", "⛔ Cualquier exit ≠ 0 falla la creación"],
+                    ["WorktreeRemove", "Al remover un git worktree.", "No"],
+                    ["Elicitation / ElicitationResult", "Cuando un servidor MCP solicita input del usuario durante un tool call.", "⛔ Pueden bloquear o modificar"]
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "hooks-io",
+          "title": "Protocolo de I/O: cómo hablan los hooks",
+          "summary": "Los hooks se comunican vía stdin/stdout/stderr y exit codes. Entender este protocolo es la clave para escribir hooks que funcionen correctamente.",
+          "source": null,
+          "subsections": [
+            {
+              "title": "El flujo completo",
+              "blocks": [
+                {
+                  "type": "text",
+                  "content": "Cuando Claude Code detecta un hook registrado para un evento: (1) arma el JSON de contexto, (2) lanza el proceso del hook, (3) escribe el JSON en stdin del hook, (4) espera que el hook termine (con timeout), (5) lee el exit code, (6) procesa stdout y stderr según el exit code."
+                },
+                {
+                  "type": "callout",
+                  "variant": "info",
+                  "icon": "🧠",
+                  "content": "Claude no sabe que existe un hook. Lo que Claude ve es: con exit 2, un mensaje de error (el stderr del hook). Con exit 0 + additionalContext, información de fondo que siempre estuvo ahí."
+                }
+              ]
+            },
+            {
+              "title": "Lo que llega por stdin: campos comunes",
+              "blocks": [
+                {
+                  "type": "code",
+                  "lang": "json",
+                  "label": "JSON que llega por stdin a un PreToolUse hook para Bash",
+                  "content": "{\n  \"session_id\": \"abc123\",\n  \"transcript_path\": \"/home/user/.claude/projects/.../transcript.jsonl\",\n  \"cwd\": \"/home/user/mi-proyecto\",\n  \"permission_mode\": \"default\",\n  \"hook_event_name\": \"PreToolUse\",\n  \"tool_name\": \"Bash\",\n  \"tool_input\": {\n    \"command\": \"rm -rf /tmp/build\"\n  }\n}"
+                }
+              ]
+            },
+            {
+              "title": "Exit codes",
+              "blocks": [
+                {
+                  "type": "table",
+                  "headers": ["Exit code", "Significado", "Qué pasa con stdout/stderr"],
+                  "rows": [
+                    ["0 — Éxito", "Claude Code parsea stdout como JSON de control.", "stdout: procesado como JSON. stderr: va al debug log."],
+                    ["2 — Bloqueo activo", "Bloquea la acción. El stderr se pasa a Claude como razón del bloqueo.", "stdout: completamente ignorado. stderr: enviado a Claude."],
+                    ["Cualquier otro", "Error no bloqueante. Ejecución continúa.", "stdout: ignorado. stderr: primera línea aparece en transcript como aviso."]
+                  ]
+                },
+                {
+                  "type": "callout",
+                  "variant": "warning",
+                  "icon": "⚠️",
+                  "content": "Trampa común: exit 1 NO bloquea la acción en la mayoría de eventos — solo exit 2 bloquea. Exit 1 es la convención Unix de falla, pero Claude Code lo trata como error no bloqueante."
+                }
+              ]
+            },
+            {
+              "title": "JSON de output: campos de control",
+              "blocks": [
+                {
+                  "type": "table",
+                  "headers": ["Campo", "Nivel", "Descripción"],
+                  "rows": [
+                    ["continue: false", "Top-level", "Detiene Claude completamente. stopReason se muestra al usuario (no a Claude)."],
+                    ["systemMessage", "Top-level", "Aviso mostrado al usuario en la UI. No lo ve Claude."],
+                    ["suppressOutput: true", "Top-level", "Oculta el stdout del transcript pero lo deja en el debug log."],
+                    ["terminalSequence", "Top-level", "Secuencias de escape OSC/BEL para notificaciones. Claude Code valida que solo sean OSC 0/1/2/9/99/777 y BEL."],
+                    ["decision: 'block'", "Top-level", "Bloquea la acción (con reason). Para PostToolUse, Stop, PreCompact, etc."],
+                    ["updatedToolOutput", "Top-level", "En PostToolUse: reemplaza el output del tool que Claude recibe."],
+                    ["additionalContext", "hookSpecificOutput", "String inyectado en el contexto de Claude. No aparece en el chat."],
+                    ["permissionDecision", "hookSpecificOutput (PreToolUse)", "allow / deny / ask / defer. Decide sin mostrar diálogo al usuario."],
+                    ["updatedInput", "hookSpecificOutput (PreToolUse, PermissionRequest)", "Reemplaza los argumentos del tool call antes de ejecutarlo."],
+                    ["displayContent", "hookSpecificOutput (MessageDisplay)", "Reemplaza el texto visual. No afecta transcript ni lo que ve Claude."],
+                    ["action", "hookSpecificOutput (Elicitation)", "accept / decline / cancel la elicitación de MCP."],
+                    ["retry: true", "hookSpecificOutput (PermissionDenied)", "Le indica al modelo que puede reintentar el tool call denegado."]
+                  ]
+                }
+              ]
+            },
+            {
+              "title": "stdin/stdout/stderr — resumen de canales",
+              "blocks": [
+                {
+                  "type": "table",
+                  "headers": ["Canal", "Dirección", "Qué contiene", "Quién lo lee"],
+                  "rows": [
+                    ["stdin (FD 0)", "Claude Code → Hook", "JSON con el contexto completo del evento.", "Tu script de hook."],
+                    ["stdout (FD 1)", "Hook → Claude Code", "JSON de control con campos como permissionDecision, additionalContext, etc. Solo se procesa con exit 0.", "Claude Code (parsea el JSON)."],
+                    ["stderr (FD 2)", "Hook → Claude Code → Claude", "Con exit 2: la razón del bloqueo que Claude leerá. Con otros exit codes: aviso en transcript.", "Claude (como mensaje de error)."],
+                    ["exit code", "Hook → Claude Code", "0 = éxito, 2 = bloquear, otros = error no bloqueante.", "Claude Code (decide qué hacer)."]
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "hooks-configuracion",
+          "title": "Configuración y matchers",
+          "summary": "Cómo configurar hooks en settings.json: estructura básica, tipos de matchers y campos comunes de todos los handlers.",
+          "source": null,
+          "subsections": [
+            {
+              "title": "Estructura básica",
+              "blocks": [
+                {
+                  "type": "code",
+                  "lang": "json",
+                  "label": "settings.json — estructura básica",
+                  "content": "{\n  \"hooks\": {\n    \"PreToolUse\": [\n      {\n        \"matcher\": \"Bash\",\n        \"hooks\": [\n          {\n            \"type\": \"command\",\n            \"if\": \"Bash(rm *)\",\n            \"command\": \"${CLAUDE_PROJECT_DIR}/.claude/hooks/block-rm.sh\",\n            \"timeout\": 30\n          }\n        ]\n      }\n    ]\n  }\n}"
+                },
+                {
+                  "type": "text",
+                  "content": "La configuración tiene tres niveles: (1) el evento del ciclo de vida, (2) el matcher que filtra cuándo activar, y (3) la lista de handlers con su tipo y lógica."
+                }
+              ]
+            },
+            {
+              "title": "Tipos de matchers",
+              "blocks": [
+                {
+                  "type": "cards",
+                  "items": [
+                    {
+                      "icon": "🅰️",
+                      "title": "Match exacto",
+                      "body": "Solo letras, dígitos, _ y |. Activa para ese tool específico o lista. Ej: Bash · Edit|Write · Read"
+                    },
+                    {
+                      "icon": "🔁",
+                      "title": "Regex",
+                      "body": "Cualquier otro carácter lo convierte en regex JavaScript. Ej: ^Notebook · mcp__memory__.*"
+                    },
+                    {
+                      "icon": "⭐",
+                      "title": "Match todos",
+                      "body": "Omitir el matcher, usar \"*\" o cadena vacía activa el hook en cada ocurrencia del evento."
+                    }
+                  ]
+                },
+                {
+                  "type": "callout",
+                  "variant": "warning",
+                  "icon": "🔌",
+                  "content": "Para tools MCP usá el patrón mcp__<servidor>__<tool>. Para matchear todas las herramientas de un servidor: mcp__memory__.* — el .* es obligatorio. Sin él es comparación exacta y no coincide con ninguna tool."
+                }
+              ]
+            },
+            {
+              "title": "Campos comunes de todos los handlers",
+              "blocks": [
+                {
+                  "type": "table",
+                  "headers": ["Campo", "Tipo", "Requerido", "Descripción"],
+                  "rows": [
+                    ["type", "string", "Sí", "command | http | mcp_tool | prompt | agent"],
+                    ["if", "string", "Opcional", "Filtro adicional con sintaxis de reglas de permisos. Ej: \"Bash(git *)\" corre solo en subcomandos git."],
+                    ["timeout", "number", "Opcional", "Segundos hasta cancelar. Default: 600 (command/http/mcp), 30 (prompt), 60 (agent)."],
+                    ["statusMessage", "string", "Opcional", "Mensaje mostrado en el spinner mientras el hook corre."],
+                    ["async", "boolean", "Opcional", "Si es true, el hook corre en background sin bloquear el flujo principal."],
+                    ["asyncRewake", "boolean", "Opcional", "Como async pero si termina con exit 2, 'despierta' a Claude con el mensaje de stderr."],
+                    ["once", "boolean", "Skills only", "Si es true, el hook corre una sola vez por sesión y luego se elimina."]
+                  ]
+                }
+              ]
+            },
+            {
+              "title": "Placeholders en paths",
+              "blocks": [
+                {
+                  "type": "callout",
+                  "variant": "info",
+                  "icon": "📁",
+                  "content": "Los placeholders solo se expanden en exec form (con args: []). En shell form (sin args), el comando corre en sh -c y los placeholders NO se expanden — solo se expanden las variables de entorno del shell."
+                },
+                {
+                  "type": "table",
+                  "headers": ["Placeholder", "Se expande a"],
+                  "rows": [
+                    ["${CLAUDE_PROJECT_DIR}", "Path absoluto al directorio raíz del proyecto (donde está .claude/)."],
+                    ["${CLAUDE_PLUGIN_ROOT}", "Directorio de instalación del plugin activo."],
+                    ["${CLAUDE_PLUGIN_DATA}", "Directorio para datos persistentes del plugin."]
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "hooks-recetas",
+          "title": "Recetas: hooks listos para usar",
+          "summary": "Patrones probados para los casos más comunes: bloquear rm -rf, lint automático, contexto de git en cada sesión, notificaciones de desktop, bloquear push a main.",
+          "source": null,
+          "subsections": [
+            {
+              "title": "Bloquear rm -rf",
+              "blocks": [
+                {
+                  "type": "code",
+                  "lang": "json",
+                  "label": ".claude/settings.json",
+                  "content": "{\n  \"hooks\": {\n    \"PreToolUse\": [{\n      \"matcher\": \"Bash\",\n      \"hooks\": [{\n        \"type\": \"command\",\n        \"if\": \"Bash(rm *)\",\n        \"command\": \"${CLAUDE_PROJECT_DIR}/.claude/hooks/block-rm.sh\",\n        \"args\": [],\n        \"statusMessage\": \"Verificando seguridad...\"\n      }]\n    }]\n  }\n}"
+                },
+                {
+                  "type": "code",
+                  "lang": "bash",
+                  "label": ".claude/hooks/block-rm.sh",
+                  "content": "#!/bin/bash\nCOMMAND=$(jq -r '.tool_input.command')\nif echo \"$COMMAND\" | grep -q 'rm -rf'; then\n  jq -n '{\n    hookSpecificOutput: {\n      hookEventName: \"PreToolUse\",\n      permissionDecision: \"deny\",\n      permissionDecisionReason: \"rm -rf bloqueado por hook\"\n    }}'\nelse\n  exit 0\nfi"
+                }
+              ]
+            },
+            {
+              "title": "Lint automático después de cada edición",
+              "blocks": [
+                {
+                  "type": "code",
+                  "lang": "json",
+                  "label": "settings.json",
+                  "content": "{\n  \"hooks\": {\n    \"PostToolUse\": [{\n      \"matcher\": \"Edit|Write\",\n      \"hooks\": [{\n        \"type\": \"command\",\n        \"command\": \"${CLAUDE_PROJECT_DIR}/.claude/hooks/lint-after-edit.sh\",\n        \"args\": []\n      }]\n    }]\n  }\n}"
+                },
+                {
+                  "type": "code",
+                  "lang": "bash",
+                  "label": "lint-after-edit.sh",
+                  "content": "#!/bin/bash\nFILE=$(echo \"$HOOK_INPUT\" | jq -r '.tool_input.path // empty')\nif [[ \"$FILE\" == *.js ]] || [[ \"$FILE\" == *.ts ]]; then\n  npx eslint \"$FILE\" --format compact 2>&1 || true\nfi\nexit 0"
+                },
+                {
+                  "type": "callout",
+                  "variant": "info",
+                  "icon": "💡",
+                  "content": "El stdout en PostToolUse va al debug log. Para que Claude lo vea, usá additionalContext en el JSON de output, o retorná exit 2 con el reporte en stderr."
+                }
+              ]
+            },
+            {
+              "title": "Contexto de git en cada sesión",
+              "blocks": [
+                {
+                  "type": "code",
+                  "lang": "bash",
+                  "label": "session-git-context.sh · SessionStart",
+                  "content": "#!/bin/bash\nBRANCH=$(git -C \"$CLAUDE_PROJECT_DIR\" rev-parse --abbrev-ref HEAD 2>/dev/null)\nLAST=$(git -C \"$CLAUDE_PROJECT_DIR\" log -1 --oneline 2>/dev/null)\nSTATUS=$(git -C \"$CLAUDE_PROJECT_DIR\" status --short 2>/dev/null | head -20)\njq -n \\\n  --arg branch \"$BRANCH\" \\\n  --arg last   \"$LAST\" \\\n  --arg status \"$STATUS\" \\\n  '{ additionalContext: \"Branch: \\($branch)\\nÚltimo commit: \\($last)\\nStatus:\\n\\($status)\" }'"
+                },
+                {
+                  "type": "callout",
+                  "variant": "info",
+                  "icon": "💡",
+                  "content": "En SessionStart, el stdout se agrega como contexto para Claude automáticamente. No necesitás el campo additionalContext — cualquier cosa en stdout se inyecta en la ventana de contexto."
+                }
+              ]
+            },
+            {
+              "title": "Bloquear push a main/master",
+              "blocks": [
+                {
+                  "type": "code",
+                  "lang": "bash",
+                  "label": "block-push-main.sh · PreToolUse + if: Bash(git push *)",
+                  "content": "#!/bin/bash\nCMD=$(cat /dev/stdin | jq -r '.tool_input.command')\nBRANCH=$(git -C \"$CLAUDE_PROJECT_DIR\" rev-parse --abbrev-ref HEAD 2>/dev/null)\nif echo \"$CMD\" | grep -q \"git push\" && { [ \"$BRANCH\" = \"main\" ] || [ \"$BRANCH\" = \"master\" ]; }; then\n  echo \"⛔ Push directo a $BRANCH está bloqueado. Creá un PR.\" >&2\n  exit 2\nfi\nexit 0"
+                }
+              ]
+            },
+            {
+              "title": "Notificación de desktop cuando Claude termina",
+              "blocks": [
+                {
+                  "type": "code",
+                  "lang": "bash",
+                  "label": "notify-done.sh · Stop",
+                  "content": "#!/bin/bash\n# OSC 777 para Kitty/WezTerm, OSC 9 para iTerm2/Windows Terminal\njq -n '{ terminalSequence: \"\\u001b]777;notify;Claude listo;Terminé de trabajar.\\u0007\\u001b]9;Claude listo\\u0007\" }'"
+                }
+              ]
+            },
+            {
+              "title": "Hook en Python con lógica compleja",
+              "blocks": [
+                {
+                  "type": "code",
+                  "lang": "python",
+                  "label": "smart-guard.py · PreToolUse Bash",
+                  "content": "#!/usr/bin/env python3\nimport sys, json, re\n\ndata = json.load(sys.stdin)\ncmd  = data.get(\"tool_input\", {}).get(\"command\", \"\")\n\nDANGEROUS = [\n    r\"rm\\s+-rf\\s+/\",\n    r\">\\s*/etc/\",\n    r\"curl.*\\|\\s*bash\",\n    r\"chmod\\s+777\"\n]\n\nfor pattern in DANGEROUS:\n    if re.search(pattern, cmd):\n        print(json.dumps({\n            \"hookSpecificOutput\": {\n                \"hookEventName\": \"PreToolUse\",\n                \"permissionDecision\": \"deny\",\n                \"permissionDecisionReason\": f\"Patrón peligroso detectado: {pattern}\"\n            }\n        }))\n        sys.exit(0)\n\nsys.exit(0)  # sin decisión → flujo normal"
+                },
+                {
+                  "type": "callout",
+                  "variant": "info",
+                  "icon": "🐍",
+                  "content": "Los hooks pueden ser cualquier ejecutable: Python, Node.js, Ruby, binarios compilados. La interface es siempre la misma: JSON en stdin, exit codes + JSON en stdout."
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "hooks-workflows",
+          "title": "Workflows avanzados: combinaciones reales",
+          "summary": "Tres workflows completos que coordinan múltiples hooks: CI/CD Gate, seguridad en capas, y contexto enriquecido automático.",
+          "source": null,
+          "subsections": [
+            {
+              "title": "Workflow 1: CI/CD Gate completo",
+              "blocks": [
+                {
+                  "type": "text",
+                  "content": "Cuatro hooks coordinados que impiden que Claude rompa el pipeline de CI sin querer: bloquear push a main, requerir que los tests pasen antes del push, registrar cuando los tests pasan, y recordatorio al terminar sin hacer push."
+                },
+                {
+                  "type": "steps",
+                  "items": [
+                    {
+                      "title": "Hook 1 — Bloquear push a main/master",
+                      "tag": "PreToolUse",
+                      "body": "Tipo command. Matcher: Bash, if: Bash(git push *). Lee el branch actual con git rev-parse. Si es main o master, exit 2."
+                    },
+                    {
+                      "title": "Hook 2 — Verificar que los tests pasaron",
+                      "tag": "PreToolUse",
+                      "body": "Tipo command. Mismo matcher. Busca en /tmp/tests_passed_{session_id} si los tests corrieron y pasaron. Si no hay evidencia, bloquea."
+                    },
+                    {
+                      "title": "Hook 3 — Registrar cuando los tests pasan",
+                      "tag": "PostToolUse",
+                      "body": "Tipo command. Matcher: Bash, if: Bash(npm test *). Analiza el stdout. Si todos pasaron, crea el archivo de estado. Si fallaron, lo elimina."
+                    },
+                    {
+                      "title": "Hook 4 — Recordatorio al terminar",
+                      "tag": "Stop",
+                      "body": "Tipo command. Verifica si hay cambios sin pushear. Si los hay y los tests están pasando, retorna exit 2 con recordatorio. Claude continúa y puede hacer el push."
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "title": "Workflow 2: Seguridad en capas",
+              "blocks": [
+                {
+                  "type": "text",
+                  "content": "Tres líneas de defensa contra prompt injection y acciones destructivas. Ninguna capa asume que las otras funcionaron — cada una cubre un vector distinto."
+                },
+                {
+                  "type": "steps",
+                  "items": [
+                    {
+                      "title": "Capa 1: Detección en el prompt",
+                      "tag": "UserPromptSubmit",
+                      "body": "Tipo prompt. Un modelo analiza el prompt buscando patrones de prompt injection. Si detecta 'ignore previous instructions' o instrucciones que contradigan el CLAUDE.md, bloquea."
+                    },
+                    {
+                      "title": "Capa 2: Bloqueo de ExitPlanMode",
+                      "tag": "PermissionRequest",
+                      "body": "Tipo command. Bloquea cualquier intento de salir del plan mode automáticamente. Cubre ataques que llegan desde archivos o webs que Claude lee."
+                    },
+                    {
+                      "title": "Capa 3: Detección semántica pre-ejecución",
+                      "tag": "PreToolUse",
+                      "body": "Tipo prompt. Antes de cada Bash command, evalúa si el comando parece sospechoso dado el contexto de la sesión."
+                    },
+                    {
+                      "title": "Capa 4: Audit log asíncrono",
+                      "tag": "PostToolUse + SessionEnd",
+                      "body": "Tipo http + async: true. Todo lo que Claude hace se loggea en tiempo real a un servidor externo. No bloquea — es el registro forense."
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "title": "Workflow 3: Contexto enriquecido automático",
+              "blocks": [
+                {
+                  "type": "text",
+                  "content": "Claude arranca sabiendo en qué branch estás, qué rompiste ayer, qué tickets tenés asignados, y cuáles son los TODOs pendientes — sin que digas nada."
+                },
+                {
+                  "type": "steps",
+                  "items": [
+                    {
+                      "title": "Hook 1 — Estado completo al inicio",
+                      "tag": "SessionStart",
+                      "body": "Tipo command. Escribe en stdout: branch actual, último commit, archivos modificados, tests fallando, issues asignados, TODOs del código. Claude arranca sabiéndolo todo."
+                    },
+                    {
+                      "title": "Hook 2 — Enriquecer cada prompt",
+                      "tag": "UserPromptSubmit",
+                      "body": "Tipo command. Analiza el prompt. Si menciona un archivo, lo pre-carga. Si menciona un issue, consulta GitHub. Claude recibe el prompt más toda la info relevante ya pre-cargada."
+                    },
+                    {
+                      "title": "Hook 3 — Análisis automático de resultados",
+                      "tag": "PostToolUse",
+                      "body": "Tipo command. Después de que Claude corre un Bash command, analiza el output. Si corrió tests y fallaron, parsea el stack trace y agrega el archivo y línea exacta al contexto."
+                    },
+                    {
+                      "title": "Hook 4 — Restaurar contexto post-compactación",
+                      "tag": "PostCompact",
+                      "body": "Tipo command. Repite una versión reducida del Hook 1 — solo lo que sería difícil de recuperar del transcript compactado."
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "hooks-modelo-mental",
+          "title": "El modelo mental: dos mundos",
+          "summary": "Los hooks mezclan dos mundos distintos: el mundo Unix (procesos, stdin/stdout) y el mundo LLM (contexto, permisos). Confundirlos es el error más común.",
+          "source": null,
+          "subsections": [
+            {
+              "title": "Los dos mundos",
+              "blocks": [
+                {
+                  "type": "compare",
+                  "left": {
+                    "head": "⚙️ El mundo Unix",
+                    "rows": [
+                      { "key": "Procesos", "value": "Claude Code lanza tu hook como proceso hijo con fork + exec." },
+                      { "key": "stdin", "value": "El JSON del evento llega por el file descriptor 0." },
+                      { "key": "stdout", "value": "Tu respuesta JSON sale por el file descriptor 1." },
+                      { "key": "stderr", "value": "Los errores y mensajes salen por el file descriptor 2." },
+                      { "key": "Exit code", "value": "0 = éxito, 2 = bloquear, otros = error no bloqueante." }
+                    ]
+                  },
+                  "right": {
+                    "head": "🧠 El mundo LLM",
+                    "rows": [
+                      { "key": "Contexto", "value": "Todo lo que Claude puede 'ver' en un momento dado." },
+                      { "key": "additionalContext", "value": "Se inyecta en la ventana de contexto — Claude lo lee y razona sobre ello." },
+                      { "key": "stderr (exit 2)", "value": "Llega a Claude como mensaje de error del sistema." },
+                      { "key": "Permisos", "value": "Capa separada que Claude Code ejecuta mecánicamente." },
+                      { "key": "Decisión", "value": "Claude razona — el sistema de permisos obedece reglas fijas." }
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "title": "La distinción fundamental: dos destinos",
+              "blocks": [
+                {
+                  "type": "compare",
+                  "left": {
+                    "head": "🔒 Destino 1: Sistema de permisos",
+                    "rows": [
+                      { "key": "Cómo llegar", "value": "exit 2 · permissionDecision: 'deny' · decision: 'block'" },
+                      { "key": "Qué pasa", "value": "Claude Code lo ejecuta mecánicamente. Claude no interviene. Si el hook dice deny, se deniega — punto." },
+                      { "key": "Claude ve", "value": "El stderr como mensaje de error. Puede intentar algo distinto, pero no puede ignorar el bloqueo." }
+                    ]
+                  },
+                  "right": {
+                    "head": "🧠 Destino 2: Ventana de contexto",
+                    "rows": [
+                      { "key": "Cómo llegar", "value": "additionalContext · stdout en SessionStart/UserPromptSubmit" },
+                      { "key": "Qué pasa", "value": "Claude lo lee y razona sobre ello. Lo interpreta como una tarea pendiente y actúa." },
+                      { "key": "Claude ve", "value": "Información de fondo que siempre estuvo ahí — no como un mensaje nuevo, sino como conocimiento." }
+                    ]
+                  }
+                },
+                {
+                  "type": "callout",
+                  "variant": "warning",
+                  "icon": "⚠️",
+                  "content": "Error clásico: usar un hook prompt en PostToolUse para que 'Claude corrija el código'. El hook prompt retorna una decisión binaria al sistema de permisos — no inyecta nada en el contexto de Claude. Claude nunca se entera de que hubo una revisión."
+                }
+              ]
+            },
+            {
+              "title": "¿Qué hook para qué objetivo?",
+              "blocks": [
+                {
+                  "type": "table",
+                  "headers": ["Objetivo", "Mecanismo correcto"],
+                  "rows": [
+                    ["¿Querés que Claude corrija, mejore o reaccione?", "command + additionalContext + exit 0. Claude lee el análisis y actúa en el siguiente paso del agentic loop."],
+                    ["¿Querés impedir que algo ocurra sin excepción?", "exit 2 con motivo en stderr, o permissionDecision: 'deny'. Claude Code bloquea mecánicamente."],
+                    ["¿Querés clasificación semántica sin lógica de shell?", "prompt hook. Resultado siempre va al sistema de permisos, nunca al contexto de Claude."],
+                    ["¿Querés las dos cosas a la vez?", "command con lógica condicional: si grave → exit 2 (bloqueo). Si menor → exit 0 + additionalContext."]
+                  ]
+                },
+                {
+                  "type": "callout",
+                  "variant": "info",
+                  "icon": "🎯",
+                  "content": "La pregunta que resuelve todo: '¿qué quiero que pase después de que esto corra?' Si la respuesta es 'quiero que Claude haga algo con esta información' → additionalContext + exit 0. Si es 'quiero que el sistema impida algo sin importar lo que Claude piense' → exit 2 o permissionDecision: deny."
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "hooks-debug",
+          "title": "Cómo debuggear hooks",
+          "summary": "Los hooks fallidos pueden ser difíciles de diagnosticar. Cinco herramientas para inspeccionar qué reciben, qué retornan y qué errores producen.",
+          "source": null,
+          "subsections": [
+            {
+              "title": "Pasos de debugging",
+              "blocks": [
+                {
+                  "type": "steps",
+                  "items": [
+                    {
+                      "title": "Verificá el menú /hooks",
+                      "body": "Escribí /hooks en Claude Code para ver todos los hooks activos con su source (usuario, proyecto, local, plugin), tipo, matcher, y estado. Primer lugar donde chequear si el hook está siendo detectado."
+                    },
+                    {
+                      "title": "Activá el modo debug",
+                      "body": "Iniciá Claude Code con claude --debug. En modo debug, el stdout de los hooks se loggea aunque sea en exit 0. También muestra los matchers que se evalúan y cuáles coinciden."
+                    },
+                    {
+                      "title": "Inspeccioná el transcript",
+                      "body": "El path está en CLAUDE_TRANSCRIPT_PATH. Es un archivo JSONL donde cada línea es un evento. Podés leerlo con jq para ver exactamente qué se envió y qué se recibió."
+                    },
+                    {
+                      "title": "Simulá el input manualmente",
+                      "body": "echo '{\"hook_event_name\":\"PreToolUse\",\"tool_name\":\"Bash\",\"tool_input\":{\"command\":\"rm -rf /\"}}' | bash mi-hook.sh — iteración rápida sin disparar el evento real."
+                    },
+                    {
+                      "title": "Revisá exit codes y stderr",
+                      "body": "Recordá: exit 1 no bloquea (es error no-bloqueante), solo exit 2 bloquea. El stderr de un exit 2 es lo que Claude recibe como error."
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "title": "Errores comunes y soluciones",
+              "blocks": [
+                {
+                  "type": "table",
+                  "headers": ["Error", "Causa probable", "Solución"],
+                  "rows": [
+                    ["El hook no se activa", "El matcher no coincide, el evento está mal escrito (son case-sensitive), o el JSON tiene error de sintaxis.", "Verificar en /hooks que aparece. Probar con matcher \"*\" temporalmente."],
+                    ["El JSON de output es ignorado", "El hook retornó exit 2 — con exit 2, Claude Code ignora completamente stdout.", "Asegurate de retornar exit 0 cuando querés que se procese el JSON."],
+                    ["El hook bloquea pero no debería", "set -e convierte cualquier falla en exit distinto de 0.", "Añadí manejo explícito de errores. Verificá dependencias antes de correr."],
+                    ["Timeout del hook", "El script se cuelga esperando input, hace un network request lento, o tiene loop infinito.", "Usá timeout explícito en la config. Agregá timeouts dentro del script para operaciones de red."],
+                    ["Placeholder no expandido", "Usaste ${CLAUDE_PROJECT_DIR} en shell form (sin args).", "Agregar \"args\": [] para pasar a exec form."],
+                    ["MCP matcher no coincide", "Escribiste mcp__memory sin .* al final.", "Usar mcp__memory__.* (con regex .*)"]
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "hooks-variables-entorno",
+          "title": "Variables de entorno y jq",
+          "summary": "Las variables de entorno inyectadas por Claude Code en los hooks, y cómo usar jq para leer y construir JSON desde shell.",
+          "source": null,
+          "subsections": [
+            {
+              "title": "Variables de entorno disponibles",
+              "blocks": [
+                {
+                  "type": "table",
+                  "headers": ["Variable", "Descripción", "Disponible en"],
+                  "rows": [
+                    ["CLAUDE_PROJECT_DIR", "Path absoluto al directorio raíz del proyecto (donde está .claude/).", "Todos los hooks"],
+                    ["CLAUDE_SESSION_ID", "Identificador único de la sesión. Para agrupar eventos en logging o auditoría.", "Todos los hooks"],
+                    ["CLAUDE_TRANSCRIPT_PATH", "Path al archivo JSONL del transcript en curso. Podés leerlo para tener contexto histórico.", "Todos los hooks"],
+                    ["CLAUDE_ENV_FILE", "Path a un archivo de variables de entorno. Escribís KEY=VALUE aquí y quedan disponibles en todos los Bash commands de la sesión.", "SessionStart, Setup, CwdChanged, FileChanged"],
+                    ["CLAUDE_PLUGIN_ROOT", "Directorio de instalación del plugin activo.", "Hooks en plugins"],
+                    ["CLAUDE_PLUGIN_DATA", "Directorio para datos persistentes del plugin.", "Hooks en plugins"]
+                  ]
+                }
+              ]
+            },
+            {
+              "title": "jq: procesar JSON desde shell",
+              "blocks": [
+                {
+                  "type": "code",
+                  "lang": "bash",
+                  "label": "jq básico para hooks",
+                  "content": "# Leer el JSON completo que llegó por stdin\nINPUT=$(cat /dev/stdin)\n\n# Extraer un campo con -r (raw, sin comillas)\nTOOL=$(echo \"$INPUT\" | jq -r '.tool_name')\nCMD=$(echo \"$INPUT\" | jq -r '.tool_input.command // empty')\n#                                              ^ // empty evita \"null\" si no existe\n\n# Construir JSON de respuesta con variables de bash\njq -n \\\n  --arg razon \"Comando bloqueado: $CMD\" \\\n  '{ \"hookSpecificOutput\": { \"hookEventName\": \"PreToolUse\", \"permissionDecision\": \"deny\", \"permissionDecisionReason\": $razon } }'"
+                },
+                {
+                  "type": "table",
+                  "headers": ["Flag", "Qué hace"],
+                  "rows": [
+                    ["jq -r", "Raw output — imprime el valor sin comillas. Necesario para asignar a variables de bash."],
+                    ["jq -n", "Null input — no lee stdin. Construye JSON desde cero. Ideal para generar el JSON de respuesta."],
+                    ["--arg nombre valor", "Inyecta una variable de bash en el contexto de jq como string. Evita problemas de escaping."],
+                    [".campo // empty", "Retorna vacío si el campo no existe o es null. Evita que la variable quede con el string literal 'null'."]
+                  ]
+                },
+                {
+                  "type": "callout",
+                  "variant": "warning",
+                  "icon": "⚠️",
+                  "content": "Bug clásico: si usás read -r INPUT en lugar de INPUT=$(cat), solo leés la primera línea del stdin. El JSON de Claude Code puede ser multilínea — con read perderías todo lo que no entre en la primera línea. Siempre usá $(cat) o $(cat /dev/stdin)."
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "hooks-en-skills-subagentes",
+          "title": "Hooks en Skills y Subagentes",
+          "summary": "Los hooks pueden definirse en el frontmatter YAML de un skill o subagente, activándose solo mientras ese componente está activo.",
+          "source": null,
+          "subsections": [
+            {
+              "title": "Hooks en frontmatter de Skills",
+              "blocks": [
+                {
+                  "type": "text",
+                  "content": "Los hooks pueden definirse directamente en el frontmatter YAML de un skill o subagente. Solo se activan mientras ese componente está activo. Para subagentes, los hooks Stop se convierten automáticamente en SubagentStop. El campo once: true (solo en skills) hace que el hook corra una vez por sesión y luego se elimine."
+                },
+                {
+                  "type": "code",
+                  "lang": "yaml",
+                  "label": "Ejemplo de hook en frontmatter de skill",
+                  "content": "---\nname: secure-operations\ndescription: Operaciones con verificaciones de seguridad\nhooks:\n  PreToolUse:\n    - matcher: \"Bash\"\n      hooks:\n        - type: command\n          command: \"./scripts/security-check.sh\"\n          once: true  # corre solo una vez por sesión\n---"
+                }
+              ]
+            },
+            {
+              "title": "Hooks en Plugins",
+              "blocks": [
+                {
+                  "type": "text",
+                  "content": "Los plugins definen hooks en hooks/hooks.json dentro del directorio del plugin. Cuando el plugin está habilitado, sus hooks se mergean con los hooks de usuario y proyecto. Podés referenciar scripts del plugin con ${CLAUDE_PLUGIN_ROOT}. Los admins pueden usar allowManagedHooksOnly para restringir hooks a los aprobados por la organización."
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

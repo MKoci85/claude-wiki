@@ -1,0 +1,274 @@
+{
+  "sections": [
+    {
+      "title": "MCP en profundidad",
+      "articles": [
+        {
+          "title": "Qué resuelve MCP",
+          "subsections": [
+            {
+              "title": "El problema N×M",
+              "blocks": [
+                {
+                  "type": "text",
+                  "content": "Sin un estándar común, conectar N aplicaciones de IA con M herramientas y fuentes de datos distintas requiere, en el peor caso, N×M integraciones a medida: cada combinación aplicación-servicio necesita su propio código de conexión. MCP convierte ese problema en uno de N+M: cada servicio se integra una vez, como servidor MCP, y cualquier cliente compatible puede usarlo sin escribir nada específico para ese servicio."
+                },
+                {
+                  "type": "compare",
+                  "left": {
+                    "head": "Sin MCP",
+                    "rows": [
+                      { "key": "Complejidad", "value": "N×M integraciones. Cada aplicación necesita su propio código de conexión con cada servicio." },
+                      { "key": "Reutilización", "value": "Nula. Lo que funciona en una app no sirve para otra." },
+                      { "key": "Mantenimiento", "value": "Multiplicado: un cambio en el servicio rompe N integraciones." }
+                    ]
+                  },
+                  "right": {
+                    "head": "Con MCP",
+                    "rows": [
+                      { "key": "Complejidad", "value": "N+M. Cada servicio se integra una sola vez como servidor MCP." },
+                      { "key": "Reutilización", "value": "Total. Cualquier cliente MCP compatible puede usar cualquier servidor MCP." },
+                      { "key": "Mantenimiento", "value": "Centralizado: actualizar el servidor MCP beneficia a todos sus clientes." }
+                    ]
+                  }
+                },
+                {
+                  "type": "text",
+                  "content": "La comunicación entre cliente y servidor usa JSON-RPC 2.0. Un servidor MCP puede exponer tres tipos de capacidades: tools (funciones que el modelo puede invocar), resources (datos de solo lectura, como archivos o registros) y prompts (plantillas reutilizables). El cliente, a su vez, puede exponer capacidades propias hacia el servidor."
+                }
+              ]
+            },
+            {
+              "title": "Arquitectura: host, cliente y servidor",
+              "blocks": [
+                {
+                  "type": "steps",
+                  "items": [
+                    {
+                      "title": "Host",
+                      "body": "La aplicación que el usuario usa directamente: Claude Code, Claude Desktop, o tu propia app. El host contiene o lanza al cliente MCP."
+                    },
+                    {
+                      "title": "Cliente MCP",
+                      "body": "Habla el protocolo, descubre qué capacidades tiene el servidor y las traduce en llamadas concretas."
+                    },
+                    {
+                      "title": "Servidor MCP",
+                      "body": "Expone tools, resources y prompts. Puede ser local (un subproceso en la misma máquina) o remoto (un servicio web)."
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "title": "El ciclo de vida de una sesión",
+          "subsections": [
+            {
+              "title": "Negociación de capacidades",
+              "blocks": [
+                {
+                  "type": "text",
+                  "content": "MCP es un protocolo con estado: antes de poder listar o invocar nada, cliente y servidor negocian qué es capaz de hacer cada uno. Una regla importante: ninguna de las partes debería usar una capacidad que la otra no declaró en el initialize."
+                },
+                {
+                  "type": "steps",
+                  "items": [
+                    {
+                      "title": "Initialize",
+                      "body": "El cliente envía su versión de protocolo y sus capacidades (roots, sampling, elicitation)."
+                    },
+                    {
+                      "title": "Respuesta del servidor",
+                      "body": "El servidor responde con su versión compatible más sus propias capacidades (tools, resources, prompts)."
+                    },
+                    {
+                      "title": "Initialized",
+                      "body": "El cliente notifica que está listo. Recién aquí empiezan las operaciones reales."
+                    },
+                    {
+                      "title": "Operación",
+                      "body": "Requests (tools/call, resources/read, prompts/get) y notifications (list_changed, progress) en ambas direcciones."
+                    },
+                    {
+                      "title": "Shutdown",
+                      "body": "Sin mensaje especial: simplemente se cierra el transporte."
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "title": "Transportes: stdio vs. HTTP",
+              "blocks": [
+                {
+                  "type": "table",
+                  "head": ["Transporte", "Cómo funciona", "Cuándo conviene"],
+                  "rows": [
+                    ["stdio", "El cliente lanza al servidor como subproceso local. Se comunican por stdin/stdout.", "Herramientas de desarrollo locales: acceso a archivos del proyecto, Claude Code, Claude Desktop."],
+                    ["HTTP (SSE / streaming)", "El servidor corre remoto, como cualquier servicio web.", "Servicios compartidos por múltiples clientes o usuarios a la vez. Requiere autenticación, típicamente OAuth."]
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "title": "Primitivas del servidor",
+          "subsections": [
+            {
+              "title": "Tools: definir herramientas con FastMCP",
+              "blocks": [
+                {
+                  "type": "text",
+                  "content": "El SDK oficial de Python facilita escribir un servidor con decoradores: cada función decorada con @mcp.tool() queda expuesta automáticamente, con su schema inferido de los type hints y su description tomada del docstring. Las mismas buenas prácticas de tool use aplican: una descripción prescriptiva mejora cuándo y cómo Claude termina usando la herramienta."
+                },
+                {
+                  "type": "code",
+                  "language": "python",
+                  "code": "from mcp.server.fastmcp import FastMCP\n\nmcp = FastMCP(\"inventario-server\")\n\n@mcp.tool()\ndef consultar_stock(sku: str) -> str:\n    \"\"\"Devuelve el stock disponible para un SKU dado. Usala cuando te\n    pregunten por disponibilidad de un producto específico.\"\"\"\n    stock = base_de_datos.get(sku, 0)\n    return f\"El SKU {sku} tiene {stock} unidades disponibles\"\n\nif __name__ == \"__main__\":\n    mcp.run()"
+                },
+                {
+                  "type": "callout",
+                  "style": "info",
+                  "title": "Errores automáticos",
+                  "content": "Si la función decorada lanza una excepción, el SDK la traduce automáticamente en un resultado de error hacia el cliente, de forma análoga al is_error: true del módulo de tool use."
+                }
+              ]
+            },
+            {
+              "title": "Resources: datos de solo lectura",
+              "blocks": [
+                {
+                  "type": "text",
+                  "content": "Los resources exponen datos de solo lectura identificados por una URI. Pueden ser estáticos (una URI fija) o templates parametrizados, donde una parte de la URI se completa dinámicamente. Un servidor también puede notificar al cliente cuando la lista de resources disponibles cambia, vía una notificación list_changed."
+                },
+                {
+                  "type": "code",
+                  "language": "python",
+                  "code": "@mcp.resource(\"config://politica-devoluciones\")\ndef politica_devoluciones() -> str:\n    return open(\"politica.md\").read()\n\n# resource template: la parte {cliente_id} se completa al leerlo\n@mcp.resource(\"facturas://{cliente_id}\")\ndef facturas_de_cliente(cliente_id: str) -> str:\n    return obtener_facturas_pendientes(cliente_id)\n\n# En el cliente:\n# resultado = await session.read_resource(\"facturas://C-4521\")"
+                }
+              ]
+            },
+            {
+              "title": "Prompts: plantillas reutilizables",
+              "blocks": [
+                {
+                  "type": "text",
+                  "content": "Los prompts son plantillas parametrizadas que el servidor sugiere al cliente para tareas comunes, evitando que cada aplicación reinvente el mismo prompt. Pueden recibir argumentos con valores por defecto, igual que una función."
+                },
+                {
+                  "type": "code",
+                  "language": "python",
+                  "code": "@mcp.prompt()\ndef responder_reclamo(reclamo: str, tono: str = \"empático\") -> str:\n    return f\"Redactá una respuesta en tono {tono} a este reclamo:\\n\\n{reclamo}\"\n\n# En el cliente:\n# session.list_prompts()       → lista los disponibles\n# session.get_prompt(nombre, argumentos)  → devuelve el texto armado"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "title": "Primitivas del cliente y seguridad",
+          "subsections": [
+            {
+              "title": "Roots, sampling y elicitation",
+              "blocks": [
+                {
+                  "type": "text",
+                  "content": "MCP no es unidireccional: el cliente también puede exponer capacidades hacia el servidor."
+                },
+                {
+                  "type": "cards",
+                  "items": [
+                    {
+                      "title": "Roots",
+                      "body": "El cliente le indica al servidor qué directorios o rutas puede tocar (URIs file://). Es un mecanismo de coordinación, no un límite técnico real: la seguridad verdadera tiene que reforzarse a nivel de sistema operativo o sandboxing."
+                    },
+                    {
+                      "title": "Sampling",
+                      "body": "El servidor puede pedirle al cliente que genere una respuesta usando el modelo del cliente, sin necesitar su propia API key. Anthropic recomienda que esta capacidad requiera aprobación humana en cada uso, para evitar que un servidor dispare generaciones sin control."
+                    },
+                    {
+                      "title": "Elicitation",
+                      "body": "El servidor puede pedirle al usuario, a mitad de una operación, un dato adicional que necesita para continuar (por ejemplo, \"¿a qué rama hago el commit?\"), usando un schema estructurado para validar la respuesta."
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "title": "Implementar un cliente",
+              "blocks": [
+                {
+                  "type": "text",
+                  "content": "Un cliente MCP se conecta al servidor, descubre qué herramientas ofrece y las invoca. En el caso de un servidor local sobre stdio, el cliente lo lanza como subproceso."
+                },
+                {
+                  "type": "code",
+                  "language": "python",
+                  "code": "from mcp import ClientSession, StdioServerParameters\nfrom mcp.client.stdio import stdio_client\n\nparams = StdioServerParameters(command=\"python\", args=[\"servidor_mcp.py\"])\n\nasync def main():\n    async with stdio_client(params) as (read, write):\n        async with ClientSession(read, write) as session:\n            await session.initialize()  # handshake de capacidades\n\n            tools = await session.list_tools()\n            resultado = await session.call_tool(\"consultar_stock\", {\"sku\": \"ABC-123\"})"
+                },
+                {
+                  "type": "callout",
+                  "style": "info",
+                  "title": "El inspector: probar antes de integrar",
+                  "content": "Antes de conectar un servidor a una aplicación real, mcp dev servidor_mcp.py abre el MCP Inspector: lista las tools, resources y prompts expuestos, y deja invocarlos a mano para verificar que el servidor responde como se espera."
+                }
+              ]
+            },
+            {
+              "title": "Conectar MCP directamente a la Messages API",
+              "blocks": [
+                {
+                  "type": "text",
+                  "content": "Además del flujo cliente/servidor puro, la Messages API admite declarar servidores MCP remotos directamente en el request, vía el parámetro mcp_servers, delegando en Anthropic la tarea de invocar las herramientas del servidor durante la conversación."
+                },
+                {
+                  "type": "code",
+                  "language": "python",
+                  "code": "response = client.beta.messages.create(\n    model=\"claude-sonnet-4-6\",\n    max_tokens=800,\n    messages=[{\"role\": \"user\", \"content\": \"¿Cuánto stock queda del SKU ABC-123?\"}],\n    mcp_servers=[{\n        \"type\": \"url\",\n        \"url\": \"https://mi-servidor-mcp.miempresa.com/sse\",\n        \"name\": \"inventario\",\n        \"authorization_token\": \"TOKEN_OBTENIDO_POR_OAUTH\",\n        \"tool_configuration\": {\n            \"enabled\": True,\n            \"allowed_tools\": [\"consultar_stock\"],  # whitelist de tools\n        },\n    }],\n)"
+                },
+                {
+                  "type": "callout",
+                  "style": "info",
+                  "title": "mcp_toolset para control granular",
+                  "content": "Para escenarios con muchas herramientas repartidas entre varios servidores, mcp_toolset permite habilitar o deshabilitar herramientas individualmente y diferir su carga hasta que realmente se necesiten, en lugar de exponerlas todas desde el primer turno."
+                }
+              ]
+            },
+            {
+              "title": "Seguridad al conectar servidores de terceros",
+              "blocks": [
+                {
+                  "type": "text",
+                  "content": "Un servidor MCP es, en la práctica, código de un tercero al que se le da permiso para leer datos y ejecutar acciones en nombre de un usuario. Antes de conectar uno, especialmente si no lo escribiste vos:"
+                },
+                {
+                  "type": "cards",
+                  "items": [
+                    {
+                      "title": "Revisar las tools de verdad",
+                      "body": "No confiar solo en nombres y descripciones. Leer qué hace realmente cada función antes de conectar el servidor."
+                    },
+                    {
+                      "title": "Mínimo privilegio",
+                      "body": "Roots acotados a lo estrictamente necesario. Credenciales del lado del servidor con permisos mínimos. En HTTP, autenticación seria, típicamente vía OAuth."
+                    },
+                    {
+                      "title": "Tratar el contenido como datos no confiables",
+                      "body": "El contenido de un resource o el resultado de una tool puede incluir texto que intente instruir al modelo de forma encubierta. Tratarlo siempre como dato, nunca como instrucción con la autoridad del system prompt."
+                    },
+                    {
+                      "title": "Sampling bajo aprobación humana",
+                      "body": "La capacidad de sampling delega al servidor la posibilidad de disparar generaciones del modelo. Debe requerir confirmación humana en cada uso para evitar que un servidor abuse de ella."
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

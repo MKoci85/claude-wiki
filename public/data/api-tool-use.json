@@ -1,0 +1,252 @@
+{
+  "sections": [
+    {
+      "title": "Tool Use",
+      "articles": [
+        {
+          "title": "Conceptos y esquemas",
+          "subsections": [
+            {
+              "title": "Cómo funciona",
+              "blocks": [
+                {
+                  "type": "text",
+                  "content": "Tool use (también llamado function calling) le permite a Claude pedir la ejecución de código externo —una función, una consulta a una base de datos, una API— y usar el resultado para continuar la conversación. Claude nunca ejecuta código directamente: decide que una herramienta debe usarse, describe con qué parámetros, y la aplicación es responsable de ejecutar la función real y devolver el resultado."
+                },
+                {
+                  "type": "compare",
+                  "left": {
+                    "head": "Client tools (tu código ejecuta)",
+                    "rows": [
+                      { "key": "Qué son", "value": "Funciones que vos definís: obtener_clima, consultar_db, enviar_email, etc." },
+                      { "key": "Flujo", "value": "Claude devuelve stop_reason: tool_use → tu código ejecuta → devolvés tool_result." },
+                      { "key": "Costo extra", "value": "Ninguno. Se cobran como tokens normales." }
+                    ]
+                  },
+                  "right": {
+                    "head": "Server tools (Anthropic ejecuta)",
+                    "rows": [
+                      { "key": "Qué son", "value": "web_search, code_execution, bash, str_replace_based_edit_tool. Anthropic las ejecuta." },
+                      { "key": "Flujo", "value": "Claude las llama y los resultados llegan directamente. Sin código de tu parte." },
+                      { "key": "Costo extra", "value": "Sí. Por ejemplo, web_search cobra por búsqueda realizada." }
+                    ]
+                  }
+                },
+                {
+                  "type": "callout",
+                  "style": "info",
+                  "title": "Cuándo conviene tool use",
+                  "content": "Reservar tools para lo que el prompt solo no puede resolver: información dinámica que cambia entre requests (stock, precios, clima), acciones con efecto real (enviar email, modificar registros), o cálculos exactos. Para razonar, redactar o resumir algo que ya está en el prompt, alcanza con un buen prompt."
+                }
+              ]
+            },
+            {
+              "title": "Definir buenos esquemas",
+              "blocks": [
+                {
+                  "type": "text",
+                  "content": "Cada herramienta se declara con un nombre, una `description` en lenguaje natural y un `input_schema` en formato JSON Schema. La `description` no es documentación decorativa: es el texto que Claude lee para decidir cuándo usar la herramienta y cómo completar sus parámetros. Una descripción pobre es la causa más común de que una herramienta bien implementada nunca se use, o se use en el momento equivocado."
+                },
+                {
+                  "type": "compare",
+                  "left": {
+                    "head": "Descripción débil",
+                    "rows": [
+                      { "key": "Ejemplo", "value": "\"Busca productos.\"" },
+                      { "key": "Problema", "value": "No dice cuándo usarla, qué pasa si no hay resultados, ni qué formato esperar en cada parámetro." }
+                    ]
+                  },
+                  "right": {
+                    "head": "Descripción prescriptiva",
+                    "rows": [
+                      { "key": "Ejemplo", "value": "\"Busca productos en el catálogo por nombre o categoría. Usala cuando el usuario pregunte por disponibilidad, precio o características. Si no hay coincidencias, devuelve lista vacía (no inventes productos).\"" },
+                      { "key": "Resultado", "value": "Claude sabe exactamente cuándo y cómo usarla." }
+                    ]
+                  }
+                },
+                {
+                  "type": "code",
+                  "language": "python",
+                  "code": "tool_clima = {\n    \"name\": \"obtener_clima\",\n    \"description\": (\n        \"Devuelve el clima actual para una ciudad dada. Usala cuando el \"\n        \"usuario pregunte explícitamente por el clima o la temperatura de \"\n        \"un lugar. No la uses para pronósticos a futuro: solo da el estado actual.\"\n    ),\n    \"input_schema\": {\n        \"type\": \"object\",\n        \"properties\": {\n            \"ciudad\": {\"type\": \"string\", \"description\": \"Nombre de la ciudad, sin provincia ni país\"},\n            \"unidad\": {\"type\": \"string\", \"enum\": [\"celsius\", \"fahrenheit\"]},\n        },\n        \"required\": [\"ciudad\"],\n    },\n}"
+                },
+                {
+                  "type": "cards",
+                  "items": [
+                    {
+                      "icon": "🔒",
+                      "title": "Usar enum",
+                      "description": "Si un parámetro solo admite valores conocidos, declararlo como enum evita que Claude invente una variante válida en texto pero inválida para tu sistema."
+                    },
+                    {
+                      "icon": "🔗",
+                      "title": "Consolidar tools",
+                      "description": "Diez herramientas casi idénticas suelen confundir más que una sola con un parámetro `accion`. Menos herramientas, más claras."
+                    },
+                    {
+                      "icon": "📝",
+                      "title": "Describir parámetros",
+                      "description": "No solo la herramienta en su conjunto. Especialmente en parámetros anidados o con formato específico (fechas, IDs con patrón fijo)."
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "title": "El loop multi-turno",
+          "subsections": [
+            {
+              "title": "Bloques tool_use y tool_result",
+              "blocks": [
+                {
+                  "type": "text",
+                  "content": "Cuando Claude decide usar una herramienta, la respuesta tiene `stop_reason == \"tool_use\"` y el contenido incluye un bloque de tipo `tool_use` con un `id`, el `name` de la herramienta y el `input` elegido. La aplicación ejecuta la función real y devuelve el resultado en un nuevo mensaje de rol `user` con un bloque de tipo `tool_result`, referenciando el `tool_use_id` original."
+                },
+                {
+                  "type": "code",
+                  "language": "python",
+                  "code": "import anthropic\n\nclient = anthropic.Anthropic()\n\n# 1. primera llamada: Claude decide usar la tool\nresponse = client.messages.create(\n    model=\"claude-sonnet-4-6\", max_tokens=500, tools=[tool_clima],\n    messages=[{\"role\": \"user\", \"content\": \"¿Cómo está el clima en Rosario?\"}],\n)\n# response.stop_reason == \"tool_use\"\n# response.content[0].type == \"tool_use\"\n# response.content[0].name == \"obtener_clima\"\n# response.content[0].input == {\"ciudad\": \"Rosario\"}\n\ntool_use_block = next(b for b in response.content if b.type == \"tool_use\")\nresultado_real = \"18°C, parcialmente nublado\"  # ejecución real de la función\n\nmensajes = [\n    {\"role\": \"user\", \"content\": \"¿Cómo está el clima en Rosario?\"},\n    {\"role\": \"assistant\", \"content\": response.content},\n    {\n        \"role\": \"user\",\n        \"content\": [{\n            \"type\": \"tool_result\",\n            \"tool_use_id\": tool_use_block.id,\n            \"content\": resultado_real,\n        }],\n    },\n]\n\n# 2. segunda llamada: Claude genera la respuesta final\nrespuesta_final = client.messages.create(\n    model=\"claude-sonnet-4-6\", max_tokens=300, tools=[tool_clima], messages=mensajes\n)"
+                }
+              ]
+            },
+            {
+              "title": "Manejo de errores",
+              "blocks": [
+                {
+                  "type": "text",
+                  "content": "Una función puede fallar: una API externa caída, un parámetro fuera de rango, un timeout. En vez de romper el flujo, se devuelve igual un `tool_result` marcado con `is_error: true` y un mensaje breve. Claude reacciona razonablemente —reintentar con otro enfoque, pedir una aclaración, o informar el problema— en lugar de quedar colgado."
+                },
+                {
+                  "type": "code",
+                  "language": "python",
+                  "code": "def ejecutar_tool_segura(nombre, input_):\n    try:\n        return {\"resultado\": ejecutar_tool(nombre, input_), \"is_error\": False}\n    except Exception as e:\n        return {\"resultado\": f\"Error ejecutando {nombre}: {e}\", \"is_error\": True}\n\nsalida = ejecutar_tool_segura(\"obtener_clima\", {\"ciudad\": \"Atlantida\"})\n\ntool_result = {\n    \"type\": \"tool_result\",\n    \"tool_use_id\": tool_use_block.id,\n    \"content\": salida[\"resultado\"],\n    \"is_error\": salida[\"is_error\"],\n}"
+                }
+              ]
+            },
+            {
+              "title": "Loop completo",
+              "blocks": [
+                {
+                  "type": "text",
+                  "content": "En la práctica, el intercambio se envuelve en un bucle: mientras la respuesta pida usar una herramienta, se ejecuta y se reenvía el resultado, hasta que Claude produzca una respuesta final de texto."
+                },
+                {
+                  "type": "code",
+                  "language": "python",
+                  "code": "def ejecutar_tool(nombre, input_):\n    if nombre == \"obtener_clima\":\n        return f\"18°C en {input_['ciudad']}\"\n    raise ValueError(f\"tool desconocida: {nombre}\")\n\ndef conversar(mensajes, tools):\n    while True:\n        response = client.messages.create(\n            model=\"claude-sonnet-4-6\", max_tokens=800, tools=tools, messages=mensajes\n        )\n        mensajes.append({\"role\": \"assistant\", \"content\": response.content})\n\n        if response.stop_reason != \"tool_use\":\n            return response\n\n        resultados_tools = []\n        for bloque in response.content:\n            if bloque.type == \"tool_use\":\n                salida = ejecutar_tool(bloque.name, bloque.input)\n                resultados_tools.append({\n                    \"type\": \"tool_result\", \"tool_use_id\": bloque.id, \"content\": salida\n                })\n        mensajes.append({\"role\": \"user\", \"content\": resultados_tools})"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "title": "Control fino y seguridad",
+          "subsections": [
+            {
+              "title": "tool_choice y paralelismo",
+              "blocks": [
+                {
+                  "type": "text",
+                  "content": "Por defecto, Claude decide libremente si usar una herramienta y cuál. El parámetro `tool_choice` permite ajustar ese comportamiento."
+                },
+                {
+                  "type": "table",
+                  "columns": ["Modo", "Comportamiento"],
+                  "rows": [
+                    ["{\"type\": \"auto\"}", "Default. Claude decide libremente si usar alguna herramienta, ninguna, o varias en paralelo."],
+                    ["{\"type\": \"any\"}", "Claude debe usar alguna herramienta de la lista, pero elige cuál."],
+                    ["{\"type\": \"tool\", \"name\": \"...\"}", "Fuerza una herramienta específica. Útil para salidas estructuradas."],
+                    ["{\"type\": \"none\"}", "Desactiva el uso de herramientas para ese turno, aunque estén declaradas."]
+                  ]
+                },
+                {
+                  "type": "text",
+                  "content": "Cuando se declaran varias herramientas, Claude puede pedir varias llamadas en el mismo turno (por ejemplo, el clima de tres ciudades a la vez). Todos los `tool_result` de un mismo turno deben viajar juntos, dentro de un único mensaje de rol `user`. Enviarlos en mensajes separados le enseña al modelo a evitar el paralelismo en el futuro."
+                },
+                {
+                  "type": "code",
+                  "language": "python",
+                  "code": "from concurrent.futures import ThreadPoolExecutor\n\n# forzar que use exactamente una herramienta, sin paralelismo\nresponse = client.messages.create(\n    model=\"claude-sonnet-4-6\",\n    max_tokens=500,\n    tools=[tool_clima, tool_calendario],\n    tool_choice={\"type\": \"any\", \"disable_parallel_tool_use\": True},\n    messages=mensajes,\n)\n\n# ejecución paralela de múltiples tool_use en un mismo turno\nbloques_tool_use = [b for b in response.content if b.type == \"tool_use\"]\n\nwith ThreadPoolExecutor() as pool:\n    salidas = list(pool.map(lambda b: ejecutar_tool(b.name, b.input), bloques_tool_use))\n\nresultados_tools = [\n    {\"type\": \"tool_result\", \"tool_use_id\": b.id, \"content\": salida}\n    for b, salida in zip(bloques_tool_use, salidas)\n]\nmensajes.append({\"role\": \"user\", \"content\": resultados_tools})  # un solo mensaje"
+                }
+              ]
+            },
+            {
+              "title": "Herramientas del servidor",
+              "blocks": [
+                {
+                  "type": "text",
+                  "content": "Anthropic provee herramientas que se ejecutan directamente en sus servidores, sin que tu aplicación tenga que implementar nada."
+                },
+                {
+                  "type": "cards",
+                  "items": [
+                    {
+                      "icon": "🔍",
+                      "title": "web_search",
+                      "description": "Búsqueda web administrada por Anthropic. Claude decide cuándo buscar y la cita. Se puede limitar la cantidad de búsquedas por request y filtrar dominios."
+                    },
+                    {
+                      "icon": "💻",
+                      "title": "bash",
+                      "description": "Sesión de shell persistente: instalar paquetes, correr scripts, manejar git. El estado se mantiene entre comandos. Combinar con directorio de trabajo acotado."
+                    },
+                    {
+                      "icon": "✏️",
+                      "title": "str_replace_based_edit_tool",
+                      "description": "Comandos estandarizados para ver y editar archivos (view, str_replace, insert, create). Evita inventar tu propio esquema de edición."
+                    },
+                    {
+                      "icon": "⚙️",
+                      "title": "code_execution",
+                      "description": "Entorno Python aislado (sandbox de Anthropic) para calcular, generar gráficos, procesar archivos. Estado separado del tool bash."
+                    }
+                  ]
+                },
+                {
+                  "type": "code",
+                  "language": "python",
+                  "code": "# web_search: Anthropic ejecuta la búsqueda, sin código de tu parte\nresponse = client.messages.create(\n    model=\"claude-sonnet-4-6\", max_tokens=800,\n    tools=[{\"type\": \"web_search_20250305\", \"name\": \"web_search\", \"max_uses\": 3}],\n    messages=[{\"role\": \"user\", \"content\": \"¿Qué pasó esta semana con las tasas en Argentina?\"}],\n)\n\n# bash + editor de texto: agente de codificación completo\nresponse = client.messages.create(\n    model=\"claude-sonnet-4-6\", max_tokens=1024,\n    tools=[\n        {\"type\": \"text_editor_20250728\", \"name\": \"str_replace_based_edit_tool\"},\n        {\"type\": \"bash_20250124\", \"name\": \"bash\"},\n    ],\n    messages=[{\"role\": \"user\", \"content\": \"Instalá 'requests' y corré los tests de /tests\"}],\n)"
+                }
+              ]
+            },
+            {
+              "title": "Seguridad en tool use",
+              "blocks": [
+                {
+                  "type": "text",
+                  "content": "En el momento en que un modelo puede ejecutar acciones reales, las consideraciones de seguridad dejan de ser opcionales."
+                },
+                {
+                  "type": "cards",
+                  "items": [
+                    {
+                      "icon": "🔍",
+                      "title": "Validar inputs",
+                      "description": "La función que ejecuta la herramienta debe validar sus parámetros igual que validaría un input de un usuario humano. Nunca confiar ciegamente en el input de Claude."
+                    },
+                    {
+                      "icon": "🔒",
+                      "title": "Mínimo privilegio",
+                      "description": "Una herramienta de \"consultar pedidos\" no debería tener, a nivel de credenciales, permiso para borrar pedidos."
+                    },
+                    {
+                      "icon": "✋",
+                      "title": "Confirmación humana",
+                      "description": "Enviar un email, cobrar una tarjeta o borrar datos: buenos candidatos para un paso de aprobación antes de ejecutar, no un loop automático."
+                    },
+                    {
+                      "icon": "⚠️",
+                      "title": "Prompt injection",
+                      "description": "Si el resultado de una tool incluye contenido externo (texto scrapeado, un email), puede incluir instrucciones encubiertas. Tratar el resultado como dato, nunca como instrucción nueva."
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

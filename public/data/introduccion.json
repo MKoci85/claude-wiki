@@ -1,0 +1,329 @@
+{
+  "id": "introduccion",
+  "title": "Introducción a Claude Code",
+  "summary": "Qué es Claude Code, cómo funciona el bucle agéntico, sus herramientas, interfaces disponibles y cómo aprovechar el ecosistema completo.",
+  "sections": [
+    {
+      "title": "¿Qué es Claude Code?",
+      "articles": [
+        {
+          "id": "que-es-claude-code",
+          "title": "Claude Code es un agente de código",
+          "summary": "No es un chatbot. No es un autocompletado. Es un agente que toma decisiones, ejecuta acciones y verifica resultados.",
+          "source": null,
+          "subsections": [
+            {
+              "title": "Definición",
+              "blocks": [
+                {
+                  "type": "text",
+                  "content": "Claude Code es un agente de código. No es un chatbot al que le pedís cosas y copiás la respuesta. No es un autocompletado de líneas. Es un agente que toma decisiones, ejecuta acciones sobre tu proyecto y verifica los resultados."
+                },
+                {
+                  "type": "compare",
+                  "left": {
+                    "head": "Lo que NO es",
+                    "rows": [
+                      { "key": "Chatbot", "value": "Te da respuestas. Copiás, pegás, adaptás. Pierde contexto. No sabe qué archivos tenés." },
+                      { "key": "Copilot", "value": "Autocompleta. Sugiere la siguiente línea. No entiende el proyecto. No ejecuta ni verifica." }
+                    ]
+                  },
+                  "right": {
+                    "head": "Lo que SÍ es",
+                    "rows": [
+                      { "key": "Claude Code", "value": "Trabaja contigo. Lee tu codebase entero. Edita múltiples archivos. Ejecuta y verifica." }
+                    ]
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "bucle-agentico",
+          "title": "El bucle agéntico",
+          "summary": "Cómo Claude Code procesa cada tarea: planifica, usa herramientas reales, evalúa el resultado y repite hasta completar.",
+          "source": null,
+          "subsections": [
+            {
+              "title": "Las cinco fases del bucle",
+              "blocks": [
+                {
+                  "type": "text",
+                  "content": "Cada tarea que le das a Claude Code pasa por un ciclo que se repite hasta completarse. No es una respuesta única: es un bucle de acción y evaluación."
+                },
+                {
+                  "type": "steps",
+                  "items": [
+                    {
+                      "title": "Prompt",
+                      "body": "Vos describís la tarea. Cuanto más contexto y restricciones des, mejor."
+                    },
+                    {
+                      "title": "Planifica",
+                      "body": "Claude decide los pasos necesarios para completar la tarea."
+                    },
+                    {
+                      "title": "Herramienta",
+                      "body": "Lee archivos, edita código, ejecuta comandos bash. Acciones reales, no simulaciones."
+                    },
+                    {
+                      "title": "Evalúa",
+                      "body": "Analiza el resultado de la acción ejecutada."
+                    },
+                    {
+                      "title": "¿Listo?",
+                      "body": "Si no → repite desde Planifica. Si sí → responde con el resultado."
+                    }
+                  ]
+                },
+                {
+                  "type": "callout",
+                  "variant": "info",
+                  "icon": "⚡",
+                  "content": "Cada iteración del bucle usa herramientas reales: lee archivos, ejecuta comandos, edita código. No es simulación."
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "herramientas-del-agente",
+          "title": "Las herramientas del agente",
+          "summary": "Las herramientas internas que Claude Code usa para interactuar con tu proyecto: leer, editar, ejecutar, buscar y delegar.",
+          "source": null,
+          "subsections": [
+            {
+              "title": "Herramientas disponibles",
+              "blocks": [
+                {
+                  "type": "cards",
+                  "items": [
+                    {
+                      "icon": "👁",
+                      "title": "Read",
+                      "body": "Lee archivos de tu proyecto. Puede leer el codebase entero para entender el contexto."
+                    },
+                    {
+                      "icon": "✏️",
+                      "title": "Write / Edit",
+                      "body": "Crea o modifica archivos. Edit envía solo el diff; Write reescribe el archivo completo."
+                    },
+                    {
+                      "icon": "💻",
+                      "title": "Bash",
+                      "body": "Ejecuta cualquier comando de terminal: tests, builds, git, scripts, etc."
+                    },
+                    {
+                      "icon": "🔍",
+                      "title": "Glob / Grep",
+                      "body": "Busca archivos por patrón y texto dentro del proyecto. Equivale a find + grep."
+                    },
+                    {
+                      "icon": "🤝",
+                      "title": "Task",
+                      "body": "Delega trabajo a subagentes especializados para tareas paralelas o complejas."
+                    },
+                    {
+                      "icon": "🌐",
+                      "title": "WebFetch",
+                      "body": "Obtiene contenido de URLs. Útil para leer documentación externa o APIs."
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "interfaces-disponibles",
+          "title": "Un agente, múltiples interfaces",
+          "summary": "Claude Code está disponible en terminal, VS Code/Cursor, web y desktop app. Cada interfaz tiene sus ventajas.",
+          "source": null,
+          "subsections": [
+            {
+              "title": "Dónde podés usarlo",
+              "blocks": [
+                {
+                  "type": "cards",
+                  "items": [
+                    {
+                      "icon": "⌨️",
+                      "title": "Terminal (CLI)",
+                      "body": "La experiencia completa. Todas las funciones. Ideal para power users."
+                    },
+                    {
+                      "icon": "🖥",
+                      "title": "VS Code / Cursor",
+                      "body": "Inline diffs visuales. Checkpoints y rewind. La opción recomendada para el curso."
+                    },
+                    {
+                      "icon": "🌐",
+                      "title": "Web (claude.ai/code)",
+                      "body": "Sin instalación local. Para tareas largas. Desde cualquier dispositivo."
+                    },
+                    {
+                      "icon": "🖱",
+                      "title": "Desktop App",
+                      "body": "Sesiones paralelas. Diffs visuales. Tareas programadas (crons)."
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "capacidades",
+          "title": "¿Qué podés hacer con Claude Code?",
+          "summary": "Un recorrido por las capacidades principales: features, debugging, tests, refactoring, git, seguridad y automatización.",
+          "source": null,
+          "subsections": [
+            {
+              "title": "Casos de uso principales",
+              "blocks": [
+                {
+                  "type": "cards",
+                  "items": [
+                    {
+                      "icon": "✨",
+                      "title": "Crear features completas",
+                      "body": "Describís lo que querés y Claude implementa la feature completa en múltiples archivos."
+                    },
+                    {
+                      "icon": "🔎",
+                      "title": "Explorar codebases",
+                      "body": "Entender proyectos que no conocés: qué hace cada parte, cómo se conectan."
+                    },
+                    {
+                      "icon": "🐛",
+                      "title": "Depurar errores",
+                      "body": "Pegás el error y Claude encuentra la causa raíz y propone la solución."
+                    },
+                    {
+                      "icon": "♻️",
+                      "title": "Refactorizar código legacy",
+                      "body": "Moderniza y mejora código existente de forma segura, con tests que lo respaldan."
+                    },
+                    {
+                      "icon": "✅",
+                      "title": "Generar tests",
+                      "body": "Escribe tests con cobertura exhaustiva incluyendo edge cases."
+                    },
+                    {
+                      "icon": "🌿",
+                      "title": "Gestionar Git",
+                      "body": "Commits descriptivos, branches, PRs — todo desde lenguaje natural."
+                    },
+                    {
+                      "icon": "🔒",
+                      "title": "Revisar seguridad",
+                      "body": "Usa /security-review para un análisis de vulnerabilidades del código pendiente."
+                    },
+                    {
+                      "icon": "⚡",
+                      "title": "Automatizar tareas",
+                      "body": "Hooks, MCP y subagentes para flujos de trabajo completamente automatizados."
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "ecosistema-claude-code",
+          "title": "El ecosistema: más que un chat",
+          "summary": "Claude Code es un sistema completo: CLAUDE.md, MCP, Hooks, Subagentes, Skills y Agent SDK trabajan juntos.",
+          "source": null,
+          "subsections": [
+            {
+              "title": "Los componentes del ecosistema",
+              "blocks": [
+                {
+                  "type": "text",
+                  "content": "Claude Code no es solo un chat con un modelo. Es un ecosistema de componentes que se combinan para dar comportamientos avanzados y automatización."
+                },
+                {
+                  "type": "cards",
+                  "items": [
+                    {
+                      "icon": "📄",
+                      "title": "CLAUDE.md",
+                      "body": "Memoria persistente del proyecto. Claude lo lee siempre al inicio de cada sesión."
+                    },
+                    {
+                      "icon": "🔌",
+                      "title": "MCP",
+                      "body": "Model Context Protocol. Conexión a herramientas externas: bases de datos, APIs, servicios."
+                    },
+                    {
+                      "icon": "⚡",
+                      "title": "Hooks",
+                      "body": "Automatización basada en eventos. Scripts que se ejecutan antes/después de acciones de Claude."
+                    },
+                    {
+                      "icon": "👥",
+                      "title": "Subagentes",
+                      "body": "Equipos de IA especializados. Claude puede delegar tareas a agentes paralelos."
+                    },
+                    {
+                      "icon": "🧩",
+                      "title": "Skills",
+                      "body": "Capacidades reutilizables. Flujos de trabajo personalizados invocados bajo demanda."
+                    },
+                    {
+                      "icon": "💻",
+                      "title": "Agent SDK",
+                      "body": "Uso programático como librería. Para integrar Claude Code en tus propias aplicaciones."
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "que-no-es-claude-code",
+          "title": "Qué NO es Claude Code",
+          "summary": "Expectativas correctas: Claude Code es un multiplicador de productividad, no un reemplazo del programador ni una solución mágica.",
+          "source": null,
+          "subsections": [
+            {
+              "title": "Mitos y realidad",
+              "blocks": [
+                {
+                  "type": "compare",
+                  "left": {
+                    "head": "❌ No es esto",
+                    "rows": [
+                      { "key": "Reemplazo del programador", "value": "No toma decisiones de negocio ni entiende el contexto completo de tu producto." },
+                      { "key": "Infalible", "value": "Se equivoca. Sus propuestas son una primera versión que vos revisás." },
+                      { "key": "Mágico con prompts vagos", "value": "\"Hazlo\" sin contexto produce resultados genéricos. El contexto y las restricciones son clave." },
+                      { "key": "Seguro por defecto", "value": "Sin configurar permisos puede ejecutar comandos destructivos. Configurá el sandbox." }
+                    ]
+                  },
+                  "right": {
+                    "head": "✅ Sí es esto",
+                    "rows": [
+                      { "key": "Multiplicador de productividad", "value": "Acelera lo que vos ya sabés hacer. Amplifica tus capacidades." },
+                      { "key": "Primera propuesta que TÚ revisás", "value": "Siempre revisá el diff antes de aceptar. Claude propone, vos decidís." },
+                      { "key": "Efectivo con contexto y restricciones", "value": "Dale el CLAUDE.md del proyecto, el error exacto, las restricciones técnicas." },
+                      { "key": "Seguro con permisos configurados", "value": "Usá settings.json, sandbox y allow/deny rules para controlar qué puede hacer." }
+                    ]
+                  }
+                },
+                {
+                  "type": "callout",
+                  "variant": "warning",
+                  "icon": "🏆",
+                  "content": "La regla de oro: Claude propone, vos decidís. Siempre revisá el diff antes de aceptar."
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
