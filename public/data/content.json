@@ -13,10 +13,6 @@
       "file": "permisos.json"
     },
     {
-      "title": "Sistema de Memoria",
-      "file": "sistema-de-memoria.json"
-    },
-    {
       "title": "Hooks",
       "description": "El sistema de hooks de Claude Code y los fundamentos técnicos de stdio",
       "isSuper": true,
@@ -36,6 +32,10 @@
     {
       "title": "Skills",
       "file": "skills.json"
+    },
+    {
+      "title": "Sistema de Memoria",
+      "file": "sistema-de-memoria.json"
     },
     {
       "title": "Subagentes",
