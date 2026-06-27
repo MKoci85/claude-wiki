@@ -315,7 +315,7 @@ async function startExam(){
     state.screen='loading';
     render();
     try{
-      const res = await fetch('../data/examen_cca_f_en.json');
+      const res = await fetch('/practice/examen_cca_f_en.json');
       if(!res.ok) throw new Error('HTTP '+res.status);
       const data = await res.json();
       buildPoolsFromJson(data);
