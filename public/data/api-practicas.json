@@ -45,13 +45,37 @@
               "blocks": [
                 {
                   "type": "table",
-                  "columns": ["Error", "Código", "Solución"],
+                  "columns": [
+                    "Error",
+                    "Código",
+                    "Solución"
+                  ],
                   "rows": [
-                    ["API key inválida", "401", "Verifica que la key sea correcta y esté activa"],
-                    ["Modelo no encontrado", "404", "Usa un modelo disponible (claude-opus-4-8, etc)"],
-                    ["Límite de rate excedido", "429", "Espera un momento e intenta de nuevo"],
-                    ["Contexto muy largo", "400", "Reduce el número de tokens en tu mensaje"],
-                    ["Parámetro inválido", "400", "Revisa los parámetros esperados"]
+                    [
+                      "API key inválida",
+                      "401",
+                      "Verifica que la key sea correcta y esté activa"
+                    ],
+                    [
+                      "Modelo no encontrado",
+                      "404",
+                      "Usa un modelo disponible (claude-opus-4-8, etc)"
+                    ],
+                    [
+                      "Límite de rate excedido",
+                      "429",
+                      "Espera un momento e intenta de nuevo"
+                    ],
+                    [
+                      "Contexto muy largo",
+                      "400",
+                      "Reduce el número de tokens en tu mensaje"
+                    ],
+                    [
+                      "Parámetro inválido",
+                      "400",
+                      "Revisa los parámetros esperados"
+                    ]
                   ]
                 }
               ]
@@ -158,6 +182,188 @@
                 {
                   "type": "text",
                   "content": "Monitorea uso en console.anthropic.com. Considera usar Batch API (50% descuento) para trabajos no urgentes. Usa Haiku para tareas simples y económicas."
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "title": "stop_reason, streaming avanzado y dead-letter queues",
+          "subsections": [
+            {
+              "title": "stop_reason como señal de diagnóstico",
+              "blocks": [
+                {
+                  "type": "text",
+                  "content": "Cada respuesta de la API incluye un campo stop_reason que indica por qué terminó la generación. En sistemas de producción, stop_reason es la primera señal de diagnóstico cuando el comportamiento es inesperado. Ignorarlo es un error de diseño."
+                },
+                {
+                  "type": "table",
+                  "headers": [
+                    "stop_reason",
+                    "Qué indica",
+                    "Acción correcta"
+                  ],
+                  "rows": [
+                    [
+                      "\"end_turn\"",
+                      "El modelo terminó su respuesta naturalmente.",
+                      "Normal. No requiere acción."
+                    ],
+                    [
+                      "\"max_tokens\"",
+                      "La respuesta fue truncada porque alcanzó el límite de max_tokens.",
+                      "Aumentar max_tokens o rediseñar para outputs más cortos. NUNCA tratar el output como completo."
+                    ],
+                    [
+                      "\"tool_use\"",
+                      "El modelo invoca una herramienta. Espera el resultado antes de continuar.",
+                      "Ejecutar la herramienta, retornar el resultado, continuar el loop multi-turno."
+                    ],
+                    [
+                      "\"stop_sequence\"",
+                      "La generación terminó al encontrar una secuencia stop configurada.",
+                      "Normal si es intencional (delimitadores de output estructurado)."
+                    ],
+                    [
+                      "\"pause_turn\"",
+                      "El modelo pausó su turno (Extended Thinking habilitado).",
+                      "Continuar el loop con el mismo historial de mensajes."
+                    ]
+                  ]
+                },
+                {
+                  "type": "callout",
+                  "style": "warning",
+                  "title": "max_tokens sin verificación produce outputs silenciosamente incompletos",
+                  "content": "Si stop_reason es \"max_tokens\", el output está truncado. Un pipeline que no verifica este campo puede procesar JSON incompleto, análisis parciales o listas cortadas como si fueran resultados válidos. La verificación de stop_reason debe ser parte del contrato de cualquier llamada que produce outputs estructurados."
+                },
+                {
+                  "type": "code",
+                  "language": "python",
+                  "code": "response = client.messages.create(\n    model=\"claude-sonnet-4-6\",\n    max_tokens=4096,\n    messages=messages\n)\n\nif response.stop_reason == \"max_tokens\":\n    # Output truncado — no continuar como si fuera válido\n    raise OutputTruncatedError(\n        f\"Respuesta truncada en {response.usage.output_tokens} tokens. \"\n        \"Aumentar max_tokens o dividir la tarea.\"\n    )\nelif response.stop_reason == \"tool_use\":\n    # Procesar tool calls y continuar el loop\n    tool_result = execute_tools(response.content)\n    messages.append({\"role\": \"assistant\", \"content\": response.content})\n    messages.append({\"role\": \"user\", \"content\": tool_result})"
+                }
+              ]
+            },
+            {
+              "title": "Streaming con tool_use mid-stream",
+              "blocks": [
+                {
+                  "type": "text",
+                  "content": "En streaming, el modelo puede emitir un bloque tool_use en el medio de la respuesta. El cliente debe detectar este evento y pausar el procesamiento hasta ejecutar la herramienta y retornar su resultado. Si el cliente simplemente sigue consumiendo el stream ignorando el tool_use, el modelo no tiene el resultado de la herramienta y la respuesta queda incompleta o incoherente."
+                },
+                {
+                  "type": "steps",
+                  "items": [
+                    {
+                      "title": "El modelo inicia streaming",
+                      "description": "El cliente recibe chunks de texto normalmente."
+                    },
+                    {
+                      "title": "Evento tool_use detectado",
+                      "description": "El stream emite un bloque de tipo tool_use con el nombre de la herramienta y sus argumentos. Este es el punto de corte."
+                    },
+                    {
+                      "title": "Pausar consumo del stream",
+                      "description": "El cliente deja de consumir el stream y ejecuta la herramienta localmente."
+                    },
+                    {
+                      "title": "Retornar resultado como tool_result",
+                      "description": "El cliente retorna el resultado de la herramienta en un nuevo mensaje de tipo tool_result."
+                    },
+                    {
+                      "title": "El modelo continúa",
+                      "description": "Con el resultado disponible, el modelo continúa generando su respuesta. Se puede volver a streaming."
+                    }
+                  ]
+                },
+                {
+                  "type": "callout",
+                  "style": "info",
+                  "title": "Las interrupciones mid-stream del 2% son normales bajo latencia alta",
+                  "content": "En producción, ~2% de streams pueden interrumpirse por timeouts de red, reinicios de instancia o inestabilidad transitoria. La solución no es eliminar streaming sino implementar retry con reconexión: al detectar una interrupción, reintentar desde el último checkpoint conocido (no desde el principio del mensaje). Si el stream se interrumpe después de un tool_use pero antes del resultado, el retry debe incluir el tool_result en el historial."
+                }
+              ]
+            },
+            {
+              "title": "Dead-letter queues en pipelines agénticos",
+              "blocks": [
+                {
+                  "type": "text",
+                  "content": "Un dead-letter queue (DLQ) es una cola separada donde se envían los requests que agotaron su presupuesto de reintentos sin éxito. En pipelines agénticos de alto volumen (pagos, procesamiento de documentos, extracción de datos), el DLQ es el mecanismo que garantiza que ningún request se pierde silenciosamente: los items fallidos quedan disponibles para revisión humana o reprocesamiento manual."
+                },
+                {
+                  "type": "compare",
+                  "left": {
+                    "head": "Sin DLQ",
+                    "rows": [
+                      {
+                        "key": "Request falla 5 veces",
+                        "value": "Se descarta. El sistema no tiene registro del fallo."
+                      },
+                      {
+                        "key": "En pago",
+                        "value": "La transacción desaparece — ni aprobada ni rechazada. El cliente no recibe confirmación."
+                      },
+                      {
+                        "key": "Visibilidad",
+                        "value": "El equipo descubre el problema días después por inconsistencias en los datos."
+                      }
+                    ]
+                  },
+                  "right": {
+                    "head": "Con DLQ",
+                    "rows": [
+                      {
+                        "key": "Request falla 5 veces",
+                        "value": "Se mueve al DLQ con contexto completo: payload original, número de intentos, último error."
+                      },
+                      {
+                        "key": "En pago",
+                        "value": "La transacción queda en revisión. El equipo puede procesarla manualmente o reencolarla."
+                      },
+                      {
+                        "key": "Visibilidad",
+                        "value": "Alerta inmediata. El DLQ es observable y tiene métricas de volumen."
+                      }
+                    ]
+                  }
+                },
+                {
+                  "type": "code",
+                  "language": "python",
+                  "code": "async def process_with_dlq(request: PaymentRequest, max_retries: int = 5):\n    for attempt in range(max_retries):\n        try:\n            result = await process_payment(request)\n            return result\n        except (RateLimitError, ServiceUnavailableError) as e:\n            if attempt == max_retries - 1:\n                # Agotó el presupuesto de reintentos → DLQ\n                await dead_letter_queue.push({\n                    \"request\": request.dict(),\n                    \"attempts\": max_retries,\n                    \"last_error\": str(e),\n                    \"timestamp\": datetime.utcnow().isoformat(),\n                    \"idempotency_key\": request.idempotency_key  # para reprocesamiento seguro\n                })\n                raise MaxRetriesExhaustedError(f\"Request enviado al DLQ: {request.id}\")\n            delay = (2 ** attempt) + random.uniform(0, 1)\n            await asyncio.sleep(delay)"
+                },
+                {
+                  "type": "callout",
+                  "style": "info",
+                  "title": "El DLQ debe incluir el idempotency_key original",
+                  "content": "Cuando se reprocesan items del DLQ manualmente o en un segundo pipeline, deben usar el mismo idempotency_key del request original. Esto garantiza que si el request original llegó a ejecutarse parcialmente antes de fallar, el reprocesamiento no produce duplicados. Sin el idempotency_key, el DLQ crea un nuevo vector de duplicados."
+                },
+                {
+                  "type": "cards",
+                  "items": [
+                    {
+                      "icon": "📦",
+                      "title": "Payload completo",
+                      "description": "El DLQ debe guardar el request original completo, no solo el ID. El equipo de operaciones necesita el payload para diagnosticar y eventualmente reprocesar."
+                    },
+                    {
+                      "icon": "🔑",
+                      "title": "Idempotency key",
+                      "description": "Siempre incluir el idempotency_key original para que el reprocesamiento sea seguro contra duplicados."
+                    },
+                    {
+                      "icon": "📊",
+                      "title": "Métricas y alertas",
+                      "description": "Un DLQ sin alerta no existe operacionalmente. Configurar alarma cuando el volumen supera el umbral esperado (ej: >0.1% de requests)."
+                    },
+                    {
+                      "icon": "🔁",
+                      "title": "Reencolar con cuidado",
+                      "description": "Antes de reencolar items del DLQ, verificar que el error fue transitorio y no estructural (schema inválido, usuario no existe). Reencolar un error 422 produce un loop infinito hacia el DLQ."
+                    }
+                  ]
                 }
               ]
             }

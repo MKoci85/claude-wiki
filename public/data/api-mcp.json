@@ -18,17 +18,35 @@
                   "left": {
                     "head": "Sin MCP",
                     "rows": [
-                      { "key": "Complejidad", "value": "N×M integraciones. Cada aplicación necesita su propio código de conexión con cada servicio." },
-                      { "key": "Reutilización", "value": "Nula. Lo que funciona en una app no sirve para otra." },
-                      { "key": "Mantenimiento", "value": "Multiplicado: un cambio en el servicio rompe N integraciones." }
+                      {
+                        "key": "Complejidad",
+                        "value": "N×M integraciones. Cada aplicación necesita su propio código de conexión con cada servicio."
+                      },
+                      {
+                        "key": "Reutilización",
+                        "value": "Nula. Lo que funciona en una app no sirve para otra."
+                      },
+                      {
+                        "key": "Mantenimiento",
+                        "value": "Multiplicado: un cambio en el servicio rompe N integraciones."
+                      }
                     ]
                   },
                   "right": {
                     "head": "Con MCP",
                     "rows": [
-                      { "key": "Complejidad", "value": "N+M. Cada servicio se integra una sola vez como servidor MCP." },
-                      { "key": "Reutilización", "value": "Total. Cualquier cliente MCP compatible puede usar cualquier servidor MCP." },
-                      { "key": "Mantenimiento", "value": "Centralizado: actualizar el servidor MCP beneficia a todos sus clientes." }
+                      {
+                        "key": "Complejidad",
+                        "value": "N+M. Cada servicio se integra una sola vez como servidor MCP."
+                      },
+                      {
+                        "key": "Reutilización",
+                        "value": "Total. Cualquier cliente MCP compatible puede usar cualquier servidor MCP."
+                      },
+                      {
+                        "key": "Mantenimiento",
+                        "value": "Centralizado: actualizar el servidor MCP beneficia a todos sus clientes."
+                      }
                     ]
                   }
                 },
@@ -104,10 +122,22 @@
               "blocks": [
                 {
                   "type": "table",
-                  "head": ["Transporte", "Cómo funciona", "Cuándo conviene"],
+                  "head": [
+                    "Transporte",
+                    "Cómo funciona",
+                    "Cuándo conviene"
+                  ],
                   "rows": [
-                    ["stdio", "El cliente lanza al servidor como subproceso local. Se comunican por stdin/stdout.", "Herramientas de desarrollo locales: acceso a archivos del proyecto, Claude Code, Claude Desktop."],
-                    ["HTTP (SSE / streaming)", "El servidor corre remoto, como cualquier servicio web.", "Servicios compartidos por múltiples clientes o usuarios a la vez. Requiere autenticación, típicamente OAuth."]
+                    [
+                      "stdio",
+                      "El cliente lanza al servidor como subproceso local. Se comunican por stdin/stdout.",
+                      "Herramientas de desarrollo locales: acceso a archivos del proyecto, Claude Code, Claude Desktop."
+                    ],
+                    [
+                      "HTTP (SSE / streaming)",
+                      "El servidor corre remoto, como cualquier servicio web.",
+                      "Servicios compartidos por múltiples clientes o usuarios a la vez. Requiere autenticación, típicamente OAuth."
+                    ]
                   ]
                 }
               ]
@@ -263,6 +293,96 @@
                       "body": "La capacidad de sampling delega al servidor la posibilidad de disparar generaciones del modelo. Debe requerir confirmación humana en cada uso para evitar que un servidor abuse de ella."
                     }
                   ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "title": "OAuth y ciclo de token en MCP",
+          "subsections": [
+            {
+              "title": "Por qué OAuth en MCP y qué scopes pedir",
+              "blocks": [
+                {
+                  "type": "text",
+                  "content": "Cuando un servidor MCP accede a recursos de terceros (pagos, CRM, APIs externas), el agente necesita autenticarse en nombre del usuario. OAuth 2.0 es el mecanismo estándar. La decisión crítica de diseño es qué scopes solicitar: pedir más de lo necesario viola least-privilege; pedir menos rompe las operaciones."
+                },
+                {
+                  "type": "table",
+                  "headers": [
+                    "Scope",
+                    "Acceso que otorga",
+                    "Cuándo pedirlo"
+                  ],
+                  "rows": [
+                    [
+                      "read_only",
+                      "Solo lectura de datos de pagos",
+                      "Agentes de consulta y reporte. La mayoría de los casos."
+                    ],
+                    [
+                      "read_write",
+                      "Lectura y escritura (crear, modificar transacciones)",
+                      "Solo si el agente necesita crear o modificar, no solo consultar."
+                    ],
+                    [
+                      "admin",
+                      "Acceso completo incluyendo configuración y permisos",
+                      "Raramente justificado en agentes. Requiere aprobación explícita del usuario."
+                    ]
+                  ]
+                },
+                {
+                  "type": "callout",
+                  "style": "warning",
+                  "title": "Pedir el scope más amplio disponible es un error de diseño",
+                  "content": "Solicitar admin o read_write cuando el agente solo consulta datos viola el principio de least-privilege. Si el token OAuth es comprometido, el atacante tendrá acceso de escritura o administración. El scope debe reflejar exactamente lo que el agente necesita hacer, no lo que podría llegar a necesitar."
+                }
+              ]
+            },
+            {
+              "title": "Expiración y refresh de tokens",
+              "blocks": [
+                {
+                  "type": "text",
+                  "content": "Los access tokens OAuth tienen TTL corto (típicamente 1 hora). En sesiones de agente largas, el token puede expirar mid-session. El manejo incorrecto produce un error HTTP 401 que el agente no sabe cómo resolver. El patrón correcto es interceptar el 401 y ejecutar el refresh antes de reintentar."
+                },
+                {
+                  "type": "steps",
+                  "items": [
+                    {
+                      "title": "Token válido",
+                      "description": "El agente llama al MCP server con el access token. La operación tiene éxito."
+                    },
+                    {
+                      "title": "Token expirado",
+                      "description": "El MCP server retorna HTTP 401 Unauthorized."
+                    },
+                    {
+                      "title": "Intercepción del 401",
+                      "description": "El cliente MCP intercepta el 401 antes de retornarlo al agente como error de herramienta."
+                    },
+                    {
+                      "title": "Refresh automático",
+                      "description": "El cliente usa el refresh_token para obtener un nuevo access_token del authorization server."
+                    },
+                    {
+                      "title": "Retry transparente",
+                      "description": "El cliente reintenta la operación original con el nuevo token. El agente nunca ve el 401 — la herramienta simplemente tiene éxito con un delay mínimo."
+                    }
+                  ]
+                },
+                {
+                  "type": "code",
+                  "language": "python",
+                  "code": "async def call_with_token_refresh(mcp_client, operation, *args):\n    try:\n        return await mcp_client.call_tool(operation, *args)\n    except AuthorizationError as e:\n        if e.status_code == 401:\n            # Refresh antes de reintentar\n            new_token = await refresh_oauth_token(mcp_client.refresh_token)\n            mcp_client.access_token = new_token\n            return await mcp_client.call_tool(operation, *args)  # retry\n        raise  # otros errores de autorizacion: propagar"
+                },
+                {
+                  "type": "callout",
+                  "style": "info",
+                  "title": "El refresh debe ser transparente para el agente",
+                  "content": "Si el 401 llega como error de herramienta al agente, el modelo no sabe cómo hacer un OAuth refresh. El manejo del ciclo de vida del token es responsabilidad de la capa de cliente MCP, no del agente. El agente solo debe ver éxito o un error semántico (ej: \"acceso denegado\" si el refresh también falla)."
                 }
               ]
             }

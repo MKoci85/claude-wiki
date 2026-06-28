@@ -18,17 +18,35 @@
                   "left": {
                     "head": "Workflows",
                     "rows": [
-                      { "key": "Quién decide la ruta", "value": "El código. Hay pasos fijos, condiciones explícitas y rutas conocidas de antemano." },
-                      { "key": "El modelo decide", "value": "Solo el contenido de cada paso, no la estructura del proceso." },
-                      { "key": "Cuándo usar", "value": "Cuando la tarea es predecible y el camino correcto se puede definir de antemano." }
+                      {
+                        "key": "Quién decide la ruta",
+                        "value": "El código. Hay pasos fijos, condiciones explícitas y rutas conocidas de antemano."
+                      },
+                      {
+                        "key": "El modelo decide",
+                        "value": "Solo el contenido de cada paso, no la estructura del proceso."
+                      },
+                      {
+                        "key": "Cuándo usar",
+                        "value": "Cuando la tarea es predecible y el camino correcto se puede definir de antemano."
+                      }
                     ]
                   },
                   "right": {
                     "head": "Agentes",
                     "rows": [
-                      { "key": "Quién decide la ruta", "value": "El modelo. Decide dinámicamente qué hacer a continuación en un bucle abierto." },
-                      { "key": "El modelo decide", "value": "Qué herramienta usar, con qué parámetros, y cuándo la tarea está completa." },
-                      { "key": "Cuándo usar", "value": "Cuando el camino correcto no se puede predecir de antemano porque depende del input." }
+                      {
+                        "key": "Quién decide la ruta",
+                        "value": "El modelo. Decide dinámicamente qué hacer a continuación en un bucle abierto."
+                      },
+                      {
+                        "key": "El modelo decide",
+                        "value": "Qué herramienta usar, con qué parámetros, y cuándo la tarea está completa."
+                      },
+                      {
+                        "key": "Cuándo usar",
+                        "value": "Cuando el camino correcto no se puede predecir de antemano porque depende del input."
+                      }
                     ]
                   }
                 },
@@ -173,17 +191,35 @@
                   "left": {
                     "head": "Compactar historial",
                     "rows": [
-                      { "key": "Cuándo", "value": "Cuando el historial supera un umbral de tokens." },
-                      { "key": "Cómo", "value": "Resumir los turnos más viejos en un párrafo condensado y reemplazarlos por ese resumen." },
-                      { "key": "Conservar", "value": "Los turnos recientes intactos (los últimos 4-6 mensajes)." }
+                      {
+                        "key": "Cuándo",
+                        "value": "Cuando el historial supera un umbral de tokens."
+                      },
+                      {
+                        "key": "Cómo",
+                        "value": "Resumir los turnos más viejos en un párrafo condensado y reemplazarlos por ese resumen."
+                      },
+                      {
+                        "key": "Conservar",
+                        "value": "Los turnos recientes intactos (los últimos 4-6 mensajes)."
+                      }
                     ]
                   },
                   "right": {
                     "head": "Truncar resultados",
                     "rows": [
-                      { "key": "Cuándo", "value": "Antes de agregar el resultado de una tool al historial." },
-                      { "key": "Cómo", "value": "Quedarse con la parte relevante (ej: primeras N líneas de un log, campos clave de un JSON)." },
-                      { "key": "Conservar", "value": "Solo lo que el agente necesita para el próximo paso." }
+                      {
+                        "key": "Cuándo",
+                        "value": "Antes de agregar el resultado de una tool al historial."
+                      },
+                      {
+                        "key": "Cómo",
+                        "value": "Quedarse con la parte relevante (ej: primeras N líneas de un log, campos clave de un JSON)."
+                      },
+                      {
+                        "key": "Conservar",
+                        "value": "Solo lo que el agente necesita para el próximo paso."
+                      }
                     ]
                   }
                 },
@@ -191,6 +227,233 @@
                   "type": "code",
                   "language": "python",
                   "code": "def compactar_si_hace_falta(mensajes, umbral_tokens=50000, conservar_ultimos=4):\n    if estimar_tokens(mensajes) < umbral_tokens:\n        return mensajes\n\n    historial_viejo = mensajes[:-conservar_ultimos]\n    resumen = pedir_a_claude(\n        f\"Resumí en pocos párrafos lo relevante de esto para continuar la tarea:\\n{historial_viejo}\"\n    )\n    return [\n        {\"role\": \"user\", \"content\": f\"Resumen de lo actuado hasta ahora:\\n{resumen}\"}\n    ] + mensajes[-conservar_ultimos:]"
+                }
+              ]
+            },
+            {
+              "title": "stop_reason como señal de control",
+              "blocks": [
+                {
+                  "type": "text",
+                  "content": "El campo `stop_reason` en la respuesta de la API es la señal autoritativa para controlar el loop de agente. No es el contenido del texto ni la presencia de ciertos patrones en la respuesta: es este campo estructurado el que el orquestador debe evaluar para decidir qué hacer a continuación."
+                },
+                {
+                  "type": "table",
+                  "headers": [
+                    "stop_reason",
+                    "Significado",
+                    "Acción del orquestador"
+                  ],
+                  "rows": [
+                    [
+                      "tool_use",
+                      "El modelo quiere ejecutar una o más herramientas",
+                      "Ejecutar las herramientas y devolver tool_result al modelo"
+                    ],
+                    [
+                      "end_turn",
+                      "El modelo considera la tarea terminada",
+                      "Finalizar el loop y devolver la respuesta al usuario"
+                    ],
+                    [
+                      "max_tokens",
+                      "Se alcanzó el límite de tokens de salida",
+                      "Considerar si el trabajo está completo o si hay que continuar"
+                    ],
+                    [
+                      "stop_sequence",
+                      "El modelo generó una secuencia de parada definida",
+                      "Finalizar según la lógica del sistema"
+                    ]
+                  ]
+                },
+                {
+                  "type": "callout",
+                  "style": "warning",
+                  "title": "Nunca usar text-matching para controlar el loop",
+                  "content": "Buscar palabras como 'completado', 'listo' o 'terminado' en el texto del modelo es frágil: el modelo puede usar sinónimos, reformular la oración, o incluir esa palabra en un contexto diferente. El único control confiable es `stop_reason: end_turn`."
+                },
+                {
+                  "type": "code",
+                  "language": "python",
+                  "code": "# INCORRECTO: control por text-matching (frágil)\nif 'refundado' in response.content[0].text:\n    return  # puede fallar si el modelo usa otro sinónimo\n\n# CORRECTO: control por stop_reason (determinístico)\nif response.stop_reason == 'end_turn':\n    return response  # señal estructurada, confiable\nelif response.stop_reason == 'tool_use':\n    results = ejecutar_herramientas(response.content)\n    # continuar el loop con los resultados"
+                },
+                {
+                  "type": "callout",
+                  "style": "info",
+                  "title": "Texto + tool_use simultáneos",
+                  "content": "Una respuesta puede tener `stop_reason: tool_use` y también incluir texto explicativo. El texto es para el contexto del usuario, pero **no cambia la acción del orquestador**: si `stop_reason` es `tool_use`, se ejecutan las herramientas. El texto no es una señal de terminación."
+                }
+              ]
+            },
+            {
+              "title": "tool_result: qué devolver al modelo",
+              "blocks": [
+                {
+                  "type": "text",
+                  "content": "Cuando el orquestador ejecuta una herramienta, debe devolver el resultado al modelo con un bloque `tool_result` asociado al `tool_use_id` correspondiente. El contenido de ese resultado afecta directamente la calidad de la respuesta del modelo en el próximo turno."
+                },
+                {
+                  "type": "compare",
+                  "left": {
+                    "head": "tool_result mal estructurado",
+                    "rows": [
+                      {
+                        "key": "Contenido",
+                        "value": "'Reembolso procesado exitosamente'"
+                      },
+                      {
+                        "key": "Problema",
+                        "value": "El modelo no sabe el monto, ni el ID de transacción, ni si necesita tomar alguna acción adicional"
+                      },
+                      {
+                        "key": "Consecuencia",
+                        "value": "Respuesta genérica al usuario, sin confirmación útil"
+                      }
+                    ]
+                  },
+                  "right": {
+                    "head": "tool_result bien estructurado",
+                    "rows": [
+                      {
+                        "key": "Contenido",
+                        "value": "{ status: 'success', amount: 49.99, transaction_id: 'TXN-8821', credited_at: '2025-06-27T14:30Z' }"
+                      },
+                      {
+                        "key": "Ventaja",
+                        "value": "El modelo puede confirmar el monto exacto y el ID al usuario, y saber que no necesita pasos adicionales"
+                      },
+                      {
+                        "key": "Resultado",
+                        "value": "Respuesta específica y verificable para el usuario"
+                      }
+                    ]
+                  }
+                },
+                {
+                  "type": "code",
+                  "language": "python",
+                  "code": "# tool_result bien estructurado para una acción de reembolso\ntool_result = {\n    \"type\": \"tool_result\",\n    \"tool_use_id\": bloque_tool_use.id,  # debe coincidir exactamente\n    \"content\": json.dumps({\n        \"status\": \"success\",\n        \"amount\": 49.99,\n        \"transaction_id\": \"TXN-8821\",\n        \"credited_at\": \"2025-06-27T14:30Z\"\n    })\n}\n\n# Cuando hay múltiples tool_use en paralelo: devolver TODOS en el mismo turno\nmensajes.append({\n    \"role\": \"user\",\n    \"content\": [tool_result_vuelos, tool_result_hoteles]  # mismo mensaje\n})"
+                },
+                {
+                  "type": "callout",
+                  "style": "info",
+                  "title": "Paralelas: todos los tool_result en el mismo turno",
+                  "content": "Si el modelo emitió dos bloques `tool_use` en la misma respuesta (llamadas paralelas), el orquestador debe devolver ambos `tool_result` en el mismo turno de usuario — con un `tool_result` separado por cada `tool_use_id`. No se envían en turnos distintos."
+                }
+              ]
+            },
+            {
+              "title": "Escalación al orquestador: separación de responsabilidades",
+              "blocks": [
+                {
+                  "type": "text",
+                  "content": "Un principio fundamental en sistemas multi-agente: los subagentes no deben resolver ambigüedades, conflictos o decisiones que estén fuera de su scope asignado. Cuando un subagente encuentra algo que no puede resolver dentro de su tarea definida, debe escalarlo al orquestador con toda la información relevante."
+                },
+                {
+                  "type": "cards",
+                  "items": [
+                    {
+                      "title": "¿Cuándo escalar?",
+                      "body": "Cuando el subagente encuentra un conflicto entre fuentes, una situación fuera de política, un error que no puede resolver solo, o cualquier decisión que requiere contexto global que solo el orquestador tiene."
+                    },
+                    {
+                      "title": "¿Qué incluir al escalar?",
+                      "body": "Toda la información relevante: ambos valores en conflicto con sus fuentes, el tipo de error con su clasificación, la razón por la que no se puede resolver localmente. El orquestador toma decisiones mejor informado."
+                    },
+                    {
+                      "title": "¿Qué NO hacer?",
+                      "body": "Resolver el conflicto silenciosamente (elige un valor sin avisar), expandir el scope (lanzar búsquedas adicionales no autorizadas), o detener el pipeline por completo cuando la tarea puede continuar parcialmente."
+                    },
+                    {
+                      "title": "Por qué no resolver solo",
+                      "body": "El subagente tiene visibilidad limitada a su tarea. La decisión de cómo resolver un conflicto entre fuentes de datos, o cómo tratar una excepción de política, pertenece al nivel con contexto global — el orquestador o el sintetizador."
+                    }
+                  ]
+                },
+                {
+                  "type": "callout",
+                  "style": "warning",
+                  "title": "Ampliar el scope sin autorización rompe el sistema",
+                  "content": "Si un subagente detecta un conflicto y decide lanzar búsquedas adicionales por su cuenta para resolverlo (sin que el orquestador lo haya autorizado), está violando la separación de responsabilidades. Ese paso de decisión le corresponde al orquestador, que tiene el contexto completo del sistema."
+                },
+                {
+                  "type": "code",
+                  "language": "python",
+                  "code": "# Patrón: output estructurado con campo obligatorio de conflictos\n# Esto garantiza que el subagente SIEMPRE reporte conflictos, sin depender\n# de que el modelo 'elija' mencionarlos en texto libre.\n\nschema_salida = {\n    \"type\": \"object\",\n    \"required\": [\"hallazgos\", \"conflictos\", \"confianza\"],\n    \"properties\": {\n        \"hallazgos\": {\"type\": \"string\"},\n        \"conflictos\": {\n            \"type\": \"array\",\n            \"items\": {\n                \"type\": \"object\",\n                \"required\": [\"campo\", \"valor_a\", \"fuente_a\", \"valor_b\", \"fuente_b\"],\n                \"properties\": {\n                    \"campo\": {\"type\": \"string\"},\n                    \"valor_a\": {\"type\": \"string\"},\n                    \"fuente_a\": {\"type\": \"string\"},\n                    \"valor_b\": {\"type\": \"string\"},\n                    \"fuente_b\": {\"type\": \"string\"}\n                }\n            }\n        },\n        \"confianza\": {\"type\": \"number\", \"minimum\": 0, \"maximum\": 1}\n    }\n}\n\n# El campo 'conflictos' es OBLIGATORIO: la instrucción de texto 'siempre\n# reportá conflictos' puede ignorarse; un campo requerido en el schema, no."
+                }
+              ]
+            },
+            {
+              "title": "Manejo estructurado de errores en pipelines",
+              "blocks": [
+                {
+                  "type": "text",
+                  "content": "En pipelines de procesamiento por lotes (documentos, registros, archivos), los errores son esperables y predecibles. El diseño correcto no es detener el pipeline ante el primer error, sino clasificar los errores a nivel de subagente y aplicar la recuperación apropiada antes de escalar."
+                },
+                {
+                  "type": "steps",
+                  "items": [
+                    {
+                      "title": "Clasificar el tipo de error en el subagente",
+                      "body": "Cada subagente debe identificar la categoría del fallo: archivo corrupto, archivo protegido, timeout del parser, formato no soportado. Esta clasificación determina la recuperación posible sin intervención del coordinador."
+                    },
+                    {
+                      "title": "Aplicar recuperación local cuando es posible",
+                      "body": "Algunos errores tienen recuperación automática: un timeout se reintenta una vez con un límite de tiempo más agresivo; un archivo demasiado grande se puede procesar por secciones. El subagente aplica la recuperación y solo escala si falla."
+                    },
+                    {
+                      "title": "Escalar con clasificación, no con excepción cruda",
+                      "body": "Si no se puede recuperar localmente, el subagente devuelve un resultado estructurado con el tipo de error, el motivo específico, y la acción recomendada (revisar manualmente, reintentar más tarde, descartar). No propaga la excepción en bruto."
+                    },
+                    {
+                      "title": "El coordinador recibe un resumen por categorías",
+                      "body": "Al final del batch, el coordinador recibe algo como: 483 exitosos, 12 con timeout (reintentados y resueltos), 4 protegidos con contraseña (para revisión humana), 1 corrupto (descartado con log). Visibilidad operativa real, sin inspeccionar cada documento."
+                    }
+                  ]
+                },
+                {
+                  "type": "compare",
+                  "left": {
+                    "head": "Sin manejo estructurado",
+                    "rows": [
+                      {
+                        "key": "Ante un archivo protegido",
+                        "value": "Propaga la excepción → el coordinador recibe un stack trace sin contexto"
+                      },
+                      {
+                        "key": "Ante un timeout",
+                        "value": "El pipeline se detiene y espera indefinidamente o falla completo"
+                      },
+                      {
+                        "key": "Resultado",
+                        "value": "El coordinador hace triaje manual de cada error individual"
+                      }
+                    ]
+                  },
+                  "right": {
+                    "head": "Con manejo estructurado",
+                    "rows": [
+                      {
+                        "key": "Ante un archivo protegido",
+                        "value": "Subagente lo marca como 'requiere revisión humana' con motivo, continúa el batch"
+                      },
+                      {
+                        "key": "Ante un timeout",
+                        "value": "Subagente aplica un timeout por documento, marca el que colgó, sigue con los demás"
+                      },
+                      {
+                        "key": "Resultado",
+                        "value": "El coordinador recibe un resumen categorizado, no un volcado de errores"
+                      }
+                    ]
+                  }
+                },
+                {
+                  "type": "callout",
+                  "style": "info",
+                  "title": "Timeout por documento, no por batch",
+                  "content": "Un documento que hace colgar el parser no debe bloquear los 499 restantes. El timeout correcto es a nivel de documento individual, no a nivel de batch completo. Si el documento excede el tiempo límite, se clasifica y se sigue adelante."
                 }
               ]
             },
@@ -211,6 +474,195 @@
                   "style": "info",
                   "title": "Sin logging no hay debugging",
                   "content": "Cuando un agente toma un camino inesperado o se queda dando vueltas sin converger, la única forma práctica de entender por qué es tener un registro de cada paso: qué herramienta se llamó, con qué parámetros, qué devolvió, cuánto tardó y cuántos tokens consumió. Sin ese registro, depurar un agente de varios pasos se reduce a adivinar."
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "title": "Gestión de contexto en agentes de larga duración",
+          "subsections": [
+            {
+              "title": "Lost-in-the-middle: la degradación silenciosa",
+              "blocks": [
+                {
+                  "type": "text",
+                  "content": "Cuando un agente procesa documentos largos o sesiones extensas, el contexto se llena progresivamente. A medida que la ventana se acerca a su límite, el modelo empieza a ignorar contenido ubicado al principio o en el medio del contexto — un fenómeno conocido como \"lost-in-the-middle\". La señal característica es degradación de coherencia sin errores: el agente contradice hallazgos anteriores, omite referencias que citó correctamente antes, o empieza a responder como si no hubiera procesado secciones ya analizadas. No hay excepción ni stop_reason de error; el modelo simplemente \"olvida\" contenido desplazado."
+                },
+                {
+                  "type": "compare",
+                  "left": {
+                    "head": "Síntomas de lost-in-the-middle",
+                    "rows": [
+                      {
+                        "key": "Contradicciones",
+                        "value": "El agente afirma algo en la página 80 que contradice lo que estableció correctamente en la página 20."
+                      },
+                      {
+                        "key": "Referencias omitidas",
+                        "value": "Cita fuentes que procesó recientemente pero omite fuentes igualmente relevantes procesadas antes."
+                      },
+                      {
+                        "key": "Sin errores API",
+                        "value": "No hay excepción, timeout, ni stop_reason anómalo. La degradación es silenciosa."
+                      }
+                    ]
+                  },
+                  "right": {
+                    "head": "Causa raíz",
+                    "rows": [
+                      {
+                        "key": "Ventana llena",
+                        "value": "Tokens tempranos quedan desplazados hacia el centro del contexto, donde la atención del modelo es menor."
+                      },
+                      {
+                        "key": "No es el modelo",
+                        "value": "Cambiar a un modelo más grande retrasa el problema pero no lo elimina. La solución es arquitectónica."
+                      },
+                      {
+                        "key": "No es hallucination",
+                        "value": "El modelo no inventa; simplemente deja de \"ver\" contenido que técnicamente sigue en su contexto."
+                      }
+                    ]
+                  }
+                },
+                {
+                  "type": "callout",
+                  "style": "warning",
+                  "title": "Cambiar de modelo no resuelve el problema estructural",
+                  "content": "Usar un modelo con mayor ventana de contexto (200K en vez de 100K) retrasa el punto de degradación pero no elimina el problema. En un agente que procesa documentos suficientemente largos, eventualmente se llega al mismo límite. La solución correcta es compaction proactiva o subagentes con contextos aislados."
+                }
+              ]
+            },
+            {
+              "title": "Compaction proactiva del contexto",
+              "blocks": [
+                {
+                  "type": "text",
+                  "content": "La compaction proactiva es la práctica de resumir y comprimir el contexto acumulado antes de que la ventana se llene, preservando la información esencial y liberando espacio para continuar el procesamiento. El momento correcto para compactar es cuando el contexto supera un umbral (típicamente 60–70% de la ventana), no cuando ya está lleno."
+                },
+                {
+                  "type": "steps",
+                  "items": [
+                    {
+                      "title": "Monitorear uso de tokens",
+                      "description": "Después de cada llamada, revisar usage.input_tokens vs. el límite del modelo. Si supera el 65%, activar compaction."
+                    },
+                    {
+                      "title": "Decidir qué preservar",
+                      "description": "Preservar: decisiones tomadas, hallazgos explícitos, constraints activos, estado actual de la tarea. Descartar: razonamiento intermedio ya incorporado en hallazgos, chunks de documento ya procesados sin conclusiones pendientes."
+                    },
+                    {
+                      "title": "Generar el resumen",
+                      "description": "Llamar al modelo para que produzca un resumen estructurado del análisis hasta el momento, priorizando las partes que serán referenciadas en el procesamiento restante."
+                    },
+                    {
+                      "title": "Reemplazar el contexto",
+                      "description": "Construir una nueva conversación con el resumen compactado como contexto inicial. Continuar el procesamiento desde el chunk siguiente."
+                    }
+                  ]
+                },
+                {
+                  "type": "code",
+                  "language": "python",
+                  "code": "MAX_CONTEXT_RATIO = 0.65\n\ndef process_document_with_compaction(chunks: list[str], model: str = \"claude-sonnet-4-6\"):\n    messages = []\n    findings = []\n\n    for i, chunk in enumerate(chunks):\n        messages.append({\"role\": \"user\", \"content\": f\"Analiza el chunk {i+1}:\\n{chunk}\"})\n        response = client.messages.create(model=model, max_tokens=4096, messages=messages)\n        assistant_msg = response.content[0].text\n        messages.append({\"role\": \"assistant\", \"content\": assistant_msg})\n\n        # Verificar uso de contexto\n        ratio = response.usage.input_tokens / MODEL_CONTEXT_LIMITS[model]\n        if ratio > MAX_CONTEXT_RATIO:\n            # Compactar antes de continuar\n            summary = compact_context(messages, findings)\n            messages = [{\"role\": \"user\", \"content\": f\"Contexto compactado hasta chunk {i+1}:\\n{summary}\"}]\n            messages.append({\"role\": \"assistant\", \"content\": \"Entendido. Continúo desde el chunk siguiente.\"})\n\n    return synthesize_findings(findings)"
+                },
+                {
+                  "type": "table",
+                  "headers": [
+                    "Elemento",
+                    "Preservar en compaction",
+                    "Descartar en compaction"
+                  ],
+                  "rows": [
+                    [
+                      "Hallazgos explícitos",
+                      "✅ Siempre",
+                      "—"
+                    ],
+                    [
+                      "Constraints del sistema",
+                      "✅ Siempre (son instrucciones activas)",
+                      "—"
+                    ],
+                    [
+                      "Estado actual de la tarea",
+                      "✅ Siempre",
+                      "—"
+                    ],
+                    [
+                      "Razonamiento intermedio",
+                      "Solo si es ambiguo",
+                      "✅ Si ya está incorporado en un hallazgo"
+                    ],
+                    [
+                      "Chunks de documento ya procesados",
+                      "—",
+                      "✅ Si no hay conclusiones pendientes sobre ellos"
+                    ],
+                    [
+                      "Citas textuales",
+                      "Solo las referenciadas en hallazgos",
+                      "✅ El resto"
+                    ]
+                  ]
+                }
+              ]
+            },
+            {
+              "title": "Subagentes para context isolation",
+              "blocks": [
+                {
+                  "type": "text",
+                  "content": "La alternativa estructural a la compaction es delegar cada unidad de procesamiento a un subagente dedicado con su propio contexto limpio. El coordinador solo recibe el output sintetizado de cada subagente, no la transcripción completa. Este patrón garantiza que ningún subagente llega al límite de contexto durante su tarea y que el coordinador opera con un contexto compacto de resultados, no de razonamiento."
+                },
+                {
+                  "type": "compare",
+                  "left": {
+                    "head": "Agente único con compaction",
+                    "rows": [
+                      {
+                        "key": "Ventaja",
+                        "value": "Contexto continuo: el agente puede referenciar análisis previos directamente."
+                      },
+                      {
+                        "key": "Desventaja",
+                        "value": "Requiere compaction periódica con riesgo de perder información. Más frágil."
+                      },
+                      {
+                        "key": "Cuándo usar",
+                        "value": "Documentos donde las secciones tienen interdependencias fuertes que deben analizarse en relación."
+                      }
+                    ]
+                  },
+                  "right": {
+                    "head": "Subagentes paralelos",
+                    "rows": [
+                      {
+                        "key": "Ventaja",
+                        "value": "Contexto aislado por chunk: sin riesgo de degradación por contexto lleno. Paralelizable."
+                      },
+                      {
+                        "key": "Desventaja",
+                        "value": "El coordinador solo ve outputs, no el razonamiento. Cross-referencing entre chunks requiere diseño explícito."
+                      },
+                      {
+                        "key": "Cuándo usar",
+                        "value": "Documentos con secciones independientes o análisis que pueden sintetizarse al final."
+                      }
+                    ]
+                  }
+                },
+                {
+                  "type": "callout",
+                  "style": "info",
+                  "title": "El coordinador recibe resultados, no transcripciones",
+                  "content": "En la arquitectura de subagentes, el coordinador pasa a cada subagente solo el chunk que debe analizar más las instrucciones de qué extraer. El subagente retorna un output estructurado (hallazgos, citas clave, flags). El coordinador acumula estos outputs compactos, no los mensajes intermedios, lo que mantiene su contexto manejable incluso coordinando 8 subagentes en paralelo."
+                },
+                {
+                  "type": "code",
+                  "language": "python",
+                  "code": "async def analyze_document_parallel(document: str, chunk_size: int = 20):\n    chunks = split_into_chunks(document, pages_per_chunk=chunk_size)\n\n    # Cada subagente analiza un chunk con contexto aislado\n    tasks = [analyze_chunk_subagent(chunk, i) for i, chunk in enumerate(chunks)]\n    chunk_results = await asyncio.gather(*tasks)\n\n    # El coordinador solo ve los outputs compactos, no el razonamiento\n    return synthesize_results(chunk_results)\n\nasync def analyze_chunk_subagent(chunk: str, chunk_index: int) -> dict:\n    response = client.messages.create(\n        model=\"claude-sonnet-4-6\",\n        max_tokens=2048,\n        messages=[{\n            \"role\": \"user\",\n            \"content\": f\"Analiza este fragmento (páginas {chunk_index*20+1}-{(chunk_index+1)*20}). \"\n                       f\"Extrae: hallazgos clave, referencias normativas, flags de ambigüedad.\\n\\n{chunk}\"\n        }]\n    )\n    # Retorna output estructurado, no la conversación completa\n    return {\"chunk\": chunk_index, \"analysis\": response.content[0].text}"
                 }
               ]
             }

@@ -157,6 +157,190 @@
           ]
         },
         {
+          "id": "claude-md-niveles",
+          "title": "CLAUDE.md: niveles, herencia y precedencia",
+          "summary": "Los tres niveles de CLAUDE.md (proyecto, directorio, usuario), qué se comparte y qué no, y cómo se resuelven los conflictos entre reglas de distintos niveles.",
+          "blocks": [
+            {
+              "type": "text",
+              "content": "CLAUDE.md no es un único archivo: hay tres niveles, cada uno con un scope distinto. Confundir el nivel correcto es uno de los errores más frecuentes en equipos — y uno de los temas más evaluados en el examen."
+            },
+            {
+              "type": "table",
+              "headers": ["Nivel", "Ubicación", "Scope", "¿Se versiona?", "¿Quién lo ve?"],
+              "rows": [
+                ["Proyecto", "CLAUDE.md (raíz del repo)", "Todo el proyecto", "Sí — está en git", "Todo el equipo"],
+                ["Directorio", "payments/CLAUDE.md, backend/CLAUDE.md, etc.", "Solo ese directorio y sus subdirectorios", "Sí — está en git", "Todo el equipo (cuando trabajan en ese dir)"],
+                ["Usuario", "~/.claude/CLAUDE.md", "Todos los proyectos del desarrollador", "No — vive en la máquina personal", "Solo ese desarrollador"]
+              ]
+            },
+            {
+              "type": "callout",
+              "variant": "warning",
+              "title": "El error más común: reglas de equipo en ~/.claude/CLAUDE.md",
+              "content": "Si ponés una regla de equipo (ej: 'siempre firmar commits con GPG') en `~/.claude/CLAUDE.md`, solo aplica en **tu** máquina. Los demás integrantes del equipo nunca la verán. Las reglas de equipo deben ir en el `CLAUDE.md` de proyecto, comprometido en el repositorio."
+            },
+            {
+              "type": "compare",
+              "left": {
+                "head": "~/.claude/CLAUDE.md (personal)",
+                "rows": [
+                  { "key": "Para qué sirve", "value": "Preferencias personales del desarrollador: editor favorito, atajos, tono de respuestas" },
+                  { "key": "Ejemplo", "value": "\"Siempre responder en español\" o \"Prefiero explicaciones con analogías\"" },
+                  { "key": "Nunca poner aquí", "value": "Convenciones del equipo, restricciones de arquitectura, reglas de seguridad" }
+                ]
+              },
+              "right": {
+                "head": "CLAUDE.md de proyecto (compartido)",
+                "rows": [
+                  { "key": "Para qué sirve", "value": "Convenciones del equipo: estilo de código, proceso de commits, restricciones técnicas" },
+                  { "key": "Ejemplo", "value": "\"Usar tabs para indentación\" o \"Nunca hacer push directo a main\"" },
+                  { "key": "Siempre poner aquí", "value": "Todo lo que debe aplicar de forma uniforme en el equipo" }
+                ]
+              }
+            },
+            {
+              "type": "text",
+              "content": "**Herencia por directorio**: Claude carga los CLAUDE.md de todos los directorios desde la raíz hasta el archivo que está editando. Si estás en `backend/payments/`, Claude carga: CLAUDE.md (raíz) → backend/CLAUDE.md → backend/payments/CLAUDE.md.\n\n**Precedencia**: cuando hay conflicto entre un CLAUDE.md de directorio y uno de nivel superior, el más específico (el del directorio más cercano al archivo editado) tiene precedencia. Si la raíz dice 'usar tabs' y backend/ dice 'usar spaces', en backend/ manda 'usar spaces'."
+            },
+            {
+              "type": "callout",
+              "variant": "info",
+              "title": "CLAUDE.md y .claude/rules/ pueden coexistir",
+              "content": "No son mutuamente excluyentes. CLAUDE.md es válido para contexto general del proyecto (descripción del sistema, tech stack, convenciones globales). `.claude/rules/` es mejor para instrucciones que necesitan carga condicional por glob. En proyectos grandes se usan los dos juntos."
+            },
+            {
+              "type": "callout",
+              "variant": "tip",
+              "title": "Un cambio en CLAUDE.md solo surte efecto tras git pull",
+              "content": "CLAUDE.md se lee desde disco al inicio de cada sesión. Si actualizás el archivo y lo commitéas, los compañeros que no hayan hecho `git pull` siguen viendo la versión anterior. Cuando un compañero reporta que Claude no sigue las reglas nuevas, lo primero es verificar que tenga la versión actualizada del archivo."
+            }
+          ]
+        },
+        {
+          "id": "comandos-personalizados",
+          "title": "Comandos personalizados (/comando)",
+          "summary": "Cómo crear, ubicar y parametrizar comandos personalizados de equipo e individuales. $ARGUMENTS, @path y cuándo usar cada nivel.",
+          "blocks": [
+            {
+              "type": "text",
+              "content": "Los comandos personalizados son archivos Markdown que se invocan con `/nombre-del-archivo`. Son la forma más directa de convertir convenciones pasivas (\"Claude debería hacer X antes de cada PR\") en flujos activos y repetibles."
+            },
+            {
+              "type": "compare",
+              "left": {
+                "head": ".claude/commands/ (proyecto)",
+                "rows": [
+                  { "key": "Ubicación", "value": ".claude/commands/review-pr.md en el repo" },
+                  { "key": "Versioning", "value": "Commitado en git — todo el equipo lo tiene" },
+                  { "key": "Cuándo usar", "value": "Flujos del equipo: /review-pr, /deploy, /changelog, /commit" }
+                ]
+              },
+              "right": {
+                "head": "~/.claude/commands/ (personal)",
+                "rows": [
+                  { "key": "Ubicación", "value": "~/.claude/commands/my-workflow.md en tu home" },
+                  { "key": "Versioning", "value": "Solo en tu máquina — privado" },
+                  { "key": "Cuándo usar", "value": "Flujos personales que no aplican al equipo" }
+                ]
+              }
+            },
+            {
+              "type": "callout",
+              "variant": "warning",
+              "title": "El error clásico: comando que solo funciona para el autor",
+              "content": "Si un comando está en `~/.claude/commands/review-pr.md` en vez de `.claude/commands/review-pr.md`, solo existe en la máquina del autor. Cuando el resto del equipo clona el repo, el comando no existe. La regla: si un comando es para el equipo, debe vivir en `.claude/commands/` y estar commitado."
+            },
+            {
+              "type": "code",
+              "lang": "markdown",
+              "label": ".claude/commands/review-pr.md — con $ARGUMENTS",
+              "content": "# Review de Pull Request\n\nRevisá el PR #$ARGUMENTS siguiendo nuestros estándares:\n\n1. Verificá que todos los tests pasen\n2. Revisá la cobertura de edge cases\n3. Confirmá que el código sigue las convenciones de .claude/rules/\n4. Verificá que el PR tenga descripción y los tickets de Jira asociados\n5. Buscá vulnerabilidades de seguridad obvias\n\nDevolvé un resumen con: ✅ aprobado / ⚠️ observaciones / 🔴 bloqueante"
+            },
+            {
+              "type": "callout",
+              "variant": "info",
+              "title": "$ARGUMENTS: el texto que el usuario escribe tras el comando",
+              "content": "Al invocar `/review-pr 482`, la cadena `482` reemplaza `$ARGUMENTS`. Esto permite comandos parametrizados sin código extra. Para múltiples argumentos posicionales, se pueden usar `$0`, `$1`, `$2`, etc. (indexados desde 0)."
+            },
+            {
+              "type": "code",
+              "lang": "markdown",
+              "label": ".claude/commands/deploy.md — con @path para compartir lógica",
+              "content": "# Deploy a staging\n\n@.claude/fragments/pre-checks.md\n\nUna vez pasados los checks, ejecutá el deploy a $ARGUMENTS (entorno):\n\n```bash\nnpm run deploy -- --env=$ARGUMENTS\n```\n\nNotificá en Slack con el resultado."
+            },
+            {
+              "type": "callout",
+              "variant": "tip",
+              "title": "@path: composición sin duplicación",
+              "content": "`@path/al/archivo.md` carga el contenido de ese archivo dentro del comando. Permite extraer fragmentos reutilizables (pre-checks, plantillas de formato, listas de verificación) que múltiples comandos comparten. Si el archivo referenciado no existe, el comando falla al parsear."
+            }
+          ]
+        },
+        {
+          "id": "plan-mode-y-ci",
+          "title": "Plan Mode y CI headless",
+          "summary": "Cuándo usar Plan Mode vs. ejecución directa, y los tres flags imprescindibles para integrar Claude Code en pipelines de CI: -p, --output-format json y --max-turns.",
+          "blocks": [
+            {
+              "type": "text",
+              "content": "Plan Mode y el modo headless son dos formas de adaptar Claude Code a contextos distintos: uno para tomar decisiones antes de actuar, el otro para correr sin intervención humana."
+            },
+            {
+              "type": "compare",
+              "left": {
+                "head": "Plan Mode",
+                "rows": [
+                  { "key": "Qué hace", "value": "Claude razona, diseña la estrategia y presenta el plan — sin ejecutar ninguna acción todavía" },
+                  { "key": "Cuándo usarlo", "value": "Cambios grandes (múltiples archivos), refactors arquitecturales, o cuando el desarrollador no está seguro del enfoque correcto" },
+                  { "key": "Cuándo NO usarlo", "value": "Tareas simples y bien delimitadas — agrega latencia y tokens sin beneficio real" },
+                  { "key": "Cómo activarlo", "value": "Shift+Tab en la CLI (toggle), o instruir a Claude explícitamente que presente el plan primero" }
+                ]
+              },
+              "right": {
+                "head": "Ejecución directa",
+                "rows": [
+                  { "key": "Qué hace", "value": "Claude actúa de inmediato: edita archivos, ejecuta comandos, itera hasta completar" },
+                  { "key": "Cuándo usarlo", "value": "Tareas contenidas y bien definidas: fix de un bug en un archivo, rename de función, agregar un test" },
+                  { "key": "Cuándo NO usarlo", "value": "Cambios de alto riesgo que abarcan muchos archivos o donde el enfoque no está claro" },
+                  { "key": "Por defecto", "value": "Es el modo por defecto — Plan Mode es la excepción, no la regla" }
+                ]
+              }
+            },
+            {
+              "type": "text",
+              "content": "**CI headless** — Para integrar Claude Code en pipelines automáticos (GitHub Actions, Jenkins, etc.) hay tres flags que forman el trío estándar:"
+            },
+            {
+              "type": "table",
+              "headers": ["Flag", "Qué hace", "Qué pasa sin él"],
+              "rows": [
+                ["-p / --print", "Modo no-interactivo: acepta el prompt por argumento y termina", "Claude Code espera input de teclado — el job de CI cuelga indefinidamente"],
+                ["--output-format json", "Salida estructurada en JSON en vez de texto plano", "Scripts downstream no pueden parsear la salida de forma confiable"],
+                ["--max-turns N", "Límite duro de iteraciones del loop agéntico", "El loop puede iterar indefinidamente ante un error persistente — timeout del job de CI"]
+              ]
+            },
+            {
+              "type": "code",
+              "lang": "bash",
+              "label": "Integración en CI — invocación estándar",
+              "content": "# El trío mínimo para CI:\nclaude -p \"Revisá los archivos modificados en este PR y reportá problemas de calidad\" \\\n  --output-format json \\\n  --max-turns 20\n\n# Con CLAUDE.md disponible para mantener convenciones del equipo:\n# (El CLAUDE.md del repo se carga automáticamente si está en el directorio de trabajo)"
+            },
+            {
+              "type": "callout",
+              "variant": "warning",
+              "title": "-p es el flag más olvidado — y el que bloquea todo",
+              "content": "El error más frecuente en integraciones de CI es omitir `-p`. Sin él, Claude Code corre en modo interactivo y el job queda esperando input de teclado hasta que agota el timeout. Si un job de CI con Claude Code cuelga sin errores visibles, lo primero es verificar que `-p` esté en el comando."
+            },
+            {
+              "type": "callout",
+              "variant": "info",
+              "title": "Permisos granulares en CI: allow vs. ask",
+              "content": "En CI, los comandos de solo lectura como `grep`, `cat` o `git diff` deben configurarse como `allow` (sin confirmación) para que el job fluya. Las operaciones de escritura críticas como `git commit` o `git push` deben configurarse como `ask`, requiriendo aprobación humana — especialmente para merges a main, que nunca deben automatizarse completamente."
+            }
+          ]
+        },
+        {
           "id": "reglas-tabla-comparativa",
           "title": "Reglas, Skills y CLAUDE.md: cuándo usar cada uno",
           "summary": "Tabla de referencia rápida para decidir qué mecanismo usar según el tipo de instrucción.",

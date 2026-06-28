@@ -18,17 +18,35 @@
                   "left": {
                     "head": "Client tools (tu código ejecuta)",
                     "rows": [
-                      { "key": "Qué son", "value": "Funciones que vos definís: obtener_clima, consultar_db, enviar_email, etc." },
-                      { "key": "Flujo", "value": "Claude devuelve stop_reason: tool_use → tu código ejecuta → devolvés tool_result." },
-                      { "key": "Costo extra", "value": "Ninguno. Se cobran como tokens normales." }
+                      {
+                        "key": "Qué son",
+                        "value": "Funciones que vos definís: obtener_clima, consultar_db, enviar_email, etc."
+                      },
+                      {
+                        "key": "Flujo",
+                        "value": "Claude devuelve stop_reason: tool_use → tu código ejecuta → devolvés tool_result."
+                      },
+                      {
+                        "key": "Costo extra",
+                        "value": "Ninguno. Se cobran como tokens normales."
+                      }
                     ]
                   },
                   "right": {
                     "head": "Server tools (Anthropic ejecuta)",
                     "rows": [
-                      { "key": "Qué son", "value": "web_search, code_execution, bash, str_replace_based_edit_tool. Anthropic las ejecuta." },
-                      { "key": "Flujo", "value": "Claude las llama y los resultados llegan directamente. Sin código de tu parte." },
-                      { "key": "Costo extra", "value": "Sí. Por ejemplo, web_search cobra por búsqueda realizada." }
+                      {
+                        "key": "Qué son",
+                        "value": "web_search, code_execution, bash, str_replace_based_edit_tool. Anthropic las ejecuta."
+                      },
+                      {
+                        "key": "Flujo",
+                        "value": "Claude las llama y los resultados llegan directamente. Sin código de tu parte."
+                      },
+                      {
+                        "key": "Costo extra",
+                        "value": "Sí. Por ejemplo, web_search cobra por búsqueda realizada."
+                      }
                     ]
                   }
                 },
@@ -52,15 +70,27 @@
                   "left": {
                     "head": "Descripción débil",
                     "rows": [
-                      { "key": "Ejemplo", "value": "\"Busca productos.\"" },
-                      { "key": "Problema", "value": "No dice cuándo usarla, qué pasa si no hay resultados, ni qué formato esperar en cada parámetro." }
+                      {
+                        "key": "Ejemplo",
+                        "value": "\"Busca productos.\""
+                      },
+                      {
+                        "key": "Problema",
+                        "value": "No dice cuándo usarla, qué pasa si no hay resultados, ni qué formato esperar en cada parámetro."
+                      }
                     ]
                   },
                   "right": {
                     "head": "Descripción prescriptiva",
                     "rows": [
-                      { "key": "Ejemplo", "value": "\"Busca productos en el catálogo por nombre o categoría. Usala cuando el usuario pregunte por disponibilidad, precio o características. Si no hay coincidencias, devuelve lista vacía (no inventes productos).\"" },
-                      { "key": "Resultado", "value": "Claude sabe exactamente cuándo y cómo usarla." }
+                      {
+                        "key": "Ejemplo",
+                        "value": "\"Busca productos en el catálogo por nombre o categoría. Usala cuando el usuario pregunte por disponibilidad, precio o características. Si no hay coincidencias, devuelve lista vacía (no inventes productos).\""
+                      },
+                      {
+                        "key": "Resultado",
+                        "value": "Claude sabe exactamente cuándo y cómo usarla."
+                      }
                     ]
                   }
                 },
@@ -152,12 +182,27 @@
                 },
                 {
                   "type": "table",
-                  "columns": ["Modo", "Comportamiento"],
+                  "columns": [
+                    "Modo",
+                    "Comportamiento"
+                  ],
                   "rows": [
-                    ["{\"type\": \"auto\"}", "Default. Claude decide libremente si usar alguna herramienta, ninguna, o varias en paralelo."],
-                    ["{\"type\": \"any\"}", "Claude debe usar alguna herramienta de la lista, pero elige cuál."],
-                    ["{\"type\": \"tool\", \"name\": \"...\"}", "Fuerza una herramienta específica. Útil para salidas estructuradas."],
-                    ["{\"type\": \"none\"}", "Desactiva el uso de herramientas para ese turno, aunque estén declaradas."]
+                    [
+                      "{\"type\": \"auto\"}",
+                      "Default. Claude decide libremente si usar alguna herramienta, ninguna, o varias en paralelo."
+                    ],
+                    [
+                      "{\"type\": \"any\"}",
+                      "Claude debe usar alguna herramienta de la lista, pero elige cuál."
+                    ],
+                    [
+                      "{\"type\": \"tool\", \"name\": \"...\"}",
+                      "Fuerza una herramienta específica. Útil para salidas estructuradas."
+                    ],
+                    [
+                      "{\"type\": \"none\"}",
+                      "Desactiva el uso de herramientas para ese turno, aunque estén declaradas."
+                    ]
                   ]
                 },
                 {
@@ -241,6 +286,453 @@
                       "description": "Si el resultado de una tool incluye contenido externo (texto scrapeado, un email), puede incluir instrucciones encubiertas. Tratar el resultado como dato, nunca como instrucción nueva."
                     }
                   ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "title": "Granularidad y descripciones de herramientas",
+          "subsections": [
+            {
+              "title": "¿Una herramienta o muchas?",
+              "blocks": [
+                {
+                  "type": "text",
+                  "content": "La decisión de consolidar acciones en una herramienta genérica o dividirlas en herramientas específicas tiene consecuencias directas en la tasa de errores del agente. Una herramienta con un campo de acción free-text o un payload genérico obliga al modelo a adivinar el formato correcto; herramientas específicas por acción con schemas tipados eliminan esa ambigüedad."
+                },
+                {
+                  "type": "compare",
+                  "left": {
+                    "head": "Una herramienta genérica",
+                    "rows": [
+                      {
+                        "key": "Definición",
+                        "value": "`manage_inventory(action: string, payload: object)` — action puede ser \"add\", \"remove\", \"update\", \"query\"."
+                      },
+                      {
+                        "key": "Problema",
+                        "value": "El modelo debe inferir qué campos van en payload según el valor de action. El schema no los valida. Alta tasa de payloads malformados."
+                      },
+                      {
+                        "key": "Cuándo es aceptable",
+                        "value": "Solo si el backend no puede dividirse y el schema incluye ejemplos detallados por acción en la descripción."
+                      }
+                    ]
+                  },
+                  "right": {
+                    "head": "Herramientas específicas por acción",
+                    "rows": [
+                      {
+                        "key": "Definición",
+                        "value": "`add_inventory(sku: string, qty: int)`, `remove_inventory(sku: string, qty: int)`, `query_inventory(sku: string)` — una herramienta por tipo de acción."
+                      },
+                      {
+                        "key": "Ventaja",
+                        "value": "El schema de cada herramienta valida exactamente los campos necesarios. El modelo no necesita inferir la estructura del payload."
+                      },
+                      {
+                        "key": "Cuándo dividir",
+                        "value": "Cuando las acciones tienen inputs estructuralmente distintos. No dividir si los casos de uso no son genuinamente diferentes."
+                      }
+                    ]
+                  }
+                },
+                {
+                  "type": "callout",
+                  "style": "warning",
+                  "title": "Dividir sin causa crea confusión de selección",
+                  "content": "Si los casos de uso son similares y los inputs parecidos, agregar más herramientas aumenta la confusión en la selección. Una herramienta bien descrita es mejor que dos herramientas mal diferenciadas. El criterio es si los inputs son estructuralmente distintos, no si las acciones son semánticamente distintas."
+                }
+              ]
+            },
+            {
+              "title": "La descripción es la interfaz real",
+              "blocks": [
+                {
+                  "type": "text",
+                  "content": "El nombre y la descripción de una herramienta son la señal primaria que el modelo usa para decidir cuándo llamarla y cómo construir sus argumentos. Una descripción vaga produce dos fallas: errores de selección (llamar la herramienta equivocada) y errores de construcción (argumentos malformados o incompletos)."
+                },
+                {
+                  "type": "table",
+                  "headers": [
+                    "Elemento",
+                    "Qué incluir",
+                    "Qué evitar"
+                  ],
+                  "rows": [
+                    [
+                      "Descripción general",
+                      "Qué hace la herramienta, qué tipo de contenido busca/produce, cuándo preferirla sobre herramientas similares",
+                      "\"Searches the knowledge base\" (demasiado genérico)"
+                    ],
+                    [
+                      "Parámetros",
+                      "Formato esperado, rango de valores válidos, efecto de cada campo",
+                      "Solo el nombre del parámetro sin contexto"
+                    ],
+                    [
+                      "Alcance",
+                      "Qué fuentes de datos cubre, limitaciones conocidas",
+                      "Omitir qué NO incluye"
+                    ],
+                    [
+                      "Relación con otras tools",
+                      "Cuándo usar esta herramienta vs. una similar",
+                      "Asumir que el modelo inferirá la diferencia"
+                    ]
+                  ]
+                },
+                {
+                  "type": "compare",
+                  "left": {
+                    "head": "Descripción vaga",
+                    "rows": [
+                      {
+                        "key": "Tool",
+                        "value": "`search_knowledge_base`"
+                      },
+                      {
+                        "key": "Description",
+                        "value": "\"Search the knowledge base.\""
+                      },
+                      {
+                        "key": "Resultado",
+                        "value": "El modelo la llama con queries malformadas, en momentos incorrectos, o la confunde con `search_docs` o `search_tickets`."
+                      }
+                    ]
+                  },
+                  "right": {
+                    "head": "Descripción específica",
+                    "rows": [
+                      {
+                        "key": "Tool",
+                        "value": "`search_knowledge_base`"
+                      },
+                      {
+                        "key": "Description",
+                        "value": "\"Searches internal support articles and resolved ticket history. Use for troubleshooting known issues or policy questions. Accepts natural language queries. Prefer over search_docs for customer-facing content. Do NOT use for real-time status or recent incidents.\""
+                      },
+                      {
+                        "key": "Resultado",
+                        "value": "El modelo selecciona correctamente y construye queries relevantes."
+                      }
+                    ]
+                  }
+                },
+                {
+                  "type": "callout",
+                  "style": "info",
+                  "title": "Ejemplos en la descripción vs. few-shot en el prompt",
+                  "content": "Para herramientas con formatos de query no-obvios, agregar 1-2 ejemplos directamente en la descripción del parámetro es más efectivo que agregar ejemplos en el system prompt. Los ejemplos inline en el schema reducen errores de formato sin aumentar el largo del contexto de conversación."
+                }
+              ]
+            },
+            {
+              "title": "Enums vs. free-text en parámetros",
+              "blocks": [
+                {
+                  "type": "text",
+                  "content": "Tipar un parámetro como enum en vez de free-text fuerza al modelo a elegir entre valores válidos, eliminando errores de formato. Pero los enums solo son apropiados cuando el conjunto de valores es finito, estable, y el modelo puede inferir semánticamente cuál elegir. Usarlos incorrectamente introduce problemas distintos."
+                },
+                {
+                  "type": "cards",
+                  "items": [
+                    {
+                      "icon": "✅",
+                      "title": "Enum correcto: priority",
+                      "description": "`priority: [\"low\", \"medium\", \"high\", \"critical\"]` — conjunto pequeño, semánticamente claro, el modelo puede inferir el valor correcto del contexto de la conversación."
+                    },
+                    {
+                      "icon": "❌",
+                      "title": "Enum incorrecto: description",
+                      "description": "Un enum de 50 descripciones predefinidas para un campo de texto libre. El modelo debe adivinar cuál descripción pre-cargada aplica a un caso nuevo. Los campos de texto libre deben permanecer como strings con instrucciones en la descripción."
+                    },
+                    {
+                      "icon": "⚠️",
+                      "title": "Enum con valor fuera de rango",
+                      "description": "Si el modelo envía \"urgent\" y el enum solo acepta \"critical\", la llamada falla. Retornar el error con los valores válidos permite que el modelo corrija en el siguiente turno del loop multi-turno."
+                    },
+                    {
+                      "icon": "📋",
+                      "title": "Cuándo usar string con instrucción",
+                      "description": "Para campos con variabilidad genuina (descripciones, comentarios, queries de búsqueda). Incluir en la descripción del parámetro el formato esperado y ejemplos de valores válidos."
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "title": "Idempotencia, retry y circuit breaker",
+          "subsections": [
+            {
+              "title": "Idempotencia en herramientas con efectos secundarios",
+              "blocks": [
+                {
+                  "type": "text",
+                  "content": "Una operación es idempotente si ejecutarla múltiples veces con los mismos inputs produce el mismo resultado que ejecutarla una vez. En agentes que pueden reintentar operaciones fallidas, las herramientas sin idempotencia producen efectos duplicados: cuentas dobles, órdenes repetidas, tickets duplicados."
+                },
+                {
+                  "type": "compare",
+                  "left": {
+                    "head": "Sin idempotencia",
+                    "rows": [
+                      {
+                        "key": "Flujo",
+                        "value": "El agente llama `create_account(email=\"x@y.com\")`. La red falla antes de recibir la respuesta."
+                      },
+                      {
+                        "key": "Retry",
+                        "value": "El agente llama `create_account(email=\"x@y.com\")` de nuevo."
+                      },
+                      {
+                        "key": "Resultado",
+                        "value": "Se crean dos cuentas con el mismo email. El error original no causó el duplicado — el retry sí."
+                      }
+                    ]
+                  },
+                  "right": {
+                    "head": "Con idempotency key",
+                    "rows": [
+                      {
+                        "key": "Flujo",
+                        "value": "El orquestador genera un UUID antes de llamar: `create_account(email=\"x@y.com\", idempotency_key=\"uuid-123\")`."
+                      },
+                      {
+                        "key": "Retry",
+                        "value": "El agente llama con el mismo `idempotency_key=\"uuid-123\"`."
+                      },
+                      {
+                        "key": "Resultado",
+                        "value": "El backend detecta la key ya procesada y retorna el resultado original sin crear una segunda cuenta."
+                      }
+                    ]
+                  }
+                },
+                {
+                  "type": "callout",
+                  "style": "warning",
+                  "title": "La key debe generarse ANTES de la primera llamada",
+                  "content": "El error de diseño frecuente es generar la idempotency key dentro de la herramienta al momento de cada llamada. Si el retry genera una nueva key, el backend no puede detectar el duplicado. La key debe ser generada por el orquestador antes de la primera llamada y reutilizada en cada retry del mismo intent."
+                },
+                {
+                  "type": "code",
+                  "language": "python",
+                  "code": "import uuid\n\n# Correcto: key generada ANTES de la primera llamada\nidempotency_key = str(uuid.uuid4())\n\nfor attempt in range(MAX_RETRIES):\n    result = create_account(\n        email=email,\n        idempotency_key=idempotency_key,  # misma key en cada retry\n    )\n    if result.success:\n        break"
+                }
+              ]
+            },
+            {
+              "title": "Retry con backoff exponencial y jitter",
+              "blocks": [
+                {
+                  "type": "text",
+                  "content": "Reintentar inmediatamente un request fallido contra un servicio sobrecargado (HTTP 429 o 503) agrava la sobrecarga. El backoff exponencial espacía los reintentos; el jitter aleatoriza el tiempo de espera para evitar que múltiples agentes reintenten simultáneamente (thundering herd)."
+                },
+                {
+                  "type": "code",
+                  "language": "python",
+                  "code": "import time, random\n\ndef retry_with_backoff(fn, max_retries=4, base_delay=1.0):\n    for attempt in range(max_retries):\n        try:\n            return fn()\n        except (RateLimitError, ServiceUnavailableError) as e:\n            if attempt == max_retries - 1:\n                raise\n            delay = base_delay * (2 ** attempt)  # 1s, 2s, 4s, 8s\n            jitter = random.uniform(0, delay * 0.1)  # variacion aleatoria\n            time.sleep(delay + jitter)"
+                },
+                {
+                  "type": "cards",
+                  "items": [
+                    {
+                      "icon": "📈",
+                      "title": "Backoff exponencial",
+                      "description": "Cada reintento espera el doble del anterior: 1s -> 2s -> 4s -> 8s. Reduce la carga en el servicio degradado sin abandonar el intent."
+                    },
+                    {
+                      "icon": "🎲",
+                      "title": "Jitter",
+                      "description": "Variación aleatoria aplicada al delay. Evita que múltiples agentes reintenten exactamente al mismo segundo (thundering herd). Típicamente ±10-20% del delay base."
+                    },
+                    {
+                      "icon": "🚫",
+                      "title": "Retry selectivo",
+                      "description": "Solo reintentar errores transitorios (429, 503). Nunca reintentar 400 (bad request) o 422 (validation error): son errores de datos, no de disponibilidad."
+                    },
+                    {
+                      "icon": "🔑",
+                      "title": "Combinar con idempotencia",
+                      "description": "Retry sin idempotency key en operaciones con efecto secundario produce duplicados. Las dos técnicas son complementarias: backoff controla la frecuencia, la key previene duplicados."
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "title": "Circuit breaker: cuando el retry ya no tiene sentido",
+              "blocks": [
+                {
+                  "type": "text",
+                  "content": "El circuit breaker es un patrón de resiliencia para servicios dependientes. Después de N fallas consecutivas, el circuito se abre y las llamadas posteriores fallan inmediatamente sin intentar contactar al servicio. Después de un tiempo de espera, permite un request de prueba para verificar si el servicio se recuperó."
+                },
+                {
+                  "type": "steps",
+                  "items": [
+                    {
+                      "title": "Closed (normal)",
+                      "description": "El servicio responde. Las llamadas pasan normalmente. El contador de fallas se resetea en cada éxito."
+                    },
+                    {
+                      "title": "Fallas consecutivas",
+                      "description": "Después de N errores seguidos (ej: 5), el circuito se abre."
+                    },
+                    {
+                      "title": "Open (circuito abierto)",
+                      "description": "Las llamadas fallan inmediatamente con un error local, sin tocar el servicio. Esto evita acumular timeouts y recursos bloqueados."
+                    },
+                    {
+                      "title": "Half-open (prueba)",
+                      "description": "Después del tiempo de espera configurado, se permite un request de prueba. Si tiene éxito, el circuito vuelve a Closed. Si falla, vuelve a Open."
+                    }
+                  ]
+                },
+                {
+                  "type": "callout",
+                  "style": "info",
+                  "title": "Circuit breaker vs. retry: roles distintos",
+                  "content": "El retry maneja fallas transitorias individuales (red momentánea, rate limit puntual). El circuit breaker maneja degradación sostenida del servicio. Usarlos juntos: primero se intenta con backoff/retry; si las fallas son persistentes, el circuit breaker abre y detiene el flujo hasta que el servicio se recupere."
+                }
+              ]
+            },
+            {
+              "title": "Errores estructurados en herramientas",
+              "blocks": [
+                {
+                  "type": "text",
+                  "content": "Cuando una herramienta falla, el error que retorna es el input del siguiente turno del agente. Si el error es un stack trace o un mensaje de excepción no estructurado, el modelo no puede decidir cómo proceder. Los errores estructurados con código tipado y acción sugerida permiten al agente tomar decisiones informadas."
+                },
+                {
+                  "type": "compare",
+                  "left": {
+                    "head": "Error no estructurado",
+                    "rows": [
+                      {
+                        "key": "Retorno",
+                        "value": "\"ConnectionError: KYCProviderConnectionError at line 47 of kyc_client.py\""
+                      },
+                      {
+                        "key": "Problema",
+                        "value": "El modelo no puede distinguir si es un error transitorio (reintentar) o permanente (escalar). No sabe qué acción tomar."
+                      }
+                    ]
+                  },
+                  "right": {
+                    "head": "Error estructurado",
+                    "rows": [
+                      {
+                        "key": "Retorno",
+                        "value": "{\"error_code\": \"SERVICE_UNAVAILABLE\", \"retry_after_seconds\": 30, \"suggested_action\": \"retry\"}"
+                      },
+                      {
+                        "key": "Ventaja",
+                        "value": "El agente lee `suggested_action` y `retry_after_seconds` para decidir: reintentar después de 30s, o si el código es PERMANENT_FAILURE, escalar a humano."
+                      }
+                    ]
+                  }
+                },
+                {
+                  "type": "code",
+                  "language": "python",
+                  "code": "def run_kyc_check(applicant_id: str) -> dict:\n    try:\n        result = kyc_provider.verify(applicant_id)\n        return {\"status\": \"success\", \"verification_id\": result.id}\n    except ProviderTimeout:\n        return {\n            \"error_code\": \"SERVICE_UNAVAILABLE\",\n            \"retry_after_seconds\": 30,\n            \"suggested_action\": \"retry\",\n        }\n    except InvalidApplicantError:\n        return {\n            \"error_code\": \"INVALID_INPUT\",\n            \"suggested_action\": \"escalate_to_human\",\n            \"message\": \"Applicant data failed validation\",\n        }"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "title": "Curación de toolset y least-privilege",
+          "subsections": [
+            {
+              "title": "El problema de exponer todas las herramientas siempre",
+              "blocks": [
+                {
+                  "type": "text",
+                  "content": "Un agente conectado a 6+ herramientas en todo momento enfrenta dos problemas: confusión de selección (el modelo puede elegir la herramienta equivocada cuando las opciones son muchas y similares) y riesgo de seguridad (herramientas con efectos secundarios disponibles en contextos donde no deberían usarse). La curación de toolset por contexto de tarea resuelve ambos."
+                },
+                {
+                  "type": "compare",
+                  "left": {
+                    "head": "Toolset completo siempre",
+                    "rows": [
+                      {
+                        "key": "Contexto",
+                        "value": "El usuario hace una consulta de calendario."
+                      },
+                      {
+                        "key": "Herramientas disponibles",
+                        "value": "calendar, email, code_search, github, slack, database_write (6 herramientas)."
+                      },
+                      {
+                        "key": "Riesgo",
+                        "value": "El modelo puede confundir herramientas similares o usar database_write en un contexto de solo lectura."
+                      }
+                    ]
+                  },
+                  "right": {
+                    "head": "Toolset curado por tarea",
+                    "rows": [
+                      {
+                        "key": "Contexto",
+                        "value": "El usuario hace una consulta de calendario."
+                      },
+                      {
+                        "key": "Herramientas disponibles",
+                        "value": "Solo calendar (1 herramienta)."
+                      },
+                      {
+                        "key": "Ventaja",
+                        "value": "Sin confusión de selección. Sin riesgo de operaciones no-calendáricas. La tarea determina el subset de herramientas expuesto."
+                      }
+                    ]
+                  }
+                },
+                {
+                  "type": "callout",
+                  "style": "info",
+                  "title": "Curación de toolset es una implementación de least-privilege",
+                  "content": "El principio de least-privilege aplicado a herramientas: el agente solo tiene acceso a las herramientas que necesita para la tarea actual. Exponer tools adicionales por si acaso viola este principio y crea riesgo sin beneficio. La curación es preferible a intentar controlar el comportamiento solo con instrucciones en el system prompt."
+                }
+              ]
+            },
+            {
+              "title": "Cómo implementar la curación",
+              "blocks": [
+                {
+                  "type": "steps",
+                  "items": [
+                    {
+                      "title": "Clasificar la tarea",
+                      "description": "Antes de enviar el request al modelo, clasificar el tipo de tarea: calendar, email, code, database. Puede ser un clasificador propio o inferirse del contexto."
+                    },
+                    {
+                      "title": "Seleccionar el subset de herramientas",
+                      "description": "Cada clase de tarea tiene un toolset mapeado. Solo esas herramientas se incluyen en el request."
+                    },
+                    {
+                      "title": "Incluir herramientas transversales si es necesario",
+                      "description": "Algunas herramientas son útiles en múltiples contextos (ej: un lookup de usuario). Incluirlas en los subsets que las necesiten, no en todos."
+                    },
+                    {
+                      "title": "Actualizar el subset si la tarea cambia mid-session",
+                      "description": "Si el usuario pivota de una consulta de calendario a enviar un email, actualizar el toolset en el siguiente request."
+                    }
+                  ]
+                },
+                {
+                  "type": "code",
+                  "language": "python",
+                  "code": "TOOLSETS = {\n    \"calendar\": [get_calendar_tool(), list_events_tool()],\n    \"email\": [read_email_tool(), send_email_tool()],\n    \"code\": [search_code_tool(), run_linter_tool(), create_pr_tool()],\n}\n\ndef handle_request(user_message: str, task_context: str):\n    tools = TOOLSETS.get(task_context, [])\n    return client.messages.create(\n        model=\"claude-sonnet-4-6\",\n        tools=tools,\n        messages=[{\"role\": \"user\", \"content\": user_message}],\n    )"
+                },
+                {
+                  "type": "callout",
+                  "style": "warning",
+                  "title": "Curación no reemplaza la validación de efectos secundarios",
+                  "content": "Incluso con toolsets curados, las herramientas con efectos secundarios (enviar email, escribir en base de datos, crear PR) deben requerir confirmación humana o tener guardrails propios. La curación reduce el riesgo de selección errónea; no reemplaza los controles de autorización."
                 }
               ]
             }
