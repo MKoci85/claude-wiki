@@ -66,7 +66,7 @@
               "type": "callout",
               "variant": "info",
               "title": "Reglas vs Skills",
-              "content": "**Reglas** = instrucciones permanentes que Claude siempre aplica. **Skills** = procedimientos que Claude ejecuta cuando se lo pedís explícitamente. Este artículo cubre solo las reglas."
+              "content": "**Reglas** = instrucciones permanentes que Claude siempre aplica. **Skills** = conjuntos de instrucciones y buenas prácticas que Claude consulta automáticamente cuando una tarea coincide con el dominio que cubren, no únicamente cuando se lo solicitan de forma explícita."
             }
           ]
         },
@@ -87,7 +87,7 @@
             },
             {
               "type": "text",
-              "content": "Funciona en ambos niveles: tanto en `.claude/rules/` (proyecto) como en `~/.claude/rules/` (sistema). En el nivel sistema es la **única variante que funciona** — el bug de 2026 hace que las reglas con `paths:` sean ignoradas silenciosamente en `~/.claude/`."
+              "content": "Funciona en ambos niveles: tanto en `.claude/rules/` (proyecto) como en `~/.claude/rules/` (sistema). En el nivel sistema es la **única variante que funciona** — Existe un bug reportado (`#21858`) que hace que las reglas con `paths:` sean ignoradas silenciosamente en `~/.claude/`."
             },
             {
               "type": "table",

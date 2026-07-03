@@ -65,7 +65,7 @@ public/
     index.html      → Página standalone del examen (sin dependencia del bundle principal)
 
 src/
-  App.jsx           → Toda la UI, ruteo, estado y renderizadores de bloques (~900 líneas)
+  App.jsx           → Toda la UI, ruteo, estado y renderizadores de bloques (~810 líneas)
   searchEngine.js   → Motor de búsqueda full-text con sistema de puntuación
   styles.css        → Directivas Tailwind + propiedades CSS para tema claro/oscuro
 ```
