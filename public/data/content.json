@@ -5,6 +5,11 @@
       "file": "introduccion.json"
     },
     {
+      "title": "AI Fluency: Framework & Foundations",
+      "description": "El framework 4D (Delegation, Description, Discernment, Diligence) recomendado por Anthropic como preparación para el examen CCA-F",
+      "file": "ai-fluency.json"
+    },
+    {
       "title": "Reglas",
       "file": "reglas.json"
     },

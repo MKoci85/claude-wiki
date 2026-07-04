@@ -1,0 +1,851 @@
+{
+  "id": "ai-fluency",
+  "title": "AI Fluency: Framework & Foundations",
+  "summary": "El framework 4D (Delegation, Description, Discernment, Diligence) del curso gratuito de Anthropic Academy recomendado como preparación para el examen CCA-F.",
+  "sections": [
+    {
+      "id": "af-introduccion",
+      "title": "Introducción a AI Fluency",
+      "articles": [
+        {
+          "id": "af-001",
+          "title": "¿Por qué necesitamos AI Fluency?",
+          "summary": "Tener acceso a una IA potente no es lo mismo que saber usarla bien. Esta lección define qué es AI Fluency y presenta los tres modos en que las personas interactúan con sistemas de IA.",
+          "subsections": [
+            {
+              "title": "La brecha entre tener acceso y ser fluido",
+              "blocks": [
+                {
+                  "type": "text",
+                  "content": "El punto de partida de esta lección es una distinción importante: tener **acceso** a una IA potente no es lo mismo que saber **usarla bien**. Mucha gente ya tiene asistentes de IA integrados en su día a día para escribir, investigar, tomar decisiones o resolver problemas, pero eso no garantiza que estén sacando el máximo provecho, ni que lo estén haciendo de forma segura o responsable."
+                },
+                {
+                  "type": "text",
+                  "content": "Señales típicas de esta brecha: recibir una respuesta inesperada de la IA y no saber cómo seguir, tener dificultad para explicar lo que realmente se necesita (y terminar frustrado), o no estar seguro de qué pasa con la información que se comparte al usarla."
+                }
+              ]
+            },
+            {
+              "title": "Qué es (y qué no es) AI Fluency",
+              "blocks": [
+                {
+                  "type": "text",
+                  "content": "El curso define **AI Fluency** no como dominio técnico ni como memorizar una lista de \"mejores prompts\", sino como un conjunto de habilidades, conocimientos y valores que se refuerzan entre sí y que evolucionan a medida que la tecnología cambia."
+                },
+                {
+                  "type": "text",
+                  "content": "Concretamente, ser fluido con la IA significa interactuar con estos sistemas de forma:"
+                },
+                {
+                  "type": "cards",
+                  "items": [
+                    {
+                      "title": "Efectiva",
+                      "content": "Obtener resultados que realmente sirven para el objetivo buscado."
+                    },
+                    {
+                      "title": "Eficiente",
+                      "content": "Sin desperdiciar tiempo ni esfuerzo en el proceso."
+                    },
+                    {
+                      "title": "Ética",
+                      "content": "De manera honesta y responsable."
+                    },
+                    {
+                      "title": "Segura",
+                      "content": "Protegiendo la privacidad y seguridad propia y de terceros."
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "title": "Los tres modos de interacción con la IA",
+              "blocks": [
+                {
+                  "type": "text",
+                  "content": "Para explicar por qué la fluidez requiere más que \"saber prompear\", el curso identifica tres modos distintos en los que las personas interactúan con la IA, y remarca que entender estas diferencias es clave para saber cuándo usar cada uno."
+                },
+                {
+                  "type": "text",
+                  "content": "**1. Automatización** — el usuario ya sabe exactamente qué resultado quiere, y simplemente le da instrucciones a la IA para que ejecute la tarea. Ejemplos: pedirle que resuma un documento, redacte un email, genere una imagen o arme un itinerario de viaje. Este modo funciona muy bien cuando el objetivo final está claro desde el principio, pero se vuelve incómodo cuando el usuario todavía no tiene del todo definido qué es lo que busca — porque automatizar exige poder especificar de antemano el resultado deseado."
+                },
+                {
+                  "type": "text",
+                  "content": "**2. Aumentación** — acá el vínculo cambia de \"dar una orden\" a \"colaborar\". La IA no ejecuta una tarea definida de antemano, sino que actúa como socia de pensamiento, ida y vuelta, para explorar un problema junto con el usuario. Ejemplos: desarrollar un personaje de una historia cuando el autor está trabado, pensar un problema de arquitectura de software complejo, o darle forma a las propias ideas sobre un tema de investigación difícil. La clave es que la IA no hace el trabajo *por* el usuario, sino que lo ayuda a pensar y trabajar *mejor*. Este modo es el más útil cuando la solución no es obvia de antemano y hace falta espacio para explorar y experimentar."
+                },
+                {
+                  "type": "text",
+                  "content": "**3. Agencia** — acá la IA actúa de manera relativamente independiente, en nombre del usuario, durante un período de tiempo o ante situaciones que no fueron anticipadas una por una. Ejemplos: un asistente configurado para clasificar emails entrantes por tema o urgencia y redactar borradores de respuesta para los más urgentes, o un personaje interactivo en un videojuego que reacciona dinámicamente a cada jugador. La diferencia clave respecto a los otros dos modos es que el usuario ya no define acciones puntuales una por una, sino que establece el conocimiento y los patrones de comportamiento que la IA va a seguir por su cuenta."
+                },
+                {
+                  "type": "callout",
+                  "variant": "info",
+                  "title": "Guionista vs. director",
+                  "content": "El curso usa esta metáfora para el modo de agencia: el usuario deja de ser \"guionista\" (que escribe cada línea exacta) y pasa a ser \"director\" (que fija una visión y deja que el resto se resuelva dentro de ese marco)."
+                }
+              ]
+            },
+            {
+              "title": "Ningún modo es superior — y hacia el framework 4D",
+              "blocks": [
+                {
+                  "type": "text",
+                  "content": "El curso aclara explícitamente que ningún modo es intrínsecamente mejor que los otros — cada uno sirve para un tipo de situación distinta, y de hecho es común combinar los tres dentro de un mismo proyecto (por ejemplo, usar agencia para clasificar información, aumentación para pensar una estrategia, y automatización para ejecutar las tareas ya decididas)."
+                },
+                {
+                  "type": "text",
+                  "content": "Sin embargo, hace una observación importante: aunque mucha gente arranca usando la IA solo en modo automatización, son los modos de **aumentación y agencia** los que realmente aprovechan las capacidades distintivas de la IA generativa, y suelen ser los que llevan a las soluciones más creativas y efectivas."
+                },
+                {
+                  "type": "callout",
+                  "variant": "success",
+                  "title": "Idea central",
+                  "content": "Si la IA dejó de ser una simple herramienta y pasó a poder actuar como medio, socia o co-creadora (y a veces las tres cosas a la vez), entonces el rol de la persona que la usa también cambió, y eso exige desarrollar nuevas habilidades. Esas habilidades son las que estructuran el resto del curso: el framework de las **4D** (Delegation, Description, Discernment, Diligence)."
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "af-framework",
+      "title": "El Framework 4D",
+      "articles": [
+        {
+          "id": "af-002",
+          "title": "Las cuatro competencias: Delegation, Description, Discernment, Diligence",
+          "summary": "Sin importar si estás usando la IA en modo automatización, aumentación o agencia, hay cuatro competencias transversales que determinan si la colaboración es efectiva, eficiente, ética y segura.",
+          "subsections": [
+            {
+              "title": "Cuatro competencias, cualquiera sea el modo",
+              "blocks": [
+                {
+                  "type": "text",
+                  "content": "Independientemente de si estás trabajando con la IA en modo automatización, aumentación o agencia, hay cuatro competencias esenciales que marcan la diferencia entre una colaboración efectiva y una que no lo es. El curso las llama las **cuatro D**: Delegation (Delegación), Description (Descripción), Discernment (Discernimiento) y Diligence (Diligencia)."
+                }
+              ]
+            },
+            {
+              "title": "Delegation — la visión de conjunto",
+              "blocks": [
+                {
+                  "type": "text",
+                  "content": "La primera competencia se centra en el panorama general: ¿qué estás tratando de lograr? ¿Qué tipos de trabajo están involucrados? ¿Qué parte deberías manejar vos mismo, y dónde puede ayudar la IA?"
+                },
+                {
+                  "type": "text",
+                  "content": "El ejemplo que da el curso: en un proyecto de investigación, podrías decidir que tu asistente de IA revise documentos extensos y datos, y que luego tengan una discusión sobre las implicancias y hallazgos — pero reservar el análisis crítico y las conclusiones finales para vos mismo."
+                },
+                {
+                  "type": "text",
+                  "content": "Para delegar de forma efectiva hacen falta tres cosas: entender tu objetivo y el problema que estás resolviendo, reconocer qué puede y qué no puede hacer bien la IA, y dividir el trabajo de forma reflexiva entre vos y la IA."
+                },
+                {
+                  "type": "callout",
+                  "variant": "info",
+                  "title": "No es solo delegar tareas",
+                  "content": "Delegación no significa simplemente \"sacarse trabajo de encima\". Se trata de tener una visión clara y elegir estratégicamente cómo encaja la IA en tu proceso. Este enfoque reflexivo es esencial tanto para la efectividad como para la eficiencia de la colaboración."
+                }
+              ]
+            },
+            {
+              "title": "Description — comunicación clara",
+              "blocks": [
+                {
+                  "type": "text",
+                  "content": "La segunda competencia se centra en la comunicación clara con la IA. El curso contrasta un pedido vago como \"hacéme un logo\" contra describir los valores de tu empresa, el público objetivo, colores preferidos, referencias de estilo, etc. Otro ejemplo: si usás una IA como tutor, podés dar el paso extra de aclarar \"no me des la respuesta, ayudame a resolver este problema paso a paso para entender mejor el concepto\"."
+                },
+                {
+                  "type": "text",
+                  "content": "Description va más allá de simplemente escribir prompts. Se trata de tener conversaciones detalladas y ricas en contexto que establezcan: qué esperás lograr, el formato de la salida, cómo querés que la IA aborde la tarea, el contexto e información que la IA podría necesitar, y el tono y estilo de la interacción."
+                },
+                {
+                  "type": "callout",
+                  "variant": "success",
+                  "title": "Idea clave",
+                  "content": "Describir de forma efectiva significa articular tus necesidades y tu visión de una manera que prepare tanto a vos como a la IA para el mayor éxito colaborativo posible."
+                }
+              ]
+            },
+            {
+              "title": "Discernment — evaluar lo que da la IA",
+              "blocks": [
+                {
+                  "type": "text",
+                  "content": "La tercera competencia consiste en evaluar de forma reflexiva lo que produce la IA. El ejemplo del curso: le pediste a un asistente de IA que sugiera una estrategia de marketing. Tu discernimiento entra en juego cuando evaluás: ¿son correctos los datos? ¿el razonamiento tiene sentido? ¿las recomendaciones están alineadas con los valores de tu marca y tu público? y, sobre todo, ¿este resultado realmente te ayuda a avanzar?"
+                },
+                {
+                  "type": "text",
+                  "content": "Discernment se apoya en tu propia experiencia en un dominio y requiere desarrollar el juicio y la mirada crítica para separar lo útil de lo que no lo es, y para reconocer cuándo un resultado de la IA necesita ser refinado o directamente descartado."
+                },
+                {
+                  "type": "callout",
+                  "variant": "info",
+                  "title": "El ciclo Description-Discernment",
+                  "content": "La mayoría de las interacciones con la IA forman pequeños ciclos de descripción y discernimiento: describir lo que necesitás, evaluar lo que obtenés, refinar el pedido, y así sucesivamente. El curso profundiza en este ciclo más adelante."
+                }
+              ]
+            },
+            {
+              "title": "Diligence — interacciones responsables",
+              "blocks": [
+                {
+                  "type": "text",
+                  "content": "La cuarta competencia se centra en la responsabilidad al interactuar con la IA. Ejemplos que plantea el curso: si usás IA para redactar descripciones de puesto o revisar postulaciones, ¿cómo asegurás la equidad y controlás sesgos potenciales? Al tomar decisiones importantes con ayuda de la IA, ¿cómo verificás la exactitud de la información presentada? ¿Estás protegiendo datos sensibles? ¿Consideraste cómo ser transparente respecto de la participación de la IA? ¿Estás dispuesto a hacerte responsable del trabajo asistido por IA que hiciste?"
+                },
+                {
+                  "type": "callout",
+                  "variant": "warning",
+                  "title": "Idea clave",
+                  "content": "Diligence significa tomar posesión de tu trabajo asistido por IA y estar dispuesto a respaldar los productos finales creados con su ayuda. Es crítica para una colaboración segura y ética con la IA."
+                }
+              ]
+            },
+            {
+              "title": "Por qué estas competencias no caducan",
+              "blocks": [
+                {
+                  "type": "table",
+                  "headers": ["Competencia", "Pregunta que responde"],
+                  "rows": [
+                    ["Delegation", "¿Cuándo y cómo usar la IA?"],
+                    ["Description", "¿Cómo comunicarme con claridad con la IA?"],
+                    ["Discernment", "¿Cómo evalúo lo que produce la IA?"],
+                    ["Diligence", "¿Cómo uso la IA de forma responsable?"]
+                  ]
+                },
+                {
+                  "type": "callout",
+                  "variant": "success",
+                  "title": "Lo que hace valiosas a estas competencias",
+                  "content": "A diferencia de trucos de prompting atados a una herramienta o técnica específica que puede quedar obsoleta, las cuatro D son habilidades fundamentales que ayudan a adaptarse y crecer junto con una tecnología en evolución constante."
+                }
+              ]
+            },
+            {
+              "title": "Ejercicios prácticos",
+              "blocks": [
+                {
+                  "type": "text",
+                  "content": "El curso propone tres ejercicios cortos para poner en práctica el framework 4D antes de avanzar."
+                },
+                {
+                  "type": "text",
+                  "content": "**Ejercicio 1 — Aplicar las 4D a un escenario (5 min).** Elegís uno de tres escenarios de colaboración con IA y pensás cómo aplicarías cada una de las cuatro competencias:"
+                },
+                {
+                  "type": "cards",
+                  "items": [
+                    {
+                      "title": "Proyecto de comunicación",
+                      "content": "Redactar una serie de emails para una campaña de marketing junto con un asistente de IA. Pensar qué delegarías vs. qué harías vos mismo, cómo comunicarías el tono y los criterios de éxito, qué usarías para evaluar los borradores, y qué consideraciones de transparencia y responsabilidad aplicarían."
+                    },
+                    {
+                      "title": "Proyecto de investigación",
+                      "content": "Usar IA para analizar un dataset grande para un paper. Pensar cómo dividirías el trabajo analítico, qué contexto necesitaría la IA sobre tu pregunta de investigación, cómo verificarías la exactitud del análisis, y qué consideraciones éticas surgirían al publicar resultados asistidos por IA."
+                    },
+                    {
+                      "title": "Proyecto creativo",
+                      "content": "Colaborar con IA para desarrollar personajes de una historia. Pensar qué elementos creativos explorarías junto a la IA vs. cuáles desarrollarías de forma independiente, cómo guiarías a la IA para que encaje con el mundo de tu historia, cómo decidirías qué sugerencias conservar o descartar, y cómo reconocerías la contribución de la IA en el trabajo final."
+                    }
+                  ]
+                },
+                {
+                  "type": "steps",
+                  "items": [
+                    {
+                      "title": "Ejercicio 2 — Explorar algo que te apasiona (5-10 min)",
+                      "body": "Elegís un tema que conocés bien y disfrutás (un hobby, un interés profesional, una saga de libros) y tenés una conversación natural sobre eso con Claude, como la tendrías con alguien que comparte ese interés. La idea es notar los momentos en que la IA potencia tu pensamiento, en que necesitás corregir o aclarar algo que entendió mal, y en que tu propia experiencia te permite evaluar críticamente sus respuestas — es decir, poner en práctica discernment en un dominio donde tenés expertise."
+                    },
+                    {
+                      "title": "Ejercicio 3 — Aprender algo nuevo (5-10 min)",
+                      "body": "Le pedís a Claude que te enseñe sobre un tema que te interesa pero no conocés bien, sin preocuparte por prompear \"bien\" o \"mal\". La comparación con el ejercicio anterior es el punto: acá hay que notar los momentos en que las explicaciones ayudan, en que los ejemplos hacen concreto algo abstracto, en que las respuestas fluyen naturalmente según tus preguntas, y — a diferencia del ejercicio anterior — los momentos en que, al no tener expertise propia, te conviene verificar por tu cuenta lo que la IA te está afirmando."
+                    }
+                  ]
+                },
+                {
+                  "type": "callout",
+                  "variant": "info",
+                  "title": "Reflexión final",
+                  "content": "Antes de seguir, el curso propone pensar: ¿con cuál de las 4D te sentís más cómodo ya, y cuál necesitás desarrollar más? ¿Podés recordar una interacción reciente con IA donde el framework te hubiera ayudado? ¿Qué habilidades del framework 4D potenciarían más tu trabajo o tus proyectos personales?"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "af-deep-dive-1",
+      "title": "Deep Dive 1: Fundamentos de IA Generativa",
+      "articles": [
+        {
+          "id": "af-003",
+          "title": "Generative AI Fundamentals",
+          "summary": "Qué distingue a la IA generativa de la IA tradicional, los tres desarrollos que la hicieron posible, y cómo funcionan por dentro modelos como Claude.",
+          "subsections": [
+            {
+              "title": "Qué distingue a la IA generativa",
+              "blocks": [
+                {
+                  "type": "text",
+                  "content": "La IA generativa se refiere a sistemas capaces de crear contenido nuevo, en lugar de simplemente analizar datos existentes. Mientras que la IA tradicional podría clasificar un email como spam o no spam a partir de patrones, la IA generativa puede escribir un email completamente nuevo. El primer enfoque analiza y categoriza; el segundo crea algo que antes no existía. Ese es el cambio de fondo en las capacidades de la IA."
+                },
+                {
+                  "type": "text",
+                  "content": "Los modelos de lenguaje grandes (**LLM**, por sus siglas en inglés), como los modelos Claude de Anthropic, son un tipo prominente de IA generativa. Se llaman \"de lenguaje\" porque se entrenan para predecir y generar lenguaje humano, y \"grandes\" porque contienen miles de millones de parámetros — valores matemáticos que determinan cómo el modelo procesa información, de forma similar a las conexiones sinápticas en un cerebro."
+                }
+              ]
+            },
+            {
+              "title": "Los tres desarrollos que hicieron posible la IA generativa actual",
+              "blocks": [
+                {
+                  "type": "text",
+                  "content": "El camino hasta la IA generativa actual no fue repentino: implicó tres desarrollos clave que confluyeron en el momento justo."
+                },
+                {
+                  "type": "cards",
+                  "items": [
+                    {
+                      "title": "1. Avances algorítmicos y de arquitectura",
+                      "content": "Las redes neuronales existen conceptualmente hace décadas, pero el desarrollo de la arquitectura transformer en 2017 fue un punto de quiebre: permite procesar secuencias de texto manteniendo relaciones entre palabras a lo largo de pasajes largos, algo crítico para entender el lenguaje en contexto."
+                    },
+                    {
+                      "title": "2. Explosión de datos digitales",
+                      "content": "La materia prima para entrenar estos modelos. Los LLM modernos como Claude aprenden de fuentes diversas — sitios web, repositorios de código y otros textos que representan conocimiento y comunicación humana — lo que les da una comprensión amplia y matizada tanto del lenguaje como de los conceptos."
+                    },
+                    {
+                      "title": "3. Aumento masivo del poder de cómputo",
+                      "content": "Hardware especializado como GPUs y TPUs, junto con redes de cómputo distribuido (clusters), hicieron posible entrenar modelos tan complejos sobre semejante cantidad de datos — algo inviable pocos años antes."
+                    }
+                  ]
+                },
+                {
+                  "type": "callout",
+                  "variant": "info",
+                  "title": "Scaling laws y capacidades emergentes",
+                  "content": "La combinación de estos tres factores llevó a un hallazgo importante conocido como las **scaling laws**: hallazgos empíricos que muestran que a medida que los modelos crecen y entrenan con más datos y más cómputo, su desempeño mejora de forma predecible. Más sorprendente aún: los investigadores encontraron que surgían capacidades enteramente nuevas a medida que los modelos crecían — habilidades que nadie programó explícitamente, como razonar paso a paso o adaptarse a tareas nuevas con instrucciones mínimas."
+                }
+              ]
+            },
+            {
+              "title": "Cómo funcionan por dentro: pre-entrenamiento y fine-tuning",
+              "blocks": [
+                {
+                  "type": "text",
+                  "content": "Durante el entrenamiento inicial, o **pre-training**, modelos como Claude analizan patrones a través de miles de millones de ejemplos de texto — algo así como leer cada sitio web y texto disponible, no solo para absorber información, sino para entender las relaciones estadísticas entre palabras, frases y conceptos. En esta etapa, el modelo construye algo parecido a un mapa complejo del lenguaje y el conocimiento, mostrándole texto y pidiéndole que prediga qué sigue, refinando sus predicciones a través de muchas iteraciones."
+                },
+                {
+                  "type": "text",
+                  "content": "Después del pre-training, los modelos pasan por un entrenamiento adicional llamado **fine-tuning**, donde aprenden a seguir instrucciones, dar respuestas útiles y, de forma importante, evitar generar contenido dañino. Esto suele incluir feedback humano y aprendizaje por refuerzo, que usa recompensas y penalizaciones para orientar el comportamiento del modelo hacia ser más útil, honesto e inofensivo."
+                }
+              ]
+            },
+            {
+              "title": "Prompt y context window",
+              "blocks": [
+                {
+                  "type": "text",
+                  "content": "Una vez entrenado, el modelo se despliega para que interactúes con él. Cuando interactuás con Claude u otro LLM, le das un **prompt** — texto que el modelo lee y continúa según los patrones que aprendió durante el entrenamiento. El modelo no recupera respuestas prearmadas de una base de datos: genera texto nuevo que sigue estadísticamente a partir de lo que escribiste."
+                },
+                {
+                  "type": "callout",
+                  "variant": "warning",
+                  "title": "Context window: la memoria de trabajo del modelo",
+                  "content": "Existe un límite práctico a cuánta información puede considerar un LLM a la vez: la **context window**. Incluye tus prompts, las respuestas del modelo y cualquier otra información compartida en la conversación. Aunque las empresas de IA siguen ampliando este límite, estos límites recuerdan que estos sistemas no tienen acceso ilimitado a información y no pueden usar contenido fuera de su context window actual sin herramientas especializadas, como la búsqueda web."
+                }
+              ]
+            },
+            {
+              "title": "Reflexión",
+              "blocks": [
+                {
+                  "type": "callout",
+                  "variant": "info",
+                  "title": "Antes de seguir, el curso propone pensar",
+                  "content": "¿Cómo cambia tu forma de trabajar con estos sistemas el entender sus fundamentos técnicos (los datos de entrenamiento, el pre-training y el fine-tuning)? ¿Qué consideraciones éticas surgen al conocer cómo funcionan estos sistemas y cuáles son sus limitaciones actuales?"
+                }
+              ]
+            },
+            {
+              "title": "Qué hace poderosa a la IA generativa moderna",
+              "blocks": [
+                {
+                  "type": "cards",
+                  "items": [
+                    {
+                      "title": "Procesamiento masivo durante el entrenamiento",
+                      "content": "Permite aprender patrones complejos y matizados del lenguaje y el conocimiento."
+                    },
+                    {
+                      "title": "Aprendizaje en contexto (in-context learning)",
+                      "content": "Los LLM pueden adaptarse a tareas nuevas a partir de instrucciones o ejemplos en el prompt, sin necesitar entrenamiento adicional."
+                    },
+                    {
+                      "title": "Capacidades emergentes",
+                      "content": "Surgen a partir de la escala: a medida que los modelos crecen, desarrollan habilidades que no fueron diseñadas explícitamente, a veces sorprendiendo incluso a quienes los crearon."
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "af-004b",
+          "title": "Delegation en profundidad",
+          "summary": "El corazón de una buena delegación no es la IA, sino tu propia claridad sobre el problema. Los tres elementos: problem awareness, platform awareness y task delegation.",
+          "subsections": [
+            {
+              "title": "Delegation apunta a efectividad y eficiencia",
+              "blocks": [
+                {
+                  "type": "text",
+                  "content": "De las cuatro cualidades que definen la fluidez con IA (efectiva, eficiente, ética y segura), Delegation se enfoca sobre todo en las primeras dos: trabajar de forma efectiva y eficiente con asistencia de IA. En el fondo, delegar es decidir qué trabajo hay que hacer, qué parte conviene que hagas vos y qué parte puede convenirle más a la IA — algo que suena simple pero es más matizado de lo que parece."
+                }
+              ]
+            },
+            {
+              "title": "Problem awareness: el punto de partida no es la IA",
+              "blocks": [
+                {
+                  "type": "text",
+                  "content": "Algo que puede sorprender: la piedra angular de una buena delegación no tiene que ver con la IA en absoluto, sino con tu propia expertise y tu comprensión de lo que estás tratando de lograr. Antes de involucrar a la IA en cualquier proyecto conviene responder preguntas clave: ¿qué estás tratando de lograr exactamente? ¿cuál es tu visión o los objetivos centrales del proyecto? ¿cómo se ve el éxito? ¿qué tipo de pensamiento y trabajo hace falta para llegar ahí? ¿hay partes simples pero que consumen tiempo, zonas de incertidumbre donde serviría un compañero de pensamiento de confianza, zonas de desconocimiento donde lo que hace falta es más información, o partes que requieren juicio crítico?"
+                },
+                {
+                  "type": "callout",
+                  "variant": "info",
+                  "title": "Problem awareness",
+                  "content": "Sin una comprensión clara de tus objetivos y del trabajo involucrado, incluso la IA más avanzada no te va a poder llevar a donde necesitás ir — te va a costar trabajar con ella, evaluar sus resultados o saber cuándo hace falta intervención humana. Los colaboradores más efectivos con IA son, primero, expertos en su campo, y recién después, buenos delegadores de IA. A esta primera capacidad el curso la llama **problem awareness**: la habilidad de definir con claridad tus objetivos y entender qué trabajo hace falta antes de traer a la IA a la ecuación."
+                }
+              ]
+            },
+            {
+              "title": "Platform awareness: conocer el panorama de la IA",
+              "blocks": [
+                {
+                  "type": "text",
+                  "content": "Más allá de entender tu propio problema, hace falta un conocimiento práctico del panorama de sistemas de IA disponibles. Distintos sistemas ofrecen capacidades muy distintas, y el campo evoluciona casi a diario. Delegar bien no es encontrar \"el sistema perfecto\", sino entender las fortalezas y limitaciones particulares de las opciones disponibles: ¿investigaste qué modelos rinden mejor para el tipo de trabajo que tenés en mente? ¿sabés qué sistemas priorizan velocidad por sobre profundidad, o exactitud por sobre creatividad?"
+                },
+                {
+                  "type": "callout",
+                  "variant": "info",
+                  "title": "Platform awareness",
+                  "content": "El curso llama a esto **platform awareness**: un conocimiento práctico de los sistemas de IA disponibles y de sus capacidades y limitaciones específicas. La mejor forma de desarrollarlo es experimentando de forma directa con distintos sistemas de IA tan seguido como sea posible, y construyendo intuición propia a partir de esa experiencia — porque el panorama cambia rápido y ninguna referencia estática alcanza por sí sola."
+                }
+              ]
+            },
+            {
+              "title": "Task delegation: distribuir el trabajo con criterio",
+              "blocks": [
+                {
+                  "type": "text",
+                  "content": "Una vez que entendés tu problema y las opciones de IA disponibles, aparece el verdadero arte de la delegación: distribuir el trabajo de forma reflexiva entre inteligencia humana y artificial para aprovechar las fortalezas propias de cada una. Preguntas útiles: ¿qué partes puntuales del flujo de trabajo se beneficiarían de automatización? ¿dónde un enfoque de aumentación crearía más valor que trabajar solo o automatizar del todo? ¿hay zonas de juicio crítico que deberían quedar exclusivamente en manos humanas y no delegarse en absoluto? ¿qué interacciones rutinarias puede manejar un agente de IA en tu nombre?"
+                },
+                {
+                  "type": "callout",
+                  "variant": "success",
+                  "title": "Task delegation",
+                  "content": "A esta tercera capacidad el curso la llama **task delegation**: el proceso estratégico de dividir el trabajo entre humanos e IA, decidiendo qué se automatiza, qué se resuelve en colaboración humano-IA, qué queda reservado exclusivamente para ejecución humana, y qué puede manejar un agente de IA actuando en tu nombre."
+                }
+              ]
+            },
+            {
+              "title": "Los tres elementos de Delegation",
+              "blocks": [
+                {
+                  "type": "table",
+                  "headers": ["Elemento", "Qué implica"],
+                  "rows": [
+                    ["Problem awareness", "Entender tus objetivos y el problema a resolver, antes de pensar en la IA."],
+                    ["Platform awareness", "Conocer las capacidades y limitaciones de los sistemas de IA disponibles."],
+                    ["Task delegation", "Dividir el trabajo de forma estratégica entre humano e IA."]
+                  ]
+                },
+                {
+                  "type": "callout",
+                  "variant": "warning",
+                  "title": "Idea central",
+                  "content": "Una colaboración efectiva con IA no es simplemente \"soltar el volante\". Se trata de tomar decisiones reflexivas y delegar el trabajo de manera que se aprovechen las fortalezas propias tanto de la inteligencia humana como de la artificial."
+                }
+              ]
+            },
+            {
+              "title": "Ejercicio: analizar una tarea junto a un asistente de IA",
+              "blocks": [
+                {
+                  "type": "steps",
+                  "items": [
+                    {
+                      "title": "Elegí una tarea simple",
+                      "body": "Algo relativamente chico de tu trabajo o vida personal: redactar un email, armar el esquema de una presentación, planificar una reunión o evento."
+                    },
+                    {
+                      "title": "Planteale la tarea a Claude",
+                      "body": "Contale en qué consiste la tarea y pedile ayuda para pensar un plan de delegación: qué partes convendría delegarle a una IA y cuáles no."
+                    },
+                    {
+                      "title": "Explorá juntos las preguntas clave",
+                      "body": "¿Cuál es la visión general de la tarea? ¿cómo se ve un buen resultado? ¿qué partes de trabajo hacen falta para llegar ahí? ¿cuáles de esas partes requieren expertise humana, creatividad o juicio? La idea es tener una conversación real de ida y vuelta, no simplemente listar respuestas — cada uno puede notar algo que al otro se le escapa."
+                    },
+                    {
+                      "title": "Armen juntos un plan de delegación simple",
+                      "body": "Uno que aproveche tanto tus fortalezas como las de la IA."
+                    }
+                  ]
+                },
+                {
+                  "type": "callout",
+                  "variant": "info",
+                  "title": "Reflexión final",
+                  "content": "Pensá en un proyecto reciente en el que trabajaste con IA: ¿cómo hubiera sido distinto tu enfoque teniendo en mente este framework de Delegation? ¿Qué tipo de tareas de tu trabajo o estudio se beneficiarían más de la colaboración con IA?"
+                }
+              ]
+            },
+            {
+              "title": "Ejercicio extendido: planificación de proyecto y Delegation (20 min)",
+              "blocks": [
+                {
+                  "type": "text",
+                  "content": "Este es el ejercicio más largo del bloque de Delegation, y tiene una particularidad importante: el proyecto que elijas acá no se resuelve en esta lección y se archiva. Es un **proyecto guía** que vas a retomar más adelante en el curso para practicar las otras tres competencias — Description, Discernment y Diligence — sobre el mismo material. Por eso conviene invertir tiempo real en elegirlo bien y en documentar las decisiones que tomes, porque van a ser la base de ejercicios futuros."
+                },
+                {
+                  "type": "text",
+                  "content": "El ejercicio tiene tres pasos, y cada uno construye sobre el anterior: primero elegís el proyecto, después construís con Claude una visión clara de qué es el éxito para ese proyecto, y por último descomponés el trabajo en tareas concretas y decidís, tarea por tarea, cómo se reparte entre vos y la IA."
+                }
+              ]
+            },
+            {
+              "title": "Paso 1 — Elegir el proyecto",
+              "blocks": [
+                {
+                  "type": "text",
+                  "content": "El curso pide elegir un proyecto de tamaño mediano, de varios pasos, que cumpla con tres condiciones a la vez. Vale la pena detenerse en cada una porque, si el proyecto no las cumple, el resto del ejercicio (y los ejercicios futuros que dependen de este mismo proyecto) van a rendir menos:"
+                },
+                {
+                  "type": "cards",
+                  "items": [
+                    {
+                      "title": "Suficientemente sustancial",
+                      "content": "Tiene que involucrar varios tipos distintos de tareas — no una sola acción repetida, sino una mezcla de trabajo (por ejemplo investigar, después estructurar, después redactar) donde tenga sentido preguntarse qué parte le corresponde a quién."
+                    },
+                    {
+                      "title": "Suficientemente manejable",
+                      "content": "Tiene que poder completarse en aproximadamente una hora de trabajo en total a lo largo del curso. No es un proyecto real de semanas — es una simulación acotada que sirve como terreno de práctica constante para las cuatro competencias."
+                    },
+                    {
+                      "title": "Genuinamente interesante para vos",
+                      "content": "El curso insiste en este punto porque vas a volver a este mismo proyecto varias veces más adelante. Si no te importa el resultado, las conversaciones de discernimiento y diligencia que vienen después van a sentirse artificiales."
+                    }
+                  ]
+                },
+                {
+                  "type": "text",
+                  "content": "Para ayudar a elegir, el curso ofrece cuatro categorías de proyecto con varios ejemplos concretos cada una. No hace falta usar exactamente uno de estos — sirven como referencia del nivel de alcance esperado:"
+                },
+                {
+                  "type": "table",
+                  "headers": ["Categoría", "Ejemplos sugeridos por el curso"],
+                  "rows": [
+                    [
+                      "Proyectos de comunicación",
+                      "Crear una presentación convincente sobre un tema que domines; escribir un post (o serie de posts) que explique un tema complejo a una audiencia general; desarrollar una propuesta o pitch para una idea que quieras impulsar; armar una bio personal o profesional con material de apoyo."
+                    ],
+                    [
+                      "Proyectos de investigación",
+                      "Investigar y resumir el estado actual de una tecnología o tendencia emergente; analizar un dataset para identificar patrones y generar recomendaciones; comparar varios productos, servicios o enfoques y armar una recomendación; investigar un hecho histórico y presentar los hallazgos en un formato atractivo."
+                    ],
+                    [
+                      "Proyectos creativos",
+                      "Esbozar un cuento corto con personajes y trama bien desarrollados; diseñar la estructura de un sitio web simple con contenido para sus páginas principales; desarrollar el concepto de un producto, servicio o experiencia."
+                    ],
+                    [
+                      "Proyectos de aprendizaje",
+                      "Crear un plan de estudio estructurado para una habilidad que quieras desarrollar; armar una colección de recursos sobre un tema que estés aprendiendo; desarrollar un tutorial o guía sobre un proceso que domines; crear material de estudio para dominar un tema."
+                    ]
+                  ]
+                }
+              ]
+            },
+            {
+              "title": "Paso 2 — Visión y objetivos del proyecto",
+              "blocks": [
+                {
+                  "type": "text",
+                  "content": "Con el proyecto ya elegido, el segundo paso es arrancar una conversación con Claude compartiendo la idea, e invitarlo explícitamente a que haga preguntas hasta que entre los dos lleguen a una visión sólida del resultado final. Esto es distinto de simplemente describirle el proyecto una vez y pedirle que empiece a trabajar: la instrucción del curso es dejar que la conversación itere, con preguntas de Claude que vayan afinando la idea, hasta que quede claro:"
+                },
+                {
+                  "type": "cards",
+                  "items": [
+                    {
+                      "title": "Cómo se ve el éxito",
+                      "content": "Qué características tendría el resultado final para considerarlo logrado — no en términos vagos, sino con criterios que permitan reconocerlo cuando esté."
+                    },
+                    {
+                      "title": "Qué lo haría valioso o significativo",
+                      "content": "Por qué este proyecto en particular importa para vos, más allá de cumplir el ejercicio — esto es lo que después te va a dar criterio propio (discernment) para evaluar si un resultado generado por IA realmente sirve o no."
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "title": "Paso 3 — Descomposición de tareas y análisis de delegación",
+              "blocks": [
+                {
+                  "type": "text",
+                  "content": "El tercer paso retoma exactamente el mismo enfoque del ejercicio de la lección anterior, pero aplicado ahora a un proyecto más grande y con más pasos. Trabajando junto con Claude, primero identifican juntos cuáles son las tareas principales necesarias para completar el proyecto. Después, para cada una de esas tareas — una por una, no todas de golpe — discuten cuatro preguntas:"
+                },
+                {
+                  "type": "steps",
+                  "items": [
+                    {
+                      "title": "¿Qué habilidades, conocimiento o capacidades de IA hacen falta?",
+                      "body": "Antes de decidir quién hace la tarea, hay que entender de qué está hecha esa tarea concretamente."
+                    },
+                    {
+                      "title": "¿Qué partes se beneficiarían de fortalezas humanas únicas?",
+                      "body": "Juicio de valor, experiencia vivida, sensibilidad al contexto particular del proyecto, criterio ético."
+                    },
+                    {
+                      "title": "¿Qué partes podrían aprovechar bien las capacidades de la IA?",
+                      "body": "Velocidad, generación de variantes, síntesis de grandes volúmenes de texto, redacción de primeros borradores."
+                    },
+                    {
+                      "title": "¿Dónde tendría más impacto la colaboración?",
+                      "body": "Zonas donde ni automatizar del todo ni hacerlo todo manualmente rinde tanto como un ida y vuelta entre ambos — el modo de aumentación visto en la primera lección del curso."
+                    }
+                  ]
+                },
+                {
+                  "type": "callout",
+                  "variant": "warning",
+                  "title": "De nuevo: que sea una conversación real, no un intercambio de afirmaciones",
+                  "content": "El curso repite acá la misma advertencia que en el ejercicio anterior, y la remarca porque en un proyecto más grande es todavía más tentador simplemente \"despachar\" preguntas y respuestas. La instrucción explícita es cuestionar supuestos, pedir aclaraciones, y mantenerse abierto a percepciones inesperadas que puedan surgir durante la discusión — es decir, dejar que la conversación con Claude realmente cambie tu forma de ver alguna de las tareas, no solo confirmar lo que ya pensabas de antemano."
+                },
+                {
+                  "type": "text",
+                  "content": "El resultado de este paso es un **plan de proyecto** que reúne las tareas principales identificadas junto con las decisiones de delegación tomadas para cada una — básicamente un mapa de \"esto lo hago yo, esto lo hacemos juntos, esto se lo delego a la IA\" aplicado a todo el proyecto."
+                },
+                {
+                  "type": "callout",
+                  "variant": "success",
+                  "title": "Guardá este plan — lo vas a necesitar de nuevo",
+                  "content": "El curso pide explícitamente guardar el plan de proyecto, porque las lecciones siguientes sobre Description, Discernment y Diligence van a pedir volver a este mismo proyecto para practicar cada una de esas competencias sobre un caso concreto y ya conocido, en lugar de arrancar cada vez de cero con un proyecto nuevo."
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "af-005",
+          "title": "Description en profundidad",
+          "summary": "Comunicarse con la IA es mucho más que escribir un prompt ingenioso: implica describir qué querés obtener, cómo querés que la IA llegue ahí, y cómo querés que se comporte durante la interacción.",
+          "subsections": [
+            {
+              "title": "Description no es solo escribir un buen prompt",
+              "blocks": [
+                {
+                  "type": "text",
+                  "content": "Description es la competencia que se ocupa de la comunicación con la IA, y el curso insiste en marcar que es mucho más amplia que la idea popular de \"escribir prompts ingeniosos\". Incluye explicar tareas, hacer preguntas, aportar contexto, guiar la interacción, corregir el rumbo cuando una conversación se está yendo por mal camino, orientar el proceso de razonamiento de la IA, y en general construir un entorno de pensamiento donde tanto la persona como la IA puedan hacer su mejor trabajo. Es, en palabras del curso, tender un puente entre tus intenciones y las capacidades de la IA."
+                },
+                {
+                  "type": "callout",
+                  "variant": "info",
+                  "title": "La receta, no solo el pedido",
+                  "content": "El curso compara esto con la diferencia entre pedirle a alguien que \"haga la cena\" y darle una receta detallada con ingredientes y pasos de cocción. La calidad de lo que produce la IA depende en gran medida de cuán claramente se describe lo que se busca — la IA no puede leer la mente de quien le escribe, así que hay que explicitar cada detalle relevante: el contexto del trabajo, qué se espera exactamente que haga, qué formato debería tener el resultado, quién es la audiencia y qué estilo corresponde. La idea central es no hacer que la IA adivine — hay que fijar requisitos explícitos y darle la información que necesita para entregar lo que realmente se busca."
+                }
+              ]
+            },
+            {
+              "title": "Product description: qué querés que produzca la IA",
+              "blocks": [
+                {
+                  "type": "text",
+                  "content": "El primer concepto que distingue el curso dentro de Description es la **product description**: la capacidad de definir con claridad qué querés que la IA cree o entregue. Es la parte más intuitiva de describir — el resultado final que se busca — pero el curso remarca que suele quedarse corta si no se acompaña de las otras dos dimensiones."
+                }
+              ]
+            },
+            {
+              "title": "Process description: cómo querés que la IA llegue ahí",
+              "blocks": [
+                {
+                  "type": "text",
+                  "content": "El segundo concepto es la **process description**: especificar no solo el objetivo final, sino cómo abordar el trabajo para llegar a él. El curso plantea que esto puede ser tan importante, o más, que especificar el objetivo en sí — de la misma forma en que preferirías que un colega resuelva un problema siguiendo tu método específico, podés (y deberías) guiar el proceso que sigue la IA para cumplir tu pedido."
+                },
+                {
+                  "type": "text",
+                  "content": "El curso identifica distintas formas de dar esta guía de proceso: una guía general (como un manual), instrucciones paso a paso (como una receta de cocina), o incluso una demostración a través de ejemplos concretos (\"así lo haría yo\"). La idea de fondo es que la IA ya tiene un entrenamiento extenso, pero quien la usa aporta el contexto adicional específico de su situación particular: qué datos concretos debería usar la IA, qué problemas particulares debería abordar (y en qué orden), qué estilo de análisis hace falta, o qué flujo de trabajo o técnica específica se espera que siga. Tomarse el tiempo de explicitar estos elementos hace, según el curso, una diferencia enorme en el resultado."
+                }
+              ]
+            },
+            {
+              "title": "Performance description: cómo querés que se comporte la IA",
+              "blocks": [
+                {
+                  "type": "callout",
+                  "variant": "warning",
+                  "title": "La idea más importante de esta lección",
+                  "content": "El curso lo plantea de forma explícita: si hay una sola idea para llevarse del curso, es esta. Las herramientas de IA no son bases de datos ni máquinas expendedoras — son sistemas interactivos que pueden comportarse de forma distinta según el contexto, de manera parecida a como lo haría una persona. Por eso hace falta explicar cómo querés que se comporte la IA para obtener los mejores resultados."
+                },
+                {
+                  "type": "text",
+                  "content": "A esto el curso lo llama **performance description**: la capacidad de definir los aspectos de comportamiento de una interacción con la IA. Antes de sentarte a trabajar con una IA, conviene preguntarte qué tipo de compañero de pensamiento necesitás en ese momento puntual: ¿estás tratando de converger hacia una respuesta específica, o de explorar múltiples posibilidades? ¿querés que la IA cuestione tus supuestos, o que simplemente siga tu criterio? ¿necesitás un nivel de detalle exhaustivo, o preferís algo conciso? ¿te sirve que explique por qué responde de cierta manera, o preferís ir directo a la respuesta?"
+                }
+              ]
+            },
+            {
+              "title": "Las tres dimensiones combinadas",
+              "blocks": [
+                {
+                  "type": "table",
+                  "headers": ["Dimensión", "Pregunta que responde", "Ejemplo"],
+                  "rows": [
+                    [
+                      "Product description",
+                      "¿Qué querés que la IA produzca?",
+                      "\"Necesito un resumen ejecutivo de una página para directivos que no leyeron el informe completo.\""
+                    ],
+                    [
+                      "Process description",
+                      "¿Cómo debería llegar la IA a ese resultado?",
+                      "\"Primero identificá los tres riesgos financieros más relevantes del informe, y recién después redactá el resumen alrededor de esos tres puntos.\""
+                    ],
+                    [
+                      "Performance description",
+                      "¿Cómo debería comportarse la IA durante la interacción?",
+                      "\"Cuestioná mis supuestos si te parecen débiles, y explicame brevemente por qué elegiste esos tres riesgos y no otros.\""
+                    ]
+                  ]
+                },
+                {
+                  "type": "callout",
+                  "variant": "success",
+                  "title": "Idea central",
+                  "content": "Product description, process description y performance description se combinan para formar la competencia de Description en su conjunto. Desarrollar esta capacidad transforma a la IA de un asistente genérico a un compañero de pensamiento finamente ajustado a las necesidades reales de quien la usa."
+                }
+              ]
+            },
+            {
+              "title": "Ejercicio: rehacer prompts malos (10 min)",
+              "blocks": [
+                {
+                  "type": "steps",
+                  "items": [
+                    {
+                      "title": "Pedile a Claude prompts mal escritos",
+                      "body": "La consigna es pedirle explícitamente a Claude que te desafíe con ejemplos de prompts pobremente redactados para que vos los mejores."
+                    },
+                    {
+                      "title": "Mejorá cada uno aplicando las tres dimensiones",
+                      "body": "Para cada prompt malo, aplicá el pensamiento de Description: ¿qué producto querés exactamente (product), cómo querés que Claude lo aborde (process), y cómo querés que se comporte durante la colaboración (performance)?"
+                    },
+                    {
+                      "title": "Conversá sobre el antes y el después",
+                      "body": "Charlá con Claude sobre las versiones mejoradas y pedile feedback sobre cómo esas descripciones más ricas le permitirían dar mejores respuestas."
+                    },
+                    {
+                      "title": "Después de unos 5 minutos, intercambien roles",
+                      "body": "Ahora sos vos quien le da prompts malos a Claude para que los arregle. Prestá atención a qué información tiende a agregar y cómo la organiza — eso te da pistas de qué elementos de description solés omitir vos mismo."
+                    }
+                  ]
+                },
+                {
+                  "type": "callout",
+                  "variant": "info",
+                  "title": "Reflexión final",
+                  "content": "¿Cuál de los tres componentes de Description (product, process o performance) creés que estás pasando por alto en tus interacciones actuales con la IA? Pensá en una interacción reciente con IA que no cumplió del todo tus expectativas: ¿cómo mejores habilidades de description podrían haber cambiado el resultado?"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "af-004",
+          "title": "Capacidades y limitaciones",
+          "summary": "Qué hacen bien los LLM como Claude, y dónde están sus límites reales: knowledge cutoff, alucinaciones, context window, no-determinismo y razonamiento complejo.",
+          "subsections": [
+            {
+              "title": "Lo que los LLM hacen especialmente bien",
+              "blocks": [
+                {
+                  "type": "text",
+                  "content": "El curso propone pensar en las fortalezas y limitaciones de un LLM como si fuera un nuevo colega: entenderlas ayuda a colaborar mejor. Modelos como Claude son notablemente versátiles con el lenguaje: redactar emails con un tono propio, condensar informes extensos en resúmenes claros, traducir entre idiomas, o explicar temas complejos en campos muy distintos, desde microbiología hasta estrategia de marketing."
+                },
+                {
+                  "type": "text",
+                  "content": "Un punto notable es que el mismo sistema puede pasar de una tarea a otra sin necesitar entrenamiento adicional — ayudar a escribir poesía y, a continuación, explicar computación cuántica o analizar tendencias de negocio, todo a través de una conversación simple. También pueden mantener el hilo de una conversación, recordando lo que se discutió antes y construyendo sobre eso, de forma similar a como lo haría un interlocutor humano."
+                },
+                {
+                  "type": "callout",
+                  "variant": "info",
+                  "title": "Extensión mediante herramientas externas",
+                  "content": "Muchos LLM modernos pueden conectarse a herramientas y fuentes de información externas — buscar en la web, procesar archivos o usar otras aplicaciones — lo que expande de forma considerable lo que pueden ayudar a resolver."
+                }
+              ]
+            },
+            {
+              "title": "Knowledge cutoff y alucinaciones",
+              "blocks": [
+                {
+                  "type": "text",
+                  "content": "Los modelos están acotados por sus datos de entrenamiento: tienen una fecha de **knowledge cutoff**, el punto después del cual no tienen conocimiento propio del mundo. Es como alguien que se fue a un retiro sin acceso a internet en una fecha determinada: no sabe lo que pasó después de irse. Para enterarse de novedades recientes, el modelo necesita herramientas como la búsqueda web."
+                },
+                {
+                  "type": "text",
+                  "content": "Además, el proceso de entrenamiento no verifica cada dato de los textos con los que aprende, así que los modelos a veces reproducen inexactitudes presentes en esos datos, o cometen errores al combinar información aprendida. Esto es lo que se conoce como **alucinación**: la IA afirma algo con aparente confianza que suena plausible pero es incorrecto. A diferencia de un buscador, que recupera documentos existentes, un LLM genera respuestas siguiendo patrones estadísticos — y ahí es donde pueden aparecer las alucinaciones."
+                }
+              ]
+            },
+            {
+              "title": "Context window y no-determinismo",
+              "blocks": [
+                {
+                  "type": "text",
+                  "content": "Como se vio en la lección anterior, cada LLM tiene un límite máximo de información que puede considerar en una interacción: la context window. Si se supera ese límite, el modelo deja de poder \"recordar\" información que quedó afuera, típicamente en un esquema similar a \"primero en entrar, primero en salir\". Esto puede limitar su capacidad de procesar documentos largos o recordar una conversación completa."
+                },
+                {
+                  "type": "callout",
+                  "variant": "warning",
+                  "title": "No-determinismo (temperature)",
+                  "content": "A diferencia del software tradicional, que da resultados idénticos ante los mismos inputs, los LLM son por defecto algo impredecibles o \"no determinísticos\": la misma pregunta puede recibir respuestas ligeramente distintas cada vez. Esto viene de que el modelo toma decisiones probabilísticas sobre qué texto sigue. Esa variabilidad creativa es útil para brainstorming, pero exige cuidado cuando la consistencia o la exactitud son críticas. Muchas interfaces exponen un parámetro llamado **temperature** para controlar este grado de aleatoriedad."
+                }
+              ]
+            },
+            {
+              "title": "Razonamiento complejo y acceso a datos específicos",
+              "blocks": [
+                {
+                  "type": "text",
+                  "content": "Históricamente los LLM mostraron limitaciones en tareas de razonamiento complejo, en particular problemas matemáticos o lógicos de varios pasos — aunque los modelos de razonamiento o \"extended thinking\" más recientes, diseñados para pensar paso a paso, muestran avances fuertes en esta área."
+                },
+                {
+                  "type": "text",
+                  "content": "Por último, aunque modelos como Claude pueden acceder a herramientas externas, es posible que no tengan acceso a fuentes de datos o herramientas específicas que una tarea puntual requiera. Es como tener un colega brillante que no puede acceder a la base de datos interna de tu empresa: por más capaz que sea, su ayuda va a estar limitada si le falta ese acceso."
+                }
+              ]
+            },
+            {
+              "title": "Fortalezas complementarias entre humanos y IA",
+              "blocks": [
+                {
+                  "type": "text",
+                  "content": "El campo avanza rápido: técnicas como retrieval augmented generation (RAG) conectan a los modelos con fuentes de conocimiento externas, y siguen mejorando el uso de herramientas y las capacidades de razonamiento. Aun así, es probable que algunas limitaciones persistan en el futuro cercano, incluso sin saber exactamente cuáles serán."
+                },
+                {
+                  "type": "callout",
+                  "variant": "success",
+                  "title": "Idea central",
+                  "content": "Entender qué puede y no puede hacer la IA es esencial para la fluidez con IA, y ayuda a decidir cuándo y cómo incorporarla de forma efectiva al trabajo y a la vida diaria. Las aplicaciones más efectivas aprovechan fortalezas complementarias: los humanos aportan pensamiento crítico, juicio, creatividad y supervisión ética; la IA aporta velocidad, escala, reconocimiento de patrones y capacidad de procesar grandes volúmenes de información. Estas fortalezas complementarias van a seguir evolucionando junto con la tecnología, por lo que aprender y experimentar de forma continua tiene un valor concreto."
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
