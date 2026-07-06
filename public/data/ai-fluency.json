@@ -846,6 +846,849 @@
           ]
         }
       ]
+    },
+    {
+      "id": "af-deep-dive-2",
+      "title": "Deep Dive 2: Técnicas de Prompting Efectivo",
+      "articles": [
+        {
+          "id": "af-006",
+          "title": "Effective Prompting Techniques",
+          "summary": "Prompting no es más que la competencia de Description aplicada en la práctica. Seis técnicas fundamentales, más un \"arma secreta\", para comunicarte mejor con Claude y otros sistemas de IA.",
+          "subsections": [
+            {
+              "title": "Prompting: Description puesta en práctica",
+              "blocks": [
+                {
+                  "type": "text",
+                  "content": "El prompting suena técnico y algunas guías lo complican innecesariamente, pero en el fondo es simplemente la competencia de **Description** aplicada en la práctica: comunicar con claridad qué querés, cómo querés que se haga, y cómo querés interactuar con tu asistente de IA a lo largo de todo el proceso. **Prompt engineering** no es otra cosa que la práctica de diseñar instrucciones efectivas para sistemas como Claude — formular preguntas y aportar contexto de manera que la IA entienda exactamente qué se busca."
+                },
+                {
+                  "type": "callout",
+                  "variant": "info",
+                  "title": "Un colega nuevo, no una máquina expendedora",
+                  "content": "Pensá el prompting como explicarle una tarea a un colega nuevo: alguien capaz y con ganas de ayudar, pero que necesita indicaciones claras y expectativas bien puestas para dar lo mejor de sí."
+                },
+                {
+                  "type": "text",
+                  "content": "Lo interesante es que el prompting efectivo combina habilidades de comunicación humana ya conocidas (ser claro, dar contexto relevante, aportar ejemplos concretos) con algunas consideraciones específicas de la IA: hay que ser más explícito sobre cosas que una persona inferiría naturalmente, hay que tener en cuenta el límite de la context window, y a veces conviene usar formatos que la máquina procese con más facilidad. Como las mejores prácticas de prompting evolucionan junto con los sistemas de IA, la experimentación constante es la clave para descubrir qué funciona mejor en cada caso."
+                },
+                {
+                  "type": "text",
+                  "content": "El curso propone seis técnicas fundamentales: dar contexto a Claude, mostrar ejemplos de lo que buscás, especificar restricciones del output, descomponer tareas complejas en pasos, pedirle a Claude que piense antes de responder, y definir su rol, estilo o tono."
+                }
+              ]
+            },
+            {
+              "title": "Técnica 1 — Dar contexto a Claude",
+              "blocks": [
+                {
+                  "type": "text",
+                  "content": "El primer principio es simple pero poderoso: ser específico y claro sobre qué querés, por qué lo querés y — quizás lo más sorprendente — quién sos vos. Un prompt vago como \"contame sobre el cambio climático\" deja a Claude adivinando tu nivel de conocimiento, tu interés real y la profundidad esperada (¿qué geografía? ¿qué período de tiempo?)."
+                },
+                {
+                  "type": "compare",
+                  "left": {
+                    "title": "Prompt vago",
+                    "content": "\"Contame sobre el cambio climático.\""
+                  },
+                  "right": {
+                    "title": "Prompt con contexto rico",
+                    "content": "\"Explicame tres impactos importantes del cambio climático en la agricultura de regiones tropicales, con ejemplos de la última década. Estoy preparando una entrevista de trabajo en un laboratorio de investigación agrícola en Indonesia. Tengo un título en ecología pero no conocimiento específico sobre cambio climático — escribime un resumen de conceptos clave que me ayude a hablar con soltura en la entrevista.\""
+                  }
+                },
+                {
+                  "type": "text",
+                  "content": "Sumar el propósito (para qué se usa la respuesta) y quién sos (tu nivel de conocimiento) ayuda a Claude a calibrar el resultado a tu situación puntual. Este tipo de información de fondo es algo que damos por sentado en una conversación humana, pero que fácilmente se nos olvida aclararle a la IA."
+                }
+              ]
+            },
+            {
+              "title": "Técnica 2 — Mostrar ejemplos (few-shot prompting)",
+              "blocks": [
+                {
+                  "type": "text",
+                  "content": "A veces mostrar es mejor que explicar. Dar ejemplos del tipo de output que buscás — lo que en círculos técnicos se llama **few-shot** o **n-shot prompting** (donde n es la cantidad de ejemplos) — puede ser muy efectivo. La recomendación es probar primero sin ejemplos, ya que Claude puede resolver la tarea bien por sí solo; pero si tenés un estilo muy particular en mente, que es más fácil de mostrar que de describir, agregar ejemplos concretos ayuda mucho."
+                },
+                {
+                  "type": "text",
+                  "content": "Por ejemplo, para pedir que se convierta jerga técnica a lenguaje llano, podés incluir dos pares de \"antes/después\" (original técnico → versión en lenguaje simple) antes de pedirle a Claude que aplique el mismo patrón a un texto nuevo."
+                },
+                {
+                  "type": "callout",
+                  "variant": "info",
+                  "title": "Cubrí la diversidad del patrón",
+                  "content": "Al dar ejemplos, conviene que cubran la variedad real de casos o estilos posibles que esperás. Eso ayuda a Claude a entender el patrón general que querés que siga, en vez de replicar mecánicamente un solo caso puntual."
+                }
+              ]
+            },
+            {
+              "title": "Técnica 3 — Especificar restricciones de output",
+              "blocks": [
+                {
+                  "type": "text",
+                  "content": "Ser claro sobre las restricciones del resultado esperado — formato, extensión, lenguaje de programación, paleta de colores de un sitio web, etc. — ayuda a que obtengas exactamente lo que necesitás, en vez de tener que iterar después."
+                },
+                {
+                  "type": "text",
+                  "content": "Ejemplo: \"Creá un sitio de portfolio de arte de una sola página, moderno y prolijo. Incluí estas secciones: hero, sobre mí, habilidades, portfolio de proyectos, experiencia y contacto. Que el menú de navegación sea sticky y responsive, con menú hamburguesa en mobile. Usá una paleta de colores tipo atardecer y agregá un toggle de modo claro/oscuro en la navegación.\" Este nivel de detalle le da a Claude una estructura clara para organizar su respuesta según tus expectativas."
+                }
+              ]
+            },
+            {
+              "title": "Técnica 4 — Descomponer tareas complejas en pasos",
+              "blocks": [
+                {
+                  "type": "text",
+                  "content": "Cuando el pedido es complicado, descomponerlo en pasos más chicos ayuda a Claude a seguir tu razonamiento y entregar mejores resultados — de la misma forma en que pedirle algo a un amigo sin especificar cómo hacerlo corre el riesgo de que lo resuelva de una manera distinta a la que tenías en mente. Esto es lo que a veces se llama **chain of thought prompting**."
+                },
+                {
+                  "type": "compare",
+                  "left": {
+                    "title": "Sin descomponer",
+                    "content": "\"Analizá estos datos de ventas trimestrales.\""
+                  },
+                  "right": {
+                    "title": "Descompuesto en pasos",
+                    "content": "\"Quiero analizar estos datos de ventas trimestrales. Hacelo así: primero identificá los productos con mejor desempeño, después comparalos con el trimestre anterior, luego marcá tendencias o patrones inusuales, y por último sugerí posibles razones detrás de esas tendencias.\""
+                  }
+                },
+                {
+                  "type": "callout",
+                  "variant": "info",
+                  "title": "¿Cuándo vale la pena descomponer?",
+                  "content": "No siempre hace falta — para tareas simples suele ser innecesario, y los modelos de razonamiento o extended thinking ya descomponen el problema paso a paso por su cuenta (aunque igual podés guiar ese proceso). Vale más la pena invertir tiempo en descomponer cuando hay mucha variabilidad en cómo ejecutar bien la tarea, o cuando el buen resultado depende de experiencia y conocimiento de dominio que vos tenés y Claude no."
+                }
+              ]
+            },
+            {
+              "title": "Técnica 5 — Pedirle a Claude que piense antes de responder",
+              "blocks": [
+                {
+                  "type": "text",
+                  "content": "Darle espacio a la IA para procesar su razonamiento antes de ejecutar la tarea ayuda a producir respuestas más completas y meditadas. Por ejemplo: \"Antes de responder, pensá con cuidado este problema. Considerá los distintos factores en juego, las restricciones posibles y varios enfoques antes de recomendar la mejor solución.\""
+                },
+                {
+                  "type": "text",
+                  "content": "Los modelos de razonamiento o extended thinking ya piensan antes de actuar por defecto, pero si trabajás con un asistente que no lo hace, igual podés pedírselo explícitamente. Es importante que ese espacio de pensamiento ocurra *antes* de ejecutar la tarea, no después: darle espacio para pensar antes de actuar es distinto (y más efectivo) que pedirle que explique su razonamiento una vez que ya respondió."
+                },
+                {
+                  "type": "callout",
+                  "variant": "success",
+                  "title": "Beneficio adicional",
+                  "content": "Ver el proceso de pensamiento de Claude también te permite detectar en qué punto se está desviando de lo que necesitás, y así afinar tu propia competencia de Description dándole más guía donde hace falta."
+                }
+              ]
+            },
+            {
+              "title": "Técnica 6 — Definir el rol, estilo o tono de Claude",
+              "blocks": [
+                {
+                  "type": "text",
+                  "content": "Especificar el nivel de expertise esperado, la perspectiva a adoptar o el estilo de comunicación cambia significativamente cómo Claude aborda una tarea y qué produce. En el fondo, la pregunta es: ¿como quién querés que actúe la IA?"
+                },
+                {
+                  "type": "cards",
+                  "items": [
+                    {
+                      "title": "Ejemplo de perspectiva",
+                      "content": "\"Explicame cómo se forman los arcoíris desde la perspectiva de un profesor de ciencias con experiencia, hablándole a un chico de 10 años brillante e interesado en ciencia.\""
+                    },
+                    {
+                      "title": "Ejemplo de rol experto",
+                      "content": "\"Como experto en diseño UX, revisá este wireframe de sitio web y sugerí tres mejoras enfocadas en navegación y accesibilidad.\""
+                    }
+                  ]
+                },
+                {
+                  "type": "text",
+                  "content": "Esta técnica también sirve para hacer brainstorming o pedir feedback, incluso adoptando la persona de una figura específica (por ejemplo, pedirle explicaciones de física \"como si fueras Richard Feynman\")."
+                }
+              ]
+            },
+            {
+              "title": "El arma secreta: pedirle a Claude que mejore tu prompt",
+              "blocks": [
+                {
+                  "type": "callout",
+                  "variant": "warning",
+                  "title": "Quizás la técnica más poderosa",
+                  "content": "Cuando no estés seguro de cómo pedir algo o cómo mejorar tu prompt, describile a Claude tu situación o problema y pedile directamente que redacte o mejore el prompt por vos. Por ejemplo: \"Estoy tratando de que me ayudes con [objetivo]. No estoy seguro de cómo formular mi pedido para obtener el mejor resultado. ¿Podés ayudarme a armar un prompt efectivo para esto?\""
+                },
+                {
+                  "type": "text",
+                  "content": "Es en este tipo de tarea donde más varían Claude y otros asistentes de IA en su desempeño, así que conviene experimentar con distintos modelos como parte de la práctica de Delegation y platform awareness."
+                }
+              ]
+            },
+            {
+              "title": "Las seis técnicas de un vistazo",
+              "blocks": [
+                {
+                  "type": "table",
+                  "headers": ["Técnica", "Qué resuelve"],
+                  "rows": [
+                    ["Dar contexto", "Qué querés, por qué lo querés y quién sos vos"],
+                    ["Mostrar ejemplos (few-shot)", "Un estilo o patrón más fácil de mostrar que de explicar"],
+                    ["Restricciones de output", "Formato, extensión, lenguaje, estilo exacto del resultado"],
+                    ["Descomponer en pasos", "Tareas complejas donde el proceso importa tanto como el resultado"],
+                    ["Pedir que piense primero", "Respuestas más completas y razonadas, con visibilidad de dónde se desvía"],
+                    ["Definir rol/estilo/tono", "Calibrar expertise, perspectiva y forma de comunicar de Claude"]
+                  ]
+                }
+              ]
+            },
+            {
+              "title": "Iterar y refinar: el prompting como proceso experimental",
+              "blocks": [
+                {
+                  "type": "text",
+                  "content": "El prompting efectivo es iterativo y experimental. Los sistemas de IA y las mejores prácticas evolucionan constantemente, así que lo que funciona hoy puede cambiar mañana. El primer intento no siempre da el resultado perfecto, y eso es esperable — cuando una respuesta no es la que necesitás, conviene refinar el enfoque: agregar más especificidad o contexto, dar ejemplos del output deseado, descomponer la tarea en pasos más chicos, o directamente probar una técnica distinta."
+                },
+                {
+                  "type": "cards",
+                  "items": [
+                    {
+                      "title": "Pedir variaciones",
+                      "content": "\"¿Me das tres versiones distintas de esto?\""
+                    },
+                    {
+                      "title": "Pedir otro formato",
+                      "content": "\"En vez de un párrafo, ¿podés presentarlo como un artifact interactivo?\""
+                    },
+                    {
+                      "title": "Chequear confianza",
+                      "content": "Para preguntas factuales: \"¿Qué tan seguro estás de esta respuesta?\""
+                    },
+                    {
+                      "title": "Reiniciar la conversación",
+                      "content": "A veces empezar de cero da mejores resultados que intentar corregir una conversación que se desvió."
+                    }
+                  ]
+                },
+                {
+                  "type": "table",
+                  "headers": ["Patrones que funcionan bien", "Errores comunes a evitar"],
+                  "rows": [
+                    ["Empezar con una descripción clara de la tarea general", "Asumir que Claude puede leerte la mente"],
+                    ["Incluir especificaciones de formato y ejemplos", "Sobrecargar un mismo prompt o conversación con tareas no relacionadas"],
+                    ["Fijar restricciones o requisitos explícitos", "Ser vago sobre cómo se ve el éxito"],
+                    ["Aportar contexto de fondo rico y relevante", "No dar feedback sobre respuestas anteriores"]
+                  ]
+                },
+                {
+                  "type": "callout",
+                  "variant": "success",
+                  "title": "Idea central",
+                  "content": "La comunicación efectiva con sistemas de IA combina principios atemporales de comunicación humana con técnicas específicas de IA. A medida que los modelos mejoran, algunas técnicas puntuales se vuelven menos necesarias, pero los principios de buena comunicación siguen siendo relevantes aunque cambie la forma de aplicarlos. Mantené un espíritu de experimentación y ajustá tu enfoque según los resultados que vayas obteniendo."
+                }
+              ]
+            },
+            {
+              "title": "Reflexión y ejercicio",
+              "blocks": [
+                {
+                  "type": "callout",
+                  "variant": "info",
+                  "title": "Antes de seguir, el curso propone pensar",
+                  "content": "¿Cuál de las seis técnicas de prompting creés que más mejoraría tus interacciones actuales con la IA? Pensá en una interacción reciente que no cumplió tus expectativas: ¿qué técnicas podrían haber mejorado el resultado? ¿Cómo se conecta todo esto con la competencia de Description del framework de AI Fluency?"
+                },
+                {
+                  "type": "steps",
+                  "items": [
+                    {
+                      "title": "Volvé al ejercicio \"Bad Prompt Makeover\"",
+                      "body": "Si querés poner a prueba estos principios, el curso sugiere retomar el ejercicio de reescribir prompts malos de la lección anterior de Description, y aplicar ahora las seis técnicas puntuales vistas acá."
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "af-discernment",
+      "title": "Discernment",
+      "articles": [
+        {
+          "id": "af-007",
+          "title": "A closer look at Discernment",
+          "summary": "Discernment es tu sistema de control de calidad para la colaboración con IA: evaluar el producto, el proceso y el desempeño de la interacción, y dar feedback que retroalimente la Description.",
+          "subsections": [
+            {
+              "title": "Qué es Discernment",
+              "blocks": [
+                {
+                  "type": "text",
+                  "content": "Discernment se ocupa específicamente de evaluar los outputs, los procesos y los comportamientos de la IA — es, en esencia, tu sistema de control de calidad para la colaboración con IA. Es tu capacidad de evaluar críticamente qué produce la IA, cómo lo produce y cómo se comporta mientras lo hace."
+                },
+                {
+                  "type": "callout",
+                  "variant": "info",
+                  "title": "La otra cara de Description",
+                  "content": "Si Description es comunicar con claridad qué querés, Discernment es decidir si lo que recibiste realmente cumple con lo que necesitabas. Desarrollar Discernment te permite identificar cuándo un output es valioso o problemático, reconocer fortalezas y limitaciones, y determinar si un resultado ya está listo para usarse o todavía necesita trabajo."
+                },
+                {
+                  "type": "text",
+                  "content": "Hacerlo bien requiere dos cosas a la vez: expertise en el dominio (saber lo suficiente como para juzgar la calidad) y comprensión de cómo funcionan los sistemas de IA, incluyendo sus limitaciones típicas. Incluso los sistemas más avanzados pueden cometer errores de razonamiento, equivocarse en datos factuales o comportarse de forma inesperada — tu capacidad de discernimiento es una salvaguarda esencial frente a eso."
+                }
+              ]
+            },
+            {
+              "title": "Product discernment: evaluar qué produjo la IA",
+              "blocks": [
+                {
+                  "type": "text",
+                  "content": "La forma más directa de discernimiento es evaluar la calidad de lo que la IA efectivamente produjo. Al revisar contenido generado por IA conviene preguntarse: ¿es factualmente exacto? ¿es apropiado para mi audiencia y propósito? ¿es coherente y está bien estructurado? ¿cumple con mis requisitos? ¿agrega valor o resuelve el problema que me propuse?"
+                },
+                {
+                  "type": "callout",
+                  "variant": "success",
+                  "title": "Product discernment",
+                  "content": "Es la capacidad de juzgar la exactitud y el valor del output creado por la IA."
+                }
+              ]
+            },
+            {
+              "title": "Process discernment: evaluar cómo llegó ahí",
+              "blocks": [
+                {
+                  "type": "text",
+                  "content": "Al interactuar con la IA hace falta evaluar no solo qué produjo, sino cómo llegó a ese resultado. Algunas señales de alerta a vigilar: errores lógicos, lapsus de atención, pasos inapropiados, quedarse enganchada en un detalle menor o en una sola interpretación sin poder considerar alternativas, o caer en razonamiento circular."
+                },
+                {
+                  "type": "text",
+                  "content": "Ejemplo del curso: estás trabajando con la IA para desarrollar una de cinco estructuras de documento que propuso originalmente. Después de varias rondas de ida y vuelta, notás que reaparecen elementos de ideas que ya habían sido descartadas — una señal clara de que el proceso se desvió."
+                },
+                {
+                  "type": "callout",
+                  "variant": "info",
+                  "title": "Process discernment",
+                  "content": "Es la capacidad de juzgar la calidad y efectividad del proceso de la IA. Sirve para asegurarte de que vos y la IA están pensando en sintonía durante todo el trabajo, guiándola hacia tu visión de éxito. Se vuelve especialmente importante en tareas complejas donde la respuesta correcta no es obvia de entrada — ahí, confiar en el proceso lo es todo."
+                }
+              ]
+            },
+            {
+              "title": "Performance discernment: evaluar cómo se comporta la IA",
+              "blocks": [
+                {
+                  "type": "text",
+                  "content": "También conviene evaluar y guiar cómo se comporta la IA durante la interacción misma. La diferencia entre proceso y desempeño es sutil: el proceso es el trabajo que la IA está haciendo, mientras que el desempeño es qué tan bien está interactuando con vos mientras lo hace."
+                },
+                {
+                  "type": "text",
+                  "content": "Preguntas útiles para evaluar el desempeño de un asistente de IA: ¿hay una mejor forma en que podría comunicarse conmigo para mayor fluidez y productividad de acá en adelante? ¿me está dando la información que necesito de forma útil? ¿responde bien a mi feedback y dirección? ¿la interacción es eficiente o innecesariamente compleja? Por ejemplo, ¿está haciendo demasiadas preguntas cuando necesitás respuestas concisas, o es demasiado breve cuando necesitás información exhaustiva?"
+                },
+                {
+                  "type": "callout",
+                  "variant": "success",
+                  "title": "Performance discernment",
+                  "content": "Es la capacidad de juzgar la calidad de la interacción humano-IA, lo que te ayuda a moldear un vínculo de trabajo más productivo con los sistemas de IA."
+                }
+              ]
+            },
+            {
+              "title": "Feedback discernment: cerrar el ciclo",
+              "blocks": [
+                {
+                  "type": "text",
+                  "content": "El discernimiento no termina en la evaluación — también hace falta dar feedback para mejorar lo que la IA entrega de ahí en adelante. Cuando identificás un problema en un output, un feedback efectivo incluye: especificar cuál es el problema, explicar con claridad por qué es un problema, dar sugerencias concretas de mejora, y revisar tus propias instrucciones o ejemplos."
+                },
+                {
+                  "type": "callout",
+                  "variant": "warning",
+                  "title": "Cuando Discernment detecta un problema, la solución suele ser mejor Description",
+                  "content": "Pero no siempre es así: a veces el problema real está en tus decisiones de Delegation — quizás estás usando la herramienta equivocada, o abordando el problema de una manera que no corresponde en absoluto."
+                }
+              ]
+            },
+            {
+              "title": "Las tres dimensiones combinadas",
+              "blocks": [
+                {
+                  "type": "table",
+                  "headers": ["Dimensión", "Qué evalúa"],
+                  "rows": [
+                    ["Product discernment", "La exactitud y el valor del resultado final que entregó la IA"],
+                    ["Process discernment", "La calidad y coherencia del razonamiento con el que la IA llegó a ese resultado"],
+                    ["Performance discernment", "La calidad de la interacción humano-IA mientras se hace el trabajo"]
+                  ]
+                },
+                {
+                  "type": "callout",
+                  "variant": "success",
+                  "title": "Idea central",
+                  "content": "Product, process y performance discernment se combinan para formar la competencia de Discernment. Discernment trabaja de la mano con Description: mientras Description se ocupa de comunicar tus necesidades a la IA, Discernment evalúa qué tan bien fueron satisfechas. Juntas forman un ciclo continuo de instrucción y evaluación que impulsa la calidad — y aseguran que tu colaboración con la IA siga guiada por el juicio humano."
+                }
+              ]
+            },
+            {
+              "title": "Ejercicio: Expert Discernment — evaluar respuestas de IA en tu dominio",
+              "blocks": [
+                {
+                  "type": "text",
+                  "content": "El objetivo de este ejercicio es practicar product, process y performance discernment evaluando contenido generado por IA en un dominio donde tenés expertise real, y notar cómo ese conocimiento propio potencia tu capacidad de evaluación crítica."
+                },
+                {
+                  "type": "steps",
+                  "items": [
+                    {
+                      "title": "Volvé a tu área de expertise",
+                      "body": "Recuperá el tema que trabajaste con Claude en el ejercicio \"Explorá algo que te apasiona\" de la lección de introducción — un tema donde tenías conocimiento y pasión reales."
+                    },
+                    {
+                      "title": "Pedí múltiples explicaciones",
+                      "body": "En una conversación nueva, pedile a Claude tres explicaciones o análisis distintos sobre un aspecto puntual de ese tema (por ejemplo: tres explicaciones de profundidad de campo si tu tema es fotografía, tres análisis de técnicas de fermentación si es cocina, o tres perspectivas sobre un hecho histórico puntual)."
+                    },
+                    {
+                      "title": "Aplicá tu discernimiento experto",
+                      "body": "Evaluá cada explicación con las tres dimensiones: Product (¿cuál tiene la información más exacta? ¿hay errores o conceptos equivocados? ¿el nivel de detalle es apropiado?), Process (¿el razonamiento es lógico en cada caso? ¿hay huecos en el análisis? ¿conecta bien los conceptos?), y Performance (¿fue atenta a tu pregunta puntual y receptiva a tu feedback? ¿usa la terminología correcta? ¿el tono y estilo ayudan a la claridad?)."
+                    },
+                    {
+                      "title": "Dale feedback y pedí una mejora",
+                      "body": "Identificá la explicación más fuerte y decile a Claude específicamente por qué funciona bien. Identificá la más débil y dale feedback concreto sobre qué la hace problemática. Trabajen juntos para crear una versión mejorada que resuelva esos problemas."
+                    },
+                    {
+                      "title": "Reflexioná junto con Claude",
+                      "body": "En la misma conversación, discutan: ¿qué conocimiento puntual tuyo te permitió detectar fortalezas o debilidades? ¿cómo le costaría a alguien sin tu expertise discernir la calidad de estas explicaciones? ¿qué te enseña esto sobre la relación entre conocimiento de dominio y Discernment efectivo?"
+                    }
+                  ]
+                },
+                {
+                  "type": "callout",
+                  "variant": "info",
+                  "title": "Reflexión final",
+                  "content": "¿Cuál de los tres tipos de Discernment (product, process o performance) te resulta más difícil de aplicar, y por qué? ¿Cómo se complementan Discernment y Description? ¿Qué señales o patrones podrían indicar que un output de IA necesita un escrutinio más cercano?"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "af-description-discernment-loop",
+      "title": "The Description-Discernment Loop",
+      "articles": [
+        {
+          "id": "af-008",
+          "title": "The Description-Discernment Loop",
+          "summary": "Una lección puramente práctica (sin video): poner en acción Description y Discernment sobre el proyecto guía definido en la lección de Delegation, iterando en ciclos hasta lograr un resultado que supere lo que humano o IA lograrían por separado.",
+          "subsections": [
+            {
+              "title": "Objetivo de la lección",
+              "blocks": [
+                {
+                  "type": "text",
+                  "content": "Esta lección no tiene video propio — es enteramente práctica. La idea es aplicar todo lo visto hasta ahora sobre las competencias de Description y Discernment directamente sobre el **proyecto guía** que definiste durante el ejercicio extendido de la lección de Delegation."
+                },
+                {
+                  "type": "cards",
+                  "items": [
+                    {
+                      "title": "Aplicar Description y Discernment a un proyecto real",
+                      "content": "Pasar de la teoría a la práctica sobre el mismo proyecto que ya veniás planificando."
+                    },
+                    {
+                      "title": "Sostener ciclos productivos de feedback",
+                      "content": "Encadenar Description y Discernment en un ida y vuelta continuo, no como pasos aislados."
+                    },
+                    {
+                      "title": "Lograr resultados que superen a humano o IA por separado",
+                      "content": "El objetivo final de una buena colaboración humano-IA: un resultado mejor que cualquiera de los dos lograría solo."
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "title": "Paso 1 — Revisar el plan del proyecto",
+              "blocks": [
+                {
+                  "type": "text",
+                  "content": "Recuperá el plan de proyecto que armaste en la lección de Delegation. Repasá rápidamente tus decisiones de delegación — qué tareas se beneficiarían de expertise humana, cuáles de las capacidades de la IA, y cuáles de colaboración entre ambos. Sentite libre de ajustar el plan si aprendiste algo nuevo desde entonces que cambie esas decisiones."
+                }
+              ]
+            },
+            {
+              "title": "Paso 2 — Preparar tu enfoque de Description",
+              "blocks": [
+                {
+                  "type": "text",
+                  "content": "Antes de arrancar a ejecutar, iniciá una conversación con Claude explicándole el proyecto en el que van a trabajar juntos, y planificá de antemano cómo vas a abordar cada una de las tres dimensiones de Description vistas en la lección anterior:"
+                },
+                {
+                  "type": "table",
+                  "headers": ["Dimensión", "Preguntas a resolver antes de ejecutar"],
+                  "rows": [
+                    ["Product description", "¿Qué outputs concretos necesitás de Claude para cada tarea? ¿Qué formato, estilo, extensión y nivel de detalle buscás?"],
+                    ["Process description", "¿Cómo debería abordar Claude cada tarea? ¿Hay métodos, frameworks o pasos puntuales que querés que siga?"],
+                    ["Performance description", "¿Qué tipo de comportamiento colaborativo esperás de Claude durante el proyecto? ¿Conciso o detallado? ¿Que cuestione tus ideas o que te acompañe? ¿Enfocado en generar ideas o en analizar?"]
+                  ]
+                },
+                {
+                  "type": "callout",
+                  "variant": "info",
+                  "title": "Discutí estas preguntas con Claude",
+                  "content": "No se trata de responderlas vos solo por escrito — la idea es conversarlas directamente con Claude para establecer expectativas claras de colaboración antes de arrancar a ejecutar el proyecto."
+                }
+              ]
+            },
+            {
+              "title": "Paso 3 — Ejecutar el proyecto en ciclos de Description-Discernment",
+              "blocks": [
+                {
+                  "type": "text",
+                  "content": "Con el enfoque ya definido, avanzá tarea por tarea del plan de proyecto, repitiendo el mismo ciclo en cada una:"
+                },
+                {
+                  "type": "steps",
+                  "items": [
+                    {
+                      "title": "Describí lo que necesitás con claridad",
+                      "body": "Sé específico sobre qué querés (product), guiá cómo debería abordar o pensar la tarea (process), y especificá cómo querés que Claude se relacione con vos durante el proceso (performance)."
+                    },
+                    {
+                      "title": "Discerní la calidad de lo que recibís",
+                      "body": "Evaluá el output en sí (product discernment), cómo abordó Claude la tarea (process discernment), y si su comportamiento fue el más útil para lo que necesitabas (performance discernment)."
+                    },
+                    {
+                      "title": "Refiná en base a tu discernimiento",
+                      "body": "Dale feedback sobre qué funcionó y qué no, aclará o ajustá tu description según haga falta, y pedí iteraciones hasta quedar conforme con el resultado."
+                    },
+                    {
+                      "title": "Integrá tu propia expertise y juicio",
+                      "body": "Sumá tu perspectiva única, creatividad o conocimiento de dominio. Tomá vos las decisiones finales sobre qué conservar, modificar o descartar, y hacete responsable del resultado final."
+                    }
+                  ]
+                },
+                {
+                  "type": "callout",
+                  "variant": "warning",
+                  "title": "El ciclo se repite tarea por tarea",
+                  "content": "Continuá este ciclo de Description-Discernment en cada tarea del proyecto hasta completarlo — no es un paso único, sino el patrón de trabajo que se repite a lo largo de todo el proyecto."
+                }
+              ]
+            },
+            {
+              "title": "Reflexión final",
+              "blocks": [
+                {
+                  "type": "callout",
+                  "variant": "info",
+                  "title": "Antes de seguir, el curso propone pensar",
+                  "content": "¿Qué patrones notaste en los tipos de description que llevaron a los mejores resultados? ¿Qué te demandó más esfuerzo, Description o Discernment? ¿Por qué creés que fue así? ¿Cómo se comparó la ejecución real de tu proyecto con el plan inicial de la lección de Delegation? ¿Qué ajustes hiciste sobre la marcha?"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "af-diligence",
+      "title": "Diligence",
+      "articles": [
+        {
+          "id": "af-009",
+          "title": "A closer look at Diligence",
+          "summary": "Mientras las otras tres competencias apuntan sobre todo a efectividad y eficiencia, Diligence se centra en lo ético y lo seguro: tomar responsabilidad real por tus interacciones con IA. Sus tres dimensiones: creation, transparency y deployment diligence.",
+          "subsections": [
+            {
+              "title": "Diligence: la dimensión ética y de seguridad",
+              "blocks": [
+                {
+                  "type": "text",
+                  "content": "Mientras Delegation, Description y Discernment apuntan sobre todo a trabajar de forma efectiva y eficiente con IA, **Diligence** se centra en los aspectos éticos y de seguridad — igual de cruciales para una colaboración exitosa. En el fondo, Diligence es tomar responsabilidad por tus interacciones con IA: es la dimensión que asegura que tu uso de estos sistemas no sea solo productivo, sino también riguroso, transparente y responsable."
+                },
+                {
+                  "type": "text",
+                  "content": "A diferencia de las otras competencias, centradas en obtener resultados, Diligence te invita a hacerte preguntas más amplias pero igual de críticas, en especial en entornos profesionales: ¿cuáles son las implicancias de trabajar con esta IA? ¿a quién puede afectar lo que se crea, la colaboración en sí, o algún error que pase desapercibido? ¿quién tiene acceso a los datos usados para producir este resultado? ¿cómo aseguro que mi interacción y el resultado final estén alineados con estándares éticos y valores?"
+                },
+                {
+                  "type": "callout",
+                  "variant": "info",
+                  "title": "Como manejar un auto",
+                  "content": "No solo nos importa llegar de un punto A a un punto B de forma eficiente — también nos importa la seguridad, seguir las reglas de tránsito, y ser conscientes de cómo nuestra forma de manejar afecta a otros en el camino. De la misma manera, Diligence reconoce que los sistemas de IA y nuestras interacciones con ellos no existen en el vacío: trabajar con IA de forma responsable exige tener presente el contexto más amplio y sus implicancias."
+                }
+              ]
+            },
+            {
+              "title": "Creation diligence: elegir con qué IA trabajar y cómo",
+              "blocks": [
+                {
+                  "type": "text",
+                  "content": "Diligence arranca por volverse más crítico y reflexivo sobre con qué sistemas de IA trabajamos, cómo trabajamos con ellos, y qué impactos genera esa colaboración. Vale la pena buscar respuestas a preguntas como: ¿cómo fue entrenado y construido este sistema? ¿qué datos se usaron? ¿quién es dueño de los datos que estoy ingresando ahora mismo? ¿quién podría tener acceso a esa información una vez compartida? ¿cómo estoy protegiendo mi privacidad y seguridad, y la de terceros? ¿qué otros impactos tiene este sistema? ¿esta interacción está alineada con mis valores personales y profesionales, o con las políticas de mi organización?"
+                },
+                {
+                  "type": "text",
+                  "content": "Por ejemplo: antes de compartir información sensible de una empresa con un asistente de IA, conviene chequear primero si el servicio tiene políticas de protección de datos apropiadas, o si tu organización permite ese tipo de uso."
+                },
+                {
+                  "type": "callout",
+                  "variant": "success",
+                  "title": "Creation diligence",
+                  "content": "Es tu capacidad de ser crítico e intencional respecto a qué sistemas de IA elegís para trabajar y cómo trabajás con ellos."
+                }
+              ]
+            },
+            {
+              "title": "Transparency diligence: ser honesto sobre el rol de la IA",
+              "blocks": [
+                {
+                  "type": "text",
+                  "content": "Distintos contextos — personal, académico, creativo, profesional — pueden tener expectativas distintas sobre qué tan explícito hay que ser respecto de la participación de la IA. Pero la responsabilidad de entender y cumplir esas expectativas recae en cada uno de nosotros. Conviene preguntarse: ¿quién necesita saber sobre el rol de la IA en este trabajo? ¿cómo y cuándo debería comunicarlo? ¿qué nivel de detalle tiene sentido compartir?"
+                },
+                {
+                  "type": "text",
+                  "content": "Cumplir con las expectativas de transparencia no es solo seguir reglas o regulaciones — es sostener la confianza y el respeto en tus relaciones, y reconocer que las personas tienen derecho a saber cuándo la IA jugó un rol significativo en la creación de un contenido o en decisiones que las afectan. Por ejemplo: si usaste IA para ayudar a redactar una propuesta de equipo, avisarles a tus colegas qué partes fueron asistidas por IA permite una colaboración más honesta y mantiene a todos alineados."
+                },
+                {
+                  "type": "callout",
+                  "variant": "success",
+                  "title": "Transparency diligence",
+                  "content": "Es la capacidad de ser abierto y preciso sobre tu interacción con IA frente a todos los que necesiten saberlo."
+                }
+              ]
+            },
+            {
+              "title": "Deployment diligence: responsabilizarte por lo que compartís",
+              "blocks": [
+                {
+                  "type": "text",
+                  "content": "Como ya vimos, los sistemas de IA pueden equivocarse. Cuando compartís contenido generado por IA con el mundo, sos vos — no la IA — quien es responsable en última instancia de su exactitud y adecuación. Esto implica verificar los hechos, chequear posibles sesgos, asegurar exactitud y derechos de uso, y hacer cualquier otro control necesario para poder respaldar lo que compartís."
+                },
+                {
+                  "type": "text",
+                  "content": "Pensá en un periodista que usa IA para ayudar a redactar un artículo: antes de publicarlo, necesita verificar cada dato y cada fuente, y asegurarse de que la pieza final cumpla con todos los estándares periodísticos — los mismos que aplicarían si lo hubiera escrito enteramente solo."
+                },
+                {
+                  "type": "callout",
+                  "variant": "warning",
+                  "title": "Deployment diligence",
+                  "content": "Es la capacidad de asumir responsabilidad informada por los resultados que usás o compartís, una vez que fueron creados con asistencia de IA."
+                }
+              ]
+            },
+            {
+              "title": "Navegar estas decisiones no siempre es simple",
+              "blocks": [
+                {
+                  "type": "text",
+                  "content": "Distintos contextos y partes interesadas pueden tener expectativas y estándares distintos. Por eso ayuda desarrollar lineamientos personales para trabajar con IA que estén alineados con tu propia ética y valores, y en contextos profesionales, familiarizarte con las políticas de tu organización y los estándares de tu industria. Los marcos legales y regulatorios sobre IA todavía están emergiendo y van a seguir evolucionando — mantenerte informado es una parte importante de la diligencia."
+                }
+              ]
+            },
+            {
+              "title": "Las tres dimensiones combinadas",
+              "blocks": [
+                {
+                  "type": "table",
+                  "headers": ["Dimensión", "Qué implica"],
+                  "rows": [
+                    ["Creation diligence", "Ser crítico e intencional sobre qué sistemas de IA elegís y cómo trabajás con ellos"],
+                    ["Transparency diligence", "Ser abierto y preciso sobre el rol de la IA frente a quienes necesitan saberlo"],
+                    ["Deployment diligence", "Asumir responsabilidad informada por los resultados que usás o compartís"]
+                  ]
+                },
+                {
+                  "type": "callout",
+                  "variant": "success",
+                  "title": "Idea central",
+                  "content": "Creation, transparency y deployment diligence se combinan para formar la competencia completa de Diligence. Desarrollarla asegura que tu uso de IA sea no solo efectivo y eficiente, sino también ético y seguro: implica ser reflexivo sobre los sistemas que elegís y cómo trabajás con ellos, ser honesto sobre el rol de la IA en tu trabajo, y en última instancia hacerte responsable de lo que creás. Todos queremos una IA justa, segura y beneficiosa para la sociedad — nuestro propio comportamiento juega un rol clave en lograrlo."
+                }
+              ]
+            },
+            {
+              "title": "Ejercicio: Redactar una declaración de diligencia (Diligence Statement)",
+              "blocks": [
+                {
+                  "type": "text",
+                  "content": "En este ejercicio (~14 minutos) vas a redactar una **declaración de diligencia** para el proyecto guía en el que venís trabajando desde la lección de Delegation. Una declaración de diligencia es un reconocimiento transparente del rol que tuvo la IA en tu trabajo, junto con tu compromiso de responsabilizarte por el resultado final."
+                },
+                {
+                  "type": "callout",
+                  "variant": "info",
+                  "title": "Ejemplo de declaración de diligencia (la del propio curso)",
+                  "content": "\"Al crear este [documento/proyecto/contenido], colaboré con [nombre del asistente de IA] para ayudar con [tareas específicas: redacción, investigación, edición, etc.]. Afirmo que todo el contenido generado o co-creado con IA pasó por una revisión y evaluación exhaustiva. El resultado final refleja fielmente mi comprensión, mi expertise y el significado que quise transmitir. Si bien la asistencia de IA fue clave en el proceso, mantengo responsabilidad total sobre el contenido, su exactitud y su presentación. Esta divulgación se hace en un espíritu de transparencia y para reconocer el rol de la IA en el proceso de creación.\""
+                },
+                {
+                  "type": "steps",
+                  "items": [
+                    {
+                      "title": "Reflexioná sobre tu colaboración con IA (~5 min)",
+                      "body": "Sobre tu trabajo en el proyecto del curso, pensá en Creation diligence (¿qué sistemas de IA elegiste y por qué? ¿qué datos o información compartiste? ¿hubo consideraciones de privacidad, seguridad o ética en tus decisiones?), Transparency diligence (¿quién es la audiencia del resultado de tu proyecto? ¿qué expectativas podría tener respecto a la divulgación del uso de IA? ¿cómo contribuyó específicamente la IA a distintas partes de tu trabajo?), y Deployment diligence (¿qué pasos tomaste para verificar la exactitud y adecuación de los aportes de la IA? ¿cómo aseguraste que el resultado final cumpla tus estándares? ¿qué responsabilidad estás asumiendo por el producto final?)."
+                    },
+                    {
+                      "title": "Redactá tu declaración junto con Claude (~6 min)",
+                      "body": "Abrí una conversación con Claude, compartile tus reflexiones del paso anterior (y opcionalmente las conversaciones previas que tuviste sobre este proyecto), y colaborá con Claude para redactar una declaración de diligencia específica para tu proyecto. Asegurate de que cubra: qué sistemas de IA usaste, cómo contribuyó la IA a tu proyecto, qué proceso de revisión aplicaste, tu afirmación de responsabilidad por el resultado final, y cualquier consideración específica del contexto (académico, profesional, etc.)."
+                    },
+                    {
+                      "title": "Agregá la declaración a tu proyecto",
+                      "body": "Cuando termines el proyecto, incluí tu declaración de diligencia en un lugar apropiado (por ejemplo, un pie de página, un apéndice o los metadatos)."
+                    }
+                  ]
+                },
+                {
+                  "type": "callout",
+                  "variant": "info",
+                  "title": "Reflexión final",
+                  "content": "¿Qué aspecto de Diligence (creation, transparency o deployment) te resulta más difícil, y por qué? ¿Cómo cambiaría tu enfoque de Diligence según el contexto (personal, académico, profesional)? ¿Cómo afecta reconocer el rol de la IA en tu trabajo a la forma en que otros lo pueden percibir? ¿Qué consideraciones éticas surgieron durante tu proyecto que no habías anticipado? ¿Qué lineamientos personales podrías desarrollar para una colaboración responsable con IA de acá en adelante?"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "af-conclusion",
+      "title": "Conclusión & Certificado",
+      "articles": [
+        {
+          "id": "af-010",
+          "title": "Conclusión del curso",
+          "summary": "Repaso final de las 4D, las ideas clave que quedan de cada competencia, y los ejercicios de cierre: conversar con Claude sobre el framework y construir tu propia política personal de uso de IA.",
+          "subsections": [
+            {
+              "title": "Repaso de las cuatro competencias",
+              "blocks": [
+                {
+                  "type": "text",
+                  "content": "El curso cierra con un repaso de las cuatro competencias centrales del framework de AI Fluency."
+                },
+                {
+                  "type": "table",
+                  "headers": ["Competencia", "En una frase"],
+                  "rows": [
+                    ["Delegation", "Decidir qué trabajo hace la IA, qué hacés vos, y qué hacen juntos — combinando comprensión del problema, conocimiento de las capacidades de la IA y criterio para repartir el trabajo."],
+                    ["Description", "Comunicar con claridad qué querés (product), cómo abordarlo (process) y cómo querés que se comporte la IA (performance) para guiarla hacia los resultados que necesitás."],
+                    ["Discernment", "Evaluar críticamente el output (product), el razonamiento (process) y el comportamiento (performance) de la IA, para asegurar calidad y adecuación."],
+                    ["Diligence", "Elegir con criterio los sistemas de IA (creation), ser transparente sobre su rol (transparency), y responsabilizarte por el resultado final (deployment)."]
+                  ]
+                },
+                {
+                  "type": "callout",
+                  "variant": "info",
+                  "title": "Las 4D aplican a los tres modos de interacción",
+                  "content": "Estas cuatro competencias no son específicas de un modo de uso: aplican igual en Automatización (la IA ejecuta tareas puntuales según tus instrucciones), Aumentación (vos y la IA colaboran como socios de pensamiento) y Agencia (la IA está configurada para actuar de forma relativamente independiente en tu nombre)."
+                }
+              ]
+            },
+            {
+              "title": "Ideas clave para llevarse de cada competencia",
+              "blocks": [
+                {
+                  "type": "cards",
+                  "items": [
+                    {
+                      "title": "Delegation",
+                      "content": "Tu propia expertise y criterio siguen siendo la base de un uso efectivo de la IA. Los resultados más potentes surgen cuando identificás dónde vos y la IA pueden potenciar mutuamente sus fortalezas mediante colaboración iterativa, logrando algo que ninguno de los dos alcanzaría solo."
+                    },
+                    {
+                      "title": "Description",
+                      "content": "La comunicación clara es el puente entre tus intenciones y las capacidades de la IA. A veces las instrucciones más efectivas no son prompts elaborados, sino conversaciones reflexivas que aportan contexto, ejemplos y feedback."
+                    },
+                    {
+                      "title": "Discernment",
+                      "content": "Evaluar críticamente los outputs de la IA no es negociable. Tu discernimiento te protege de las limitaciones de la IA y, otra vez, te permite lograr resultados que ni vos ni la IA lograrían fácilmente por separado."
+                    },
+                    {
+                      "title": "Diligence",
+                      "content": "Seguís siendo responsable de lo que hacés con la IA y de su impacto en otros. Ser transparente sobre el rol de la IA en tu trabajo construye confianza e integridad."
+                    }
+                  ]
+                },
+                {
+                  "type": "callout",
+                  "variant": "success",
+                  "title": "El objetivo no es la perfección",
+                  "content": "Estas competencias no se dominan de un día para el otro — se desarrollan con la práctica. A medida que delegás trabajo, describís tus necesidades, discernís la calidad de los resultados y aplicás diligencia a tu proceso, tu fluidez con IA va a crecer de forma natural. El objetivo no es la perfección, sino desarrollar continuamente conciencia, compromiso y un enfoque intencional para trabajar con IA. El framework está pensado para aplicar ampliamente a distintos asistentes de IA generativa y seguir siendo relevante a medida que estos sistemas evolucionen — pero depende de nosotros seguir aplicando lo aprendido."
+                }
+              ]
+            },
+            {
+              "title": "Mensaje de cierre",
+              "blocks": [
+                {
+                  "type": "text",
+                  "content": "El curso arrancó con el objetivo de ayudarte a pensar distinto sobre la IA y las formas en que trabajamos con ella. Son sistemas poderosos, pero no son balas de plata ni soluciones mágicas para cualquier problema — son tan útiles y seguros como nosotros los habilitemos a ser."
+                },
+                {
+                  "type": "callout",
+                  "variant": "warning",
+                  "title": "Invertí en vos mismo, no solo en la herramienta",
+                  "content": "Invertí en tu propia expertise y mantenete al tanto de los cambios tecnológicos para poder delegar de forma apropiada. Practicá el arte de description y discernment — esa conversación reflexiva de ida y vuelta que transforma a la IA de una simple máquina de automatización en una verdadera socia de pensamiento. Y sobre todo, hacete responsable de cómo trabajás con IA y de lo que crean juntos. Sé efectivo y eficiente. Sé ético y seguro."
+                }
+              ]
+            },
+            {
+              "title": "Ejercicio: Conversar con Claude sobre el curso",
+              "blocks": [
+                {
+                  "type": "text",
+                  "content": "El primer ejercicio de cierre es tener una conversación real con Claude sobre este curso y el framework de AI Fluency (subiendo, si querés, una copia del framework publicado por Ringling College)."
+                },
+                {
+                  "type": "cards",
+                  "items": [
+                    {
+                      "title": "Aplicar el framework a tu contexto",
+                      "content": "\"Acabo de completar un curso sobre AI Fluency que cubre Delegation, Description, Discernment y Diligence. Hablemos de cómo aplicarían estas competencias a [mi carrera / mi trabajo / lo que corresponda].\""
+                    },
+                    {
+                      "title": "Explorar la evolución futura del framework",
+                      "content": "\"Explorá cómo podría evolucionar el framework de AI Fluency a medida que avancen las capacidades de la IA. ¿Qué nuevas competencias podrían volverse importantes?\""
+                    },
+                    {
+                      "title": "Autodiagnóstico de las 4D",
+                      "content": "\"Ayudame a identificar cuáles de las 4D competencias parezco entender bien y cuáles necesito desarrollar más, en base a nuestra conversación.\""
+                    },
+                    {
+                      "title": "Analizar un ejercicio propio",
+                      "content": "\"Acá está [algún ejercicio que hiciste en el curso]. Analicémoslo para mejorar mis competencias.\""
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "title": "Ejercicio: Construir tu política personal de uso de IA",
+              "blocks": [
+                {
+                  "type": "text",
+                  "content": "El segundo ejercicio de cierre es, con la ayuda de Claude, crear tus propios lineamientos para una colaboración responsable y ética con IA en tus contextos personal y profesional."
+                },
+                {
+                  "type": "steps",
+                  "items": [
+                    {
+                      "title": "Definí estándares y límites",
+                      "body": "Establecé criterios claros de cuándo y cómo vas a trabajar con IA en distintos contextos, y límites para información sensible o confidencial."
+                    },
+                    {
+                      "title": "Definí tu control de calidad",
+                      "body": "Cómo vas a mantener control de calidad sobre el trabajo asistido por IA, qué cuestiones éticas son más relevantes para tu campo o actividad, y qué criterios de decisión vas a usar ante dilemas éticos — considerando las perspectivas de las distintas personas que podrían verse afectadas por tus interacciones con IA."
+                    },
+                    {
+                      "title": "Definí cómo vas a divulgar el uso de IA",
+                      "body": "Determiná cómo vas a divulgar tu colaboración con IA en distintos contextos, armá plantillas de atribución y declaraciones de transparencia, y establecé criterios de cuándo corresponde una divulgación más detallada."
+                    }
+                  ]
+                },
+                {
+                  "type": "callout",
+                  "variant": "info",
+                  "title": "Trabajá con Claude como socio de pensamiento",
+                  "content": "La consigna explícita es usar a Claude como compañero de pensamiento durante todo este proceso, para explorar las consideraciones éticas desde múltiples perspectivas — no simplemente pedirle una lista de reglas ya armada."
+                }
+              ]
+            }
+          ]
+        }
+      ]
     }
   ]
 }
