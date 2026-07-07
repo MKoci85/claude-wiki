@@ -154,9 +154,10 @@ body {
 
 .search-result-item {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
-  gap: 10px;
+  gap: 4px 10px;
   width: 100%;
   padding: 11px 16px;
   border: none;
@@ -183,6 +184,20 @@ body {
 .search-result-badge {
   flex-shrink: 0;
   font-size: 10px;
+}
+
+.search-result-snippet {
+  flex-basis: 100%;
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--text-3);
+}
+
+.search-result-snippet mark {
+  background: var(--accent-soft, rgba(255, 200, 0, 0.35));
+  color: inherit;
+  border-radius: 2px;
+  padding: 0 1px;
 }
 
 .search-empty {
@@ -722,7 +737,23 @@ body {
   margin-bottom: 32px;
 }
 
-.sub-group { margin-bottom: 28px; }
+.sub-group {
+  margin-bottom: 28px;
+  border-radius: 8px;
+  transition: background 1.4s ease-out;
+}
+
+.sub-group-flash {
+  background: var(--accent-soft, rgba(255, 200, 0, 0.18));
+  transition: background 0.15s ease-in;
+}
+
+.sub-group mark {
+  background: var(--accent-soft, rgba(255, 200, 0, 0.5));
+  color: inherit;
+  border-radius: 2px;
+  padding: 0 1px;
+}
 
 .subsection-title {
   font-size: 15.5px;

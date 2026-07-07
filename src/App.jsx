@@ -17,27 +17,32 @@ hljs.registerLanguage('markdown', markdown);
 
 // ── Markdown inline renderer ───────────────────────────────
 
-function parseMd(text) {
+function parseMd(text, highlightTerm) {
   if (!text) return '';
-  return text
+  let html = text
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;')
     .replace(/`([^`]+)`/g, '<code class="inline-code">$1</code>')
     .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
     .replace(/\*([^*]+)\*/g, '<em>$1</em>');
+  if (highlightTerm && highlightTerm.trim()) {
+    const escapedQ = highlightTerm.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    html = html.replace(new RegExp(`(${escapedQ})`, 'ig'), '<mark>$1</mark>');
+  }
+  return html;
 }
 
-function Md({ children }) {
+function Md({ children, highlightTerm }) {
   if (!children) return null;
   const paragraphs = String(children).split(/\n\n+/);
   if (paragraphs.length === 1) {
-    return <span dangerouslySetInnerHTML={{ __html: parseMd(paragraphs[0]) }} />;
+    return <span dangerouslySetInnerHTML={{ __html: parseMd(paragraphs[0], highlightTerm) }} />;
   }
   return (
     <>
       {paragraphs.map((p, i) => (
-        <p key={i} dangerouslySetInnerHTML={{ __html: parseMd(p) }} />
+        <p key={i} dangerouslySetInnerHTML={{ __html: parseMd(p, highlightTerm) }} />
       ))}
     </>
   );
@@ -119,6 +124,17 @@ function IconArrow() {
 
 // ── TopBar ─────────────────────────────────────────────────
 
+// Escapa HTML y resalta las coincidencias de q dentro de text
+function highlightMatch(text, q) {
+  const escaped = String(text)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+  if (!q) return escaped;
+  const escapedQ = q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  return escaped.replace(new RegExp(`(${escapedQ})`, 'ig'), '<mark>$1</mark>');
+}
+
 function TopBar({ search, onSearch, searchResults, onResultClick, theme, onToggle, onLogoClick }) {
   const wrapRef = useRef(null);
   const [open, setOpen] = useState(false);
@@ -142,10 +158,13 @@ function TopBar({ search, onSearch, searchResults, onResultClick, theme, onToggl
   }, [onSearch]);
 
   const handleSelect = useCallback((article) => {
-    onResultClick(article);
+    onResultClick(article, {
+      term: search,
+      subsectionIndex: article.snippetSubsectionIndex ?? null,
+    });
     onSearch('');
     setOpen(false);
-  }, [onResultClick, onSearch]);
+  }, [onResultClick, onSearch, search]);
 
   const showEmpty = !!search.trim() && searchResults !== null && Array.isArray(searchResults) && searchResults.length === 0;
 
@@ -193,6 +212,14 @@ function TopBar({ search, onSearch, searchResults, onResultClick, theme, onToggl
                   <span className={`badge ${collectionBadge(article.collectionTitle)} search-result-badge`}>
                     {article.collectionTitle}
                   </span>
+                  {article.snippet && (
+                    <span
+                      className="search-result-snippet"
+                      dangerouslySetInnerHTML={{
+                        __html: (article.snippetSubsectionTitle ? `${highlightMatch(article.snippetSubsectionTitle, search)}: ` : '') + highlightMatch(article.snippet, search)
+                      }}
+                    />
+                  )}
                 </button>
               ))
             )}
@@ -391,8 +418,8 @@ function HomeView({ collections, articles, activeCollection, onCollection, onArt
 
 // ── Block renderers ────────────────────────────────────────
 
-function BlockText({ block }) {
-  return <div className="block-text"><Md>{block.content}</Md></div>;
+function BlockText({ block, highlightTerm }) {
+  return <div className="block-text"><Md highlightTerm={highlightTerm}>{block.content}</Md></div>;
 }
 
 const TERMINAL_LANGS = new Set(['bash', 'shell', 'sh']);
@@ -432,13 +459,13 @@ function BlockCode({ block }) {
   );
 }
 
-function BlockCallout({ block }) {
+function BlockCallout({ block, highlightTerm }) {
   const variant = block.variant || block.style;
   return (
     <div className={`block-callout${variant ? ` block-callout-${variant}` : ''}`}>
       {block.title && <div className="block-callout-title">{block.icon && <span>{block.icon} </span>}{block.title}</div>}
       {block.icon && !block.title && <span className="block-callout-icon">{block.icon}</span>}
-      <div><Md>{block.content}</Md></div>
+      <div><Md highlightTerm={highlightTerm}>{block.content}</Md></div>
     </div>
   );
 }
@@ -565,11 +592,11 @@ function BlockCompare({ block }) {
   );
 }
 
-function Block({ block }) {
+function Block({ block, highlightTerm }) {
   switch (block.type) {
-    case 'text':    return <BlockText block={block} />;
+    case 'text':    return <BlockText block={block} highlightTerm={highlightTerm} />;
     case 'code':    return <BlockCode block={block} />;
-    case 'callout': return <BlockCallout block={block} />;
+    case 'callout': return <BlockCallout block={block} highlightTerm={highlightTerm} />;
     case 'cards':   return <BlockCards block={block} />;
     case 'table':   return <BlockTable block={block} />;
     case 'steps':   return <BlockSteps block={block} />;
@@ -579,9 +606,9 @@ function Block({ block }) {
   }
 }
 
-function SubsectionContent({ sub }) {
+function SubsectionContent({ sub, highlightTerm }) {
   if (sub.blocks && sub.blocks.length > 0) {
-    return <div className="sub-blocks">{sub.blocks.map((b, i) => <Block key={i} block={b} />)}</div>;
+    return <div className="sub-blocks">{sub.blocks.map((b, i) => <Block key={i} block={b} highlightTerm={highlightTerm} />)}</div>;
   }
   if (sub.content) {
     return <div className="subsection-body">{sub.content}</div>;
@@ -591,7 +618,24 @@ function SubsectionContent({ sub }) {
 
 // ── ArticleView ────────────────────────────────────────────
 
-function ArticleView({ article, sectionArticles, groupedSections, onArticle, onCollection, onHome }) {
+function ArticleView({ article, sectionArticles, groupedSections, onArticle, onCollection, onHome, highlightTarget }) {
+  const [flashIndex, setFlashIndex] = useState(null);
+
+  // Al llegar desde un resultado de búsqueda: hace scroll a la subsección
+  // encontrada y la resalta durante 2 segundos.
+  useEffect(() => {
+    if (!article || !highlightTarget || highlightTarget.subsectionIndex == null) return;
+
+    const { subsectionIndex } = highlightTarget;
+    const el = document.getElementById(`subsection-${subsectionIndex}`);
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+    setFlashIndex(subsectionIndex);
+    const timer = setTimeout(() => setFlashIndex(null), 2000);
+    return () => clearTimeout(timer);
+  }, [article, highlightTarget]);
+
   if (!article) {
     return (
       <div className="article-layout">
@@ -693,9 +737,13 @@ function ArticleView({ article, sectionArticles, groupedSections, onArticle, onC
             <div className="section-label">Contenido</div>
             <div>
               {article.subsections.map((sub, i) => (
-                <div key={i} className="sub-group">
+                <div
+                  key={i}
+                  id={`subsection-${i}`}
+                  className={`sub-group ${flashIndex === i ? 'sub-group-flash' : ''}`}
+                >
                   {sub.title && <div className="subsection-title">{sub.title}</div>}
-                  <SubsectionContent sub={sub} />
+                  <SubsectionContent sub={sub} highlightTerm={flashIndex === i ? highlightTarget?.term : null} />
                 </div>
               ))}
             </div>
@@ -719,6 +767,7 @@ export default function App() {
   const [searchResults, setSearchResults] = useState(null);
   const [view, setView] = useState('home');
   const [activeArticle, setActiveArticle] = useState(null);
+  const [highlightTarget, setHighlightTarget] = useState(null);
 
   // Cargar índice desde JSON
   useEffect(() => {
@@ -811,10 +860,11 @@ export default function App() {
   })();
 
   // Abrir artículo (los datos ya están en memoria)
-  const openArticle = useCallback((article) => {
+  const openArticle = useCallback((article, highlight) => {
     setActiveArticle(article);
+    setHighlightTarget(highlight && highlight.term ? highlight : null);
     setView('article');
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    if (!highlight) window.scrollTo({ top: 0, behavior: 'smooth' });
   }, []);
 
   const goHome = useCallback(() => {
@@ -889,6 +939,7 @@ export default function App() {
           onArticle={openArticle}
           onCollection={goHomeToCollection}
           onHome={goHome}
+          highlightTarget={highlightTarget}
         />
       )}
     </>

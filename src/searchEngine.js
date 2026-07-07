@@ -41,6 +41,21 @@ function buildSearchIndex(collections) {
   return index;
 }
 
+// Extrae un fragmento de texto centrado en la primera coincidencia de q
+function buildSnippet(text, q, radius = 60) {
+  const idx = text.toLowerCase().indexOf(q);
+  if (idx === -1) return null;
+
+  const start = Math.max(0, idx - radius);
+  const end = Math.min(text.length, idx + q.length + radius);
+
+  let snippet = text.slice(start, end).trim();
+  if (start > 0) snippet = `…${snippet}`;
+  if (end < text.length) snippet = `${snippet}…`;
+
+  return snippet;
+}
+
 // Función de búsqueda con scoring
 function search(query, searchIndex) {
   if (!query || query.trim().length < 2) {
@@ -62,6 +77,9 @@ function search(query, searchIndex) {
       inSubsection: false,
       inContent: false,
     };
+    let snippet = null;
+    let snippetSubsectionTitle = null;
+    let snippetSubsectionIndex = null;
 
     // Buscar en título (30 puntos)
     if (article.title && String(article.title).toLowerCase().includes(q)) {
@@ -77,7 +95,7 @@ function search(query, searchIndex) {
 
     // Buscar en subsecciones (20 puntos cada una)
     if (article.subsections) {
-      article.subsections.forEach((sub) => {
+      article.subsections.forEach((sub, subIndex) => {
         if (sub.title && sub.title.toLowerCase().includes(q)) {
           score += 20;
           matches.inSubsection = true;
@@ -86,6 +104,11 @@ function search(query, searchIndex) {
         if (text.toLowerCase().includes(q)) {
           score += 10;
           matches.inContent = true;
+          if (!snippet) {
+            snippet = buildSnippet(text, q);
+            snippetSubsectionTitle = sub.title || null;
+            snippetSubsectionIndex = subIndex;
+          }
         }
       });
     }
@@ -94,6 +117,9 @@ function search(query, searchIndex) {
     if (article.summary && String(article.summary).toLowerCase().includes(q)) {
       score += 20;
       matches.inContent = true;
+      if (!snippet) {
+        snippet = buildSnippet(String(article.summary), q);
+      }
     }
 
     if (score > 0) {
@@ -101,6 +127,9 @@ function search(query, searchIndex) {
         ...article,
         score,
         matches,
+        snippet,
+        snippetSubsectionTitle,
+        snippetSubsectionIndex,
       });
     }
   });
