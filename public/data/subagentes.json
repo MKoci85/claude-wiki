@@ -418,6 +418,53 @@
               "content": "def create_security_agent(level: str) -> AgentDefinition:\n    return AgentDefinition(\n        description=\"Revisor de seguridad especializado\",\n        prompt=f\"Sos un revisor de seguridad {'estricto (OWASP Top 10 + SANS)' if level == 'strict' else 'balanceado'}...\",\n        tools=[\"Read\", \"Grep\", \"Glob\"],\n        # Opus para revisiones estrictas, Sonnet para las regulares\n        model=\"opus\" if level == \"strict\" else \"sonnet\",\n    )\n\n# Uso:\nagents={\"security-reviewer\": create_security_agent(\"strict\")}"
             }
           ]
+        },
+        {
+          "id": "sub-016",
+          "title": "Gestión de sesiones: --resume y fork_session",
+          "summary": "Cómo retomar una sesión nombrada con --resume, cuándo conviene eso frente a empezar de cero, y cómo fork_session permite explorar enfoques divergentes desde un mismo punto de partida.",
+          "blocks": [
+            {
+              "type": "text",
+              "content": "Además de reanudar un subagente puntual (capturando su session_id), Claude Code permite retomar sesiones completas nombradas y bifurcar una sesión en ramas independientes de exploración. Son dos mecanismos distintos que resuelven problemas distintos de continuidad de trabajo."
+            },
+            {
+              "type": "code",
+              "lang": "bash",
+              "label": "--resume <session-name>: continuar una investigación previa",
+              "content": "# Primera sesión, nombrada explícitamente\nclaude --session-name migracion-auth \"Investigá cómo migrar el sistema de auth de JWT a sesiones\"\n\n# Días después, retomar exactamente esa sesión con todo su contexto\nclaude --resume migracion-auth \"Ya apliqué el cambio en el middleware, seguí con los endpoints\""
+            },
+            {
+              "type": "callout",
+              "icon": "🔀",
+              "content": "**fork_session** crea una rama independiente a partir de un punto de análisis ya hecho, sin modificar la sesión original. Es el mecanismo correcto cuando hay que comparar dos enfoques divergentes (dos estrategias de refactor, dos librerías candidatas) que comparten el mismo análisis inicial del codebase pero después toman caminos distintos — bifurcar evita repetir la exploración inicial en cada rama."
+            },
+            {
+              "type": "compare",
+              "left": {
+                "title": "--resume <session-name>",
+                "rows": [
+                  { "key": "Qué hace", "value": "Continúa la misma sesión, linealmente, donde quedó" },
+                  { "key": "Cuándo usarlo", "value": "El contexto previo sigue siendo válido y solo hace falta seguir avanzando" },
+                  { "key": "Resultado", "value": "Una única línea de trabajo que avanza" }
+                ]
+              },
+              "right": {
+                "title": "fork_session",
+                "rows": [
+                  { "key": "Qué hace", "value": "Crea una copia independiente del estado en un punto dado; la original queda intacta" },
+                  { "key": "Cuándo usarlo", "value": "Se necesita explorar 2+ enfoques distintos desde el mismo punto de partida, sin que uno contamine al otro" },
+                  { "key": "Resultado", "value": "Múltiples ramas paralelas, comparables entre sí" }
+                ]
+              }
+            },
+            {
+              "title": "Cuándo retomar y cuándo empezar de cero",
+              "type": "callout",
+              "icon": "⚠️",
+              "content": "Retomar una sesión vieja no siempre es lo correcto: si el código cambió sustancialmente desde la última vez, los resultados de tool calls que Claude tiene en su historial (contenido de archivos, resultados de greps) pueden estar desactualizados (stale). En ese caso, es más confiable empezar una sesión nueva e inyectar un resumen estructurado de lo ya investigado, que confiar en que Claude recuerde y además revalide todo lo que cambió. Si se retoma una sesión vieja, hay que informarle explícitamente qué archivos cambiaron desde la última vez, para que re-analice solo lo necesario en vez de asumir que todo sigue igual."
+            }
+          ]
         }
       ]
     },

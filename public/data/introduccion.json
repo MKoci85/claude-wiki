@@ -132,6 +132,33 @@
                   ]
                 }
               ]
+            },
+            {
+              "title": "Cuándo usar cada una",
+              "blocks": [
+                {
+                  "type": "table",
+                  "headers": ["Herramienta", "Para qué sirve", "Cuándo elegirla"],
+                  "rows": [
+                    ["Grep", "Busca un patrón dentro del contenido de los archivos (nombres de función, mensajes de error, imports)", "Cuando sabés qué texto buscar pero no en qué archivo está — encontrar todos los llamadores de una función"],
+                    ["Glob", "Encuentra archivos por patrón de ruta o nombre (no mira el contenido)", "Cuando sabés qué forma tiene el nombre del archivo — todos los `**/*.test.tsx`, todos los `config/*.yaml`"],
+                    ["Read", "Carga el contenido completo de un archivo puntual", "Cuando ya identificaste el archivo exacto (con Grep o Glob) y necesitás verlo entero para entender el contexto"],
+                    ["Edit", "Modifica una sección puntual de un archivo, buscando un texto único como ancla", "Cambios quirúrgicos en archivos que ya existen — más seguro que reescribir todo el archivo"],
+                    ["Write", "Crea un archivo nuevo, o reescribe uno existente por completo", "Archivos nuevos, o cuando Edit falla porque el texto ancla no es único en el archivo"],
+                    ["Bash", "Ejecuta comandos de shell: tests, builds, git, scripts", "Cualquier acción que no sea leer/escribir archivos directamente — correr el test suite, hacer un commit"]
+                  ]
+                },
+                {
+                  "type": "callout",
+                  "icon": "🔧",
+                  "content": "Patrón de fallback: si Edit falla porque el texto que debía anclar el cambio aparece más de una vez en el archivo (match no único), la alternativa confiable es Read para cargar el archivo completo y Write para reescribirlo con el cambio ya aplicado — en vez de insistir con anclas de texto cada vez más largas y frágiles."
+                },
+                {
+                  "type": "callout",
+                  "icon": "🧭",
+                  "content": "Flujo típico de exploración: empezar con Grep para encontrar puntos de entrada (una función, un error, una palabra clave), usar Read para seguir los imports y trazar el flujo desde ahí, y recién entonces decidir qué modificar. Leer todo el codebase de entrada, archivo por archivo, desperdicia contexto en información irrelevante para la tarea."
+                }
+              ]
             }
           ]
         },

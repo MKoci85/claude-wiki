@@ -490,6 +490,82 @@
       ]
     },
     {
+      "title": "Manejo de errores",
+      "articles": [
+        {
+          "id": "mcp-errores-estructurados",
+          "title": "Respuestas de error estructuradas",
+          "summary": "El flag isError de MCP es solo el punto de partida. Categorizar el error y marcar si es reintentable es lo que le permite al agente tomar la decisión de recuperación correcta.",
+          "subsections": [
+            {
+              "title": "Por qué 'Operation failed' no alcanza",
+              "blocks": [
+                {
+                  "type": "text",
+                  "content": "MCP define un flag isError: true para que un servidor le indique al cliente que una tool call falló, en vez de devolver una excepción cruda. Pero ese flag por sí solo no le dice al agente qué hacer a continuación: un timeout de red, un input inválido, una violación de política de negocio y un permiso denegado son errores completamente distintos que requieren respuestas completamente distintas. Un mensaje genérico como \"Operation failed\" fuerza al agente a adivinar."
+                },
+                {
+                  "type": "table",
+                  "headers": ["Categoría", "Ejemplo", "¿Es reintentable?", "Acción esperada del agente"],
+                  "rows": [
+                    ["transient", "Timeout de red, servicio momentáneamente no disponible", "Sí", "Reintentar automáticamente, con backoff si hay varios intentos"],
+                    ["validation", "Formato de fecha inválido, campo requerido faltante", "No (sin corregir el input)", "Corregir el parámetro y reintentar con el valor válido"],
+                    ["permission", "Token sin scope suficiente, recurso fuera del root permitido", "No", "No reintentar — informar al usuario o escalar, nunca insistir con el mismo token"],
+                    ["business", "Reembolso por encima del límite de política, cuenta suspendida", "No", "Explicar la razón al usuario; considerar escalar a un humano, no reintentar"]
+                  ]
+                },
+                {
+                  "type": "code",
+                  "lang": "python",
+                  "content": "# Respuesta MCP mal diseñada: no dice nada accionable\n{\"isError\": True, \"content\": [{\"type\": \"text\", \"text\": \"Operation failed\"}]}\n\n# Respuesta MCP bien diseñada: metadata estructurada + explicación legible\n{\n    \"isError\": True,\n    \"content\": [{\n        \"type\": \"text\",\n        \"text\": json.dumps({\n            \"errorCategory\": \"business\",\n            \"isRetryable\": False,\n            \"message\": \"El monto solicitado ($650) excede el límite de auto-aprobación ($500) sin revisión de un supervisor.\",\n            \"suggestedAction\": \"escalate_to_human\",\n        })\n    }]\n}"
+                },
+                {
+                  "type": "callout",
+                  "icon": "⚠️",
+                  "content": "Un error `business` o `permission` marcado como reintentable puede hacer que el agente insista con la misma acción varias veces sin que nada cambie — desperdicia turnos y, en el peor caso, genera un patrón de reintentos que se lee como un bug del agente. El campo `isRetryable` corta ese loop en la raíz."
+                }
+              ]
+            },
+            {
+              "title": "Fallas de acceso vs. resultados vacíos válidos",
+              "blocks": [
+                {
+                  "type": "text",
+                  "content": "Una distinción sutil pero crítica: cuando una tool de búsqueda no encuentra nada, eso no es un error. Un lookup_customer que no encuentra ningún cliente con ese email tuvo éxito — la respuesta correcta es \"no hay resultados\", no una falla. Confundir ambos casos lleva a dos anti-patrones opuestos: tratar un resultado vacío legítimo como si fuera un fallo (y reintentar sin sentido), o —peor— que el servidor devuelva una lista vacía como respuesta exitosa cuando en realidad hubo un timeout o un error de conexión, ocultando la falla real."
+                },
+                {
+                  "type": "compare",
+                  "left": {
+                    "title": "✅ Resultado vacío válido",
+                    "rows": [
+                      { "key": "isError", "value": "false" },
+                      { "key": "Contenido", "value": "{ results: [], query: \"cliente@mail.com\" }" },
+                      { "key": "Significado", "value": "La búsqueda se ejecutó correctamente; simplemente no hay coincidencias" },
+                      { "key": "Acción del agente", "value": "Informar al usuario que no se encontró el registro, pedir un identificador alternativo" }
+                    ]
+                  },
+                  "right": {
+                    "title": "❌ Falla de acceso disfrazada de éxito",
+                    "rows": [
+                      { "key": "isError", "value": "false (incorrecto)" },
+                      { "key": "Contenido", "value": "{ results: [] } — pero en realidad hubo un timeout silenciado" },
+                      { "key": "Significado", "value": "El servidor suprimió el error y lo camufló como 'no hay resultados'" },
+                      { "key": "Consecuencia", "value": "El agente asume que el cliente no existe cuando en realidad la búsqueda nunca se completó" }
+                    ]
+                  }
+                },
+                {
+                  "type": "callout",
+                  "icon": "🎯",
+                  "content": "Regla de diseño: un servidor MCP nunca debe convertir una excepción interna en un resultado vacío exitoso para \"simplificar\" la respuesta. Si la búsqueda no pudo ejecutarse, es isError: true con categoría transient o permission. Si se ejecutó y no encontró nada, es isError: false con un array vacío. Son estados semánticamente distintos y deben quedar distinguibles para el agente."
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
       "title": "Seguridad",
       "articles": [
         {

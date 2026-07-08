@@ -274,6 +274,12 @@
               "variant": "tip",
               "title": "@path: composición sin duplicación",
               "content": "`@path/al/archivo.md` carga el contenido de ese archivo dentro del comando. Permite extraer fragmentos reutilizables (pre-checks, plantillas de formato, listas de verificación) que múltiples comandos comparten. Si el archivo referenciado no existe, el comando falla al parsear."
+            },
+            {
+              "type": "callout",
+              "variant": "info",
+              "title": "@import en CLAUDE.md: la misma sintaxis, otro contexto",
+              "content": "El mismo mecanismo `@path/al/archivo.md` se usa dentro de un CLAUDE.md para importar archivos externos y mantenerlo modular — por ejemplo, importar solo el archivo de estándares relevante para cada paquete de un monorepo, en vez de un único CLAUDE.md monolítico con todas las convenciones de todos los paquetes. La documentación oficial y el examen suelen llamar a este uso específico \"@import\", pero es la misma sintaxis `@path` que en los comandos personalizados."
             }
           ]
         },
@@ -317,6 +323,7 @@
               "rows": [
                 ["-p / --print", "Modo no-interactivo: acepta el prompt por argumento y termina", "Claude Code espera input de teclado — el job de CI cuelga indefinidamente"],
                 ["--output-format json", "Salida estructurada en JSON en vez de texto plano", "Scripts downstream no pueden parsear la salida de forma confiable"],
+                ["--json-schema <schema>", "Fuerza que el JSON de salida cumpla un schema específico, no solo 'sea JSON válido'", "El JSON puede ser sintácticamente correcto pero con campos faltantes o con una forma que el script downstream no espera"],
                 ["--max-turns N", "Límite duro de iteraciones del loop agéntico", "El loop puede iterar indefinidamente ante un error persistente — timeout del job de CI"]
               ]
             },
@@ -337,6 +344,46 @@
               "variant": "info",
               "title": "Permisos granulares en CI: allow vs. ask",
               "content": "En CI, los comandos de solo lectura como `grep`, `cat` o `git diff` deben configurarse como `allow` (sin confirmación) para que el job fluya. Las operaciones de escritura críticas como `git commit` o `git push` deben configurarse como `ask`, requiriendo aprobación humana — especialmente para merges a main, que nunca deben automatizarse completamente."
+            }
+          ]
+        },
+        {
+          "id": "refinamiento-iterativo",
+          "title": "Refinamiento iterativo: ejemplos, tests y el interview pattern",
+          "summary": "Tres técnicas para mejorar progresivamente el resultado cuando una instrucción en prosa no alcanza: ejemplos concretos de input/output, iteración guiada por tests, y el patrón de entrevista donde Claude pregunta antes de implementar.",
+          "blocks": [
+            {
+              "type": "text",
+              "content": "Cuando una descripción en prosa de lo que se necesita produce resultados inconsistentes entre intentos, el problema casi nunca es que Claude \"no entendió\" — es que la instrucción admite más de una interpretación válida. Tres técnicas convergen en resolver esa ambigüedad de formas distintas."
+            },
+            {
+              "type": "cards",
+              "items": [
+                {
+                  "title": "📋 Ejemplos concretos de input/output",
+                  "body": "Mostrar 2-3 pares de entrada y salida esperada es más efectivo que describir la transformación en palabras. Elimina la ambigüedad de interpretación: en vez de \"normalizá las fechas\", mostrar \"'15/03/2025' → '2025-03-15'\" deja un solo comportamiento posible."
+                },
+                {
+                  "title": "🧪 Iteración guiada por tests",
+                  "body": "Escribir primero la suite de tests (casos esperados, edge cases, requisitos de performance) y después iterar compartiendo los fallos concretos con Claude. Cada fallo de test es una instrucción precisa de qué corregir — mucho más específica que \"no funciona bien\"."
+                },
+                {
+                  "title": "🎤 Interview pattern",
+                  "body": "Antes de implementar algo en un dominio con decisiones no obvias (estrategia de invalidación de cache, modos de falla, casos límite de negocio), pedirle a Claude que primero haga preguntas en vez de asumir. Saca a la superficie consideraciones de diseño que el desarrollador no había anticipado, antes de escribir una línea de código."
+                }
+              ]
+            },
+            {
+              "type": "code",
+              "lang": "text",
+              "label": "Interview pattern — cómo invocarlo",
+              "content": "Antes de implementar el sistema de cache para el catálogo de productos,\nhacéme las preguntas que necesites sobre invalidación, TTL, consistencia\nentre réplicas y comportamiento ante fallos — no asumas nada todavía.\n\n# Claude responde con preguntas como:\n# - ¿Qué pasa si dos requests actualizan el mismo producto simultáneamente?\n# - ¿La cache debe invalidarse inmediatamente o es aceptable un TTL de unos minutos?\n# - ¿Qué comportamiento se espera si el servicio de cache no responde: fallback a la DB o error?\n#\n# Recién después de esas respuestas, Claude tiene el contexto para diseñar bien."
+            },
+            {
+              "type": "callout",
+              "variant": "info",
+              "title": "Cuándo agrupar problemas y cuándo resolverlos uno por uno",
+              "content": "Si varios problemas detectados interactúan entre sí (arreglar uno rompe potencialmente otro), conviene describirlos todos juntos en un solo mensaje para que Claude los resuelva de forma coordinada. Si son independientes entre sí, iterar de a uno permite verificar cada fix antes de seguir, evitando que un cambio grande sea difícil de revisar o revertir."
             }
           ]
         },

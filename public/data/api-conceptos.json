@@ -161,13 +161,38 @@
               "blocks": [
                 {
                   "type": "text",
-                  "content": "La Batch API permite procesar múltiples requests con descuento (50%) cuando no necesitas respuestas inmediatas."
+                  "content": "La Message Batches API permite procesar múltiples requests con un 50% de descuento sobre el precio estándar, a cambio de una ventana de procesamiento de hasta 24 horas y sin SLA de latencia garantizado. La decisión de usar Batch API o la API síncrona depende exclusivamente de si el workflow puede tolerar esa espera."
+                },
+                {
+                  "type": "compare",
+                  "left": {
+                    "head": "API síncrona",
+                    "rows": [
+                      { "key": "Latencia", "value": "Segundos. Respuesta inmediata en el mismo request." },
+                      { "key": "Costo", "value": "Precio estándar, sin descuento." },
+                      { "key": "Casos típicos", "value": "Pre-merge checks bloqueantes, chat en vivo, cualquier flujo donde un humano espera la respuesta." }
+                    ]
+                  },
+                  "right": {
+                    "head": "Message Batches API",
+                    "rows": [
+                      { "key": "Latencia", "value": "Hasta 24 horas, sin SLA garantizado — puede completarse antes, pero no hay compromiso de tiempo." },
+                      { "key": "Costo", "value": "50% de descuento sobre el precio estándar." },
+                      { "key": "Casos típicos", "value": "Reportes nocturnos, auditorías semanales, generación masiva de tests, análisis de datasets grandes." }
+                    ]
+                  }
+                },
+                {
+                  "type": "callout",
+                  "style": "warning",
+                  "title": "No sirve para workflows bloqueantes",
+                  "content": "Usar Batch API para un pre-merge check que un desarrollador espera activamente es un error de diseño: sin SLA de latencia, esa espera puede ser de minutos o de muchas horas. El ahorro del 50% no compensa bloquear a un humano que necesita la respuesta ahora. Reservar Batch API exclusivamente para trabajos donde nadie espera el resultado en tiempo real."
                 },
                 {
                   "type": "callout",
                   "style": "info",
-                  "title": "Mejor para",
-                  "content": "Análisis de datasets, procesamiento de logs, generación en masa, trabajos programados"
+                  "title": "Sin tool calling multi-turno",
+                  "content": "La Batch API no soporta ejecutar herramientas dentro del mismo request y devolver el resultado en la misma llamada — no hay forma de hacer un loop de tool_use → tool_result dentro de un batch. Cada request del batch debe ser autocontenido: si la tarea requiere múltiples turnos con ejecución de tools intermedia, la Batch API no es la herramienta adecuada para esa tarea, aunque sí puede usarse para el resto del pipeline que no la necesita."
                 }
               ]
             },
@@ -180,7 +205,7 @@
                     {
                       "step": 1,
                       "title": "Crear archivo JSONL",
-                      "description": "Una línea por request, con custom_id único"
+                      "description": "Una línea por request, cada una con un custom_id único que permite correlacionar la respuesta con el request original"
                     },
                     {
                       "step": 2,
@@ -190,14 +215,33 @@
                     {
                       "step": 3,
                       "title": "Esperar procesamiento",
-                      "description": "Generalmente tarda minutos u horas"
+                      "description": "Hasta 24 horas, sin garantía de tiempo exacto — puede completarse antes"
                     },
                     {
                       "step": 4,
                       "title": "Descargar resultados",
-                      "description": "Cuando el batch esté completo, bajas los resultados"
+                      "description": "Cuando el batch esté completo, bajás los resultados y los correlacionás con los requests originales usando custom_id"
                     }
                   ]
+                }
+              ]
+            },
+            {
+              "title": "Manejo de fallas por custom_id",
+              "blocks": [
+                {
+                  "type": "text",
+                  "content": "En un batch de cientos o miles de requests, es normal que algunos fallen (documento demasiado grande, formato inesperado) mientras la mayoría se procesa bien. El custom_id es la clave para resolver esto sin reprocesar todo el batch de nuevo: al descargar los resultados, se filtran los que fallaron por su custom_id, se corrigen específicamente (por ejemplo, chunkeando los documentos que excedieron el límite de contexto), y se resubmiten solo esos — no el batch completo."
+                },
+                {
+                  "type": "code",
+                  "lang": "python",
+                  "content": "resultados = descargar_resultados_batch(batch_id)\n\nfallidos = [r for r in resultados if r[\"result\"][\"type\"] == \"errored\"]\nexitosos = [r for r in resultados if r[\"result\"][\"type\"] == \"succeeded\"]\n\n# Reprocesar solo los fallidos, con la corrección específica para su causa de falla\nrequests_corregidos = []\nfor f in fallidos:\n    documento_original = obtener_documento_por_custom_id(f[\"custom_id\"])\n    if excede_limite_contexto(documento_original):\n        # chunking del documento que causó el problema, no de todo el batch\n        for i, chunk in enumerate(chunkear(documento_original)):\n            requests_corregidos.append(crear_request(f\"{f['custom_id']}-chunk-{i}\", chunk))\n\nnuevo_batch_id = subir_batch(requests_corregidos)"
+                },
+                {
+                  "type": "callout",
+                  "icon": "🎯",
+                  "content": "Calcular la frecuencia de submission de batches en base a la SLA final requerida: si el negocio necesita resultados dentro de 30 horas y el batch tarda hasta 24, conviene submitear en ventanas de ~4-6 horas en vez de una sola vez por día, dejando margen para un posible reintento de los fallidos sin romper el compromiso de tiempo."
                 }
               ]
             }

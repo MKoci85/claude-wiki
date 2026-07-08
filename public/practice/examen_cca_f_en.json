@@ -2,13 +2,13 @@
   "exam": {
     "title": "Claude Certified Architect (CCA-F) - Practice Exam",
     "language": "en",
-    "totalQuestions": 201,
+    "totalQuestions": 219,
     "domains": [
       {
         "id": 1,
         "name": "Agentic Architecture and Orchestration",
         "weight": 27,
-        "questionCount": 60,
+        "questionCount": 65,
         "questions": [
           {
             "text": "A multi-agent research system has a document subagent that finds conflicting figures between a government report (GDP growth: 2.1%) and an industry dataset (GDP growth: 3.4%) for the same quarter. The subagent has completed its analysis task. What should it do with this conflict before returning its result?",
@@ -669,6 +669,61 @@
             ],
             "correctAnswer": 3,
             "explanation": "Content flowing through pipelines — from external sources, tools, or other subagents — must be treated as data, not trusted instructions. Legitimate orchestration systems do not inject override commands through data payloads."
+          },
+          {
+            "text": "A team builds a coordinator agent using the Claude Agent SDK. The coordinator's AgentDefinition specifies tools: [\"Read\", \"Grep\", \"WebSearch\"] but does not include \"Task\" in that list. During testing, the coordinator generates a text response describing which subagents it would invoke, but no subagent ever actually runs. What is the most likely cause?",
+            "options": [
+              "The subagent AgentDefinitions themselves are missing a required 'model' field, so the SDK silently declines to spawn them.",
+              "The coordinator's allowedTools does not include \"Task\", so the model has no mechanism available to invoke subagents — it can only describe the intent in text.",
+              "WebSearch and Task are mutually exclusive in the same tools array; the coordinator must choose one capability set per invocation.",
+              "The subagents are defined correctly, but the coordinator needs an explicit 'delegate_to' tool_choice forcing to trigger the first invocation."
+            ],
+            "correctAnswer": 1,
+            "explanation": "Spawning subagents requires the Task tool to be present in the parent's allowed tools; without it, the model has no mechanism to invoke a subagent regardless of how well the subagent AgentDefinitions are configured — it can only narrate what it would do. A missing 'model' field (A) would not prevent spawning since model is optional and inherits from the parent. Task and WebSearch coexist without conflict (C). There is no 'delegate_to' tool_choice mechanism (D) — the fix is adding \"Task\" to allowedTools."
+          },
+          {
+            "text": "A document-analysis subagent is investigating a two-source data conflict identified earlier by a coordinator. The team wants to try two different reconciliation strategies (weighting by source recency vs. weighting by sample size) starting from the exact same partial analysis, without either exploration affecting the other or requiring the initial analysis to be redone. Which mechanism fits this requirement?",
+            "options": [
+              "fork_session, to create two independent branches from the shared analysis baseline that can diverge without affecting each other.",
+              "--resume with the same session name twice in parallel, since resuming is idempotent and safe to call concurrently.",
+              "A single subagent invocation with both strategies described in the same prompt, letting the model interleave both analyses in one pass.",
+              "Two separate subagents with no shared context, each redoing the full analysis independently from scratch."
+            ],
+            "correctAnswer": 0,
+            "explanation": "fork_session is designed exactly for this: branching from a shared analysis baseline into independent, divergent explorations without redoing prior work or letting one branch contaminate the other. Resuming the same session name twice concurrently (B) is not a safe parallel-branching mechanism — it targets one continuous session, not divergent copies. Describing both strategies in one prompt (C) risks the model blending them instead of evaluating them independently. Redoing the analysis from scratch twice (D) wastes the already-completed work that fork_session is meant to preserve."
+          },
+          {
+            "text": "A team wants every MCP tool result returned by a third-party inventory server to be normalized before the model sees it — timestamps converted from Unix epoch to ISO 8601, and numeric status codes translated into human-readable strings. They also want this transformation to happen deterministically, every time, without depending on the model choosing to re-format the data itself. Which mechanism is the correct fit?",
+            "options": [
+              "A system prompt instruction telling the model to always convert timestamps and status codes before including them in its reasoning.",
+              "A few-shot example showing a raw tool result being converted to the normalized format, so the model learns to replicate the transformation.",
+              "A PostToolUse hook that intercepts the tool result and rewrites it into the normalized format before it is appended to the conversation.",
+              "A PreToolUse hook that validates the tool call parameters match the expected schema before the call is executed."
+            ],
+            "correctAnswer": 2,
+            "explanation": "A PostToolUse hook intercepts the tool's output after execution and can deterministically rewrite it before the model ever processes it — guaranteeing the transformation happens every time, independent of model behavior. Prompt instructions (A) and few-shot examples (B) are probabilistic: the model might skip the conversion under load or ambiguity. A PreToolUse hook (D) validates outgoing parameters before execution — it does not transform the incoming result, which is what this scenario requires."
+          },
+          {
+            "text": "A team enforces a business rule that refunds above $500 must never be auto-approved by the agent. They implement this as a system prompt instruction: \"Never call process_refund with an amount greater than $500 without human approval.\" During a load test with adversarial inputs, the agent is tricked into calling process_refund with amount=750 in roughly 1 in 200 conversations. What is the architecturally correct fix?",
+            "options": [
+              "Rewrite the instruction to be more emphatic (e.g., \"This is a strict, non-negotiable rule\") and add three few-shot examples of correct refusal.",
+              "Add a tool-call interception hook that inspects the process_refund parameters before execution and blocks any call with amount > 500, redirecting to a human escalation path.",
+              "Increase the model's reasoning budget so it has more room to catch its own policy violations before finalizing the tool call.",
+              "Move the $500 threshold into the tool's JSON schema as a documented constraint in the parameter description."
+            ],
+            "correctAnswer": 1,
+            "explanation": "A hard business rule with financial consequences requires deterministic enforcement, which only a tool-call interception hook can guarantee — it blocks the call programmatically regardless of what the model decided. Strengthening the prompt (A) only reduces the failure rate, it does not eliminate it — prompt-based compliance is inherently probabilistic. More reasoning budget (C) does not provide a guarantee either. Documenting the constraint in the schema description (D) is informational only; nothing prevents the model from ignoring it under adversarial pressure."
+          },
+          {
+            "text": "A developer has been debugging a data pipeline migration issue in a named session for two days: `claude --session-name pipeline-migration \"...\"`. On day three, the underlying source files were significantly refactored by another teammate (function names changed, two modules were merged). The developer wants to continue the investigation. What is the most reliable next step?",
+            "options": [
+              "Run `claude --resume pipeline-migration` with no additional context, trusting that Claude will detect the file changes automatically before continuing.",
+              "Run `claude --resume pipeline-migration` and explicitly describe which files changed and how, so Claude re-analyzes only the affected areas instead of relying on stale tool results.",
+              "Start a completely new session with no reference to the prior investigation, since any session more than 24 hours old is automatically invalidated.",
+              "Run `fork_session` from the original session to create a branch that automatically re-executes every prior tool call against the current file state."
+            ],
+            "correctAnswer": 1,
+            "explanation": "Resuming is appropriate when most of the prior context is still valid, but the developer must explicitly inform the session about what changed — otherwise Claude may reason from stale tool results (old file contents, old function names) cached in its history. Assuming automatic detection (A) is unsafe; Claude has no mechanism to know files changed unless told. Sessions do not expire automatically after 24 hours (C). fork_session (D) branches from a baseline but does not automatically re-execute prior tool calls against updated state — that is not what it does."
           }
         ]
       },
@@ -676,7 +731,7 @@
         "id": 2,
         "name": "Claude Code Configuration and Workflows",
         "weight": 20,
-        "questionCount": 40,
+        "questionCount": 42,
         "questions": [
           {
             "text": "You design the CLAUDE.md hierarchy for a fintech monorepo with React frontend, Node.js backend, and shared libraries. You create a root CLAUDE.md and one inside the payments subdirectory. A developer in the payments directory asks what context Claude Code will load. What is the correct answer?",
@@ -1117,6 +1172,28 @@
             ],
             "correctAnswer": 0,
             "explanation": "CI pipelines must explicitly provide project context. If CLAUDE.md is not mounted or has become outdated, the model loses awareness of current conventions. Regular review and synchronization of CLAUDE.md with the codebase is essential."
+          },
+          {
+            "text": "A developer asks Claude Code to add a single new optional field to an existing REST endpoint's request validation, with a clear existing pattern to follow from three similar fields already in the same file. A teammate suggests entering plan mode first \"just to be safe.\" Is this the right call?",
+            "options": [
+              "Yes — plan mode should be the default for any change to a production API, regardless of scope.",
+              "No — this is a well-scoped, single-file change with a clear existing pattern to follow; plan mode adds latency and token overhead without a corresponding benefit here.",
+              "Yes — because request validation always has security implications, which automatically qualifies for architectural review.",
+              "No — plan mode should never be used for backend code, only for frontend refactors."
+            ],
+            "correctAnswer": 1,
+            "explanation": "Plan mode earns its overhead on tasks with real architectural ambiguity or multi-file blast radius — a single well-understood field addition following an established pattern is exactly the direct-execution case. Treating every production API touch as requiring plan mode (A) misapplies the tool to a case where the correct approach and scope are already clear. Security implication alone (C) does not automatically imply architectural complexity — the two are independent axes. There is no backend/frontend restriction on plan mode (D); the criterion is complexity and ambiguity, not the layer of the stack."
+          },
+          {
+            "text": "A team asks Claude Code to design a caching layer for a product catalog service, but the requirements only say \"it should be fast and always show correct prices.\" Before implementation, the lead engineer wants Claude to surface hidden design considerations — cache invalidation strategy, behavior under concurrent price updates, and fallback behavior if the cache backend is unreachable — rather than assuming defaults for all three. What is this technique called, and how should it be invoked?",
+            "options": [
+              "Test-driven iteration: write the full test suite for the caching layer first, then let Claude infer the missing requirements from which tests fail.",
+              "The interview pattern: explicitly instruct Claude to ask clarifying questions about invalidation, concurrency, and fallback behavior before writing any code, rather than assuming defaults.",
+              "Few-shot prompting: provide 2-3 examples of caching layers from other codebases so Claude infers the same design decisions by pattern-matching.",
+              "Prompt chaining: split the task into a design step and an implementation step, trusting that the design step alone will surface the same considerations without being asked to."
+            ],
+            "correctAnswer": 1,
+            "explanation": "The interview pattern is exactly this: explicitly asking Claude to pose questions before implementing, in order to surface non-obvious design considerations the requirements didn't specify. Writing tests first (A) is a valid iteration technique but doesn't reliably surface unstated design questions — failing tests only reveal what was tested, not what was never considered. Few-shot examples (C) bias toward whatever patterns were shown, which may not fit this system's actual constraints. Splitting into design and implementation steps (D) doesn't by itself guarantee the design step asks about invalidation, concurrency, or fallback — that only happens if explicitly instructed to interview first, which is the interview pattern itself."
           }
         ]
       },
@@ -1124,7 +1201,7 @@
         "id": 3,
         "name": "Tool Design and MCP Integration",
         "weight": 18,
-        "questionCount": 36,
+        "questionCount": 37,
         "questions": [
           {
             "text": "A logistics company builds an inventory agent with a single `manage_inventory` tool. The tool accepts an `action` field (values: 'create', 'update', 'delete') and a free-text `data` field where all parameters for each action are embedded as a string. In production, the agent frequently sends malformed `data` payloads — missing required fields on creates, wrong field names on updates. What is the root cause of these errors?",
@@ -1488,6 +1565,50 @@
             ],
             "correctAnswer": 1,
             "explanation": "Least privilege is a general principle: grant only the capabilities needed for the current task. Applying it to tool exposure reduces both the blast radius of model errors and selection confusion. The second teammate's view (A/C) is too narrow — the principle is not limited to OS-level permissions. Multi-tenancy (D) is one context where it's applied but not the definition of the principle."
+          },
+          {
+            "text": "A team is designing a support agent that must always call an available tool in response to certain trigger phrases (e.g., any message containing \"cancel my subscription\" should never receive a plain conversational reply — it must always result in some tool call, even if the correct one is `escalate_to_human`). However, the team does not want to force one specific tool, since several tools could be valid depending on context. Which tool_choice configuration fits this requirement?",
+            "options": [
+              "tool_choice: \"auto\", since it is the default and does not restrict the model's behavior in any way.",
+              "tool_choice: \"any\", which forces the model to call some tool rather than return plain text, without dictating which one.",
+              "tool_choice: {\"type\": \"tool\", \"name\": \"escalate_to_human\"}, to guarantee the safest possible outcome for every cancellation request.",
+              "Omitting tool_choice entirely, since the system prompt instruction to always use a tool is sufficient on its own."
+            ],
+            "correctAnswer": 1,
+            "explanation": "tool_choice: \"any\" is exactly the middle ground needed here: it guarantees the model will call some tool instead of replying with plain text, while still letting the model choose which tool fits the situation. \"auto\" (A) permits plain-text replies, which is the failure mode being avoided. Forcing escalate_to_human specifically (C) removes the model's ability to pick a more appropriate tool when one exists, over-escalating cases that could be resolved directly. Omitting tool_choice (D) relies on probabilistic prompt compliance for a requirement that needs a guarantee."
+          },
+          {
+            "text": "A metadata-extraction pipeline needs to run a specific tool, extract_document_type, before any of several enrichment tools can run, because those enrichment tools depend on knowing the document type first. The team wants this ordering guaranteed on the very first model turn, not just requested via instructions. Which configuration achieves this?",
+            "options": [
+              "tool_choice: \"any\" on the first turn, since it guarantees a tool call will happen before any enrichment logic runs.",
+              "tool_choice: {\"type\": \"tool\", \"name\": \"extract_document_type\"} on the first turn, forcing that specific tool, then switching to \"auto\" for subsequent turns once the document type is known.",
+              "A system prompt instruction stating \"Always call extract_document_type before any other tool\", since ordering constraints are a prompting concern, not an API parameter concern.",
+              "tool_choice: \"auto\" combined with a JSON schema that marks extract_document_type as the only required field across all tool schemas."
+            ],
+            "correctAnswer": 1,
+            "explanation": "Forcing the specific tool by name on the first turn guarantees that exact tool executes first; switching to \"auto\" afterward restores normal model-driven tool selection for the remaining steps once the prerequisite is satisfied. tool_choice: \"any\" (A) guarantees a tool call but not which one — the model could still call an enrichment tool first. A prompt instruction alone (C) is probabilistic, not guaranteed, which defeats the point of an ordering requirement. Marking a field required in a schema (D) does not control which tool is invoked or in what order."
+          },
+          {
+            "text": "A developer is refactoring a helper function that is imported and re-exported through three different wrapper modules before reaching its actual call sites across a large codebase. Which sequence of built-in tools most efficiently traces every real usage of that function?",
+            "options": [
+              "Use Read to open every file in the codebase sequentially, scanning each one manually for references to the function name.",
+              "Use Grep to find the original function definition and its wrapper re-exports, identify every exported alias, then use Grep again for each alias name across the codebase, using Read only to inspect the specific call sites found.",
+              "Use Glob to find all `.js`/`.ts` files matching the wrapper module names, then use Write to annotate each file with a comment marking where the function is used.",
+              "Use Bash with a shell pipeline of `find` and `sort` to enumerate files alphabetically, then use Edit on each file to rename the function everywhere in one pass."
+            ],
+            "correctAnswer": 1,
+            "explanation": "This is the efficient, incremental pattern: Grep locates the definition and re-export aliases first, then Grep is used again per alias to find real call sites, and Read is reserved only for the specific locations that matter — avoiding the cost of loading the entire codebase into context. Reading every file sequentially (A) wastes context on irrelevant files. Glob only matches file paths, not content, so it cannot find usages by itself, and Write is for creating or overwriting files, not annotating in place (C). Renaming everywhere in a single Edit pass before confirming all real call sites (D) risks incomplete or incorrect renames — Edit requires a unique anchor per change, not a bulk rename across unconfirmed locations."
+          },
+          {
+            "text": "A refactor requires renaming a config key across 40 files that use inconsistent surrounding code (some use single quotes, some double quotes, some destructured imports). The developer attempts a single Edit call in each file with the old key as the anchor text, but 12 of the 40 Edit calls fail because the anchor text is not unique within those files. What is the most reliable way to complete the remaining 12 changes?",
+            "options": [
+              "Retry the same Edit call with the identical anchor text up to three times, since MCP-style transient failures often resolve on retry.",
+              "For each of the 12 files, use Read to load the full file content, then use Write to save the file back with the renames applied, since Edit's unique-match requirement is not met.",
+              "Switch all 12 files to use Bash with a `sed` one-liner instead of any built-in file-editing tool, since shell text substitution has no uniqueness constraint.",
+              "Expand the anchor text in the same Edit call to include the entire file content, so uniqueness is guaranteed by matching everything at once."
+            ],
+            "correctAnswer": 1,
+            "explanation": "When Edit fails due to a non-unique anchor match, the documented fallback is Read followed by Write: load the full file, apply the change with full context of every occurrence, and write it back — this sidesteps the uniqueness requirement entirely. Retrying the identical Edit call (A) will fail again since the ambiguity is structural, not transient. Using a shell one-liner (C) is unsafe and inconsistent with the workflow used for the other 28 files, and technically viable but not the documented, safer built-in pattern that the tool set already provides. Expanding the anchor to the entire file (D) is a valid uniqueness trick in theory but is exactly what the Read+Write fallback replaces more reliably, without constructing a fragile giant anchor string."
           }
         ]
       },
@@ -1495,7 +1616,7 @@
         "id": 4,
         "name": "Prompt Engineering and Structured Output",
         "weight": 20,
-        "questionCount": 40,
+        "questionCount": 41,
         "questions": [
           {
             "text": "A finance team builds a pipeline that extracts four fields from supplier invoices — vendor name, invoice date, total amount, and currency — and writes them to an ERP system. The current approach asks the model to return a JSON block in free text and parses it with regex. In production, ~12% of records fail parsing due to formatting inconsistencies. What is the most reliable architectural fix?",
@@ -1914,6 +2035,39 @@
             ],
             "correctAnswer": 2,
             "explanation": "The range reduces violations at the source; postprocessing catches the remaining cases. Together they are more reliable than either alone. The range alone (A) still allows violations. Postprocessing alone (B) can truncate sentences mid-thought, producing low-quality output. max_tokens (D) controls token count, not word count, and doesn't produce clean truncation at sentence boundaries."
+          },
+          {
+            "text": "A moderation pipeline classifies user-submitted comments as \"escalate\" or \"no action needed.\" The written policy already lists explicit criteria (threats, doxxing, coordinated harassment). Despite this, the model consistently mishandles a specific ambiguous pattern: sarcastic comments that use exaggerated violent imagery as a joke (e.g., \"I'll actually die if this bug isn't fixed\"), sometimes escalating them and sometimes not. What is the most targeted fix?",
+            "options": [
+              "Rewrite the escalation criteria to be even more explicit and detailed in prose, adding more adjectives describing what counts as a genuine threat.",
+              "Add 2-3 few-shot examples specifically showing this ambiguous sarcastic-hyperbole pattern, with the correct classification and a one-line rationale for each.",
+              "Lower the model's temperature to reduce randomness in borderline classification decisions.",
+              "Add a fourth explicit category to the written policy named 'sarcasm', with its own paragraph of criteria."
+            ],
+            "correctAnswer": 1,
+            "explanation": "Few-shot examples are specifically effective for ambiguous edge cases that prose criteria struggle to pin down precisely — showing the exact pattern with its correct classification and rationale teaches the model to generalize to that case, which more adjectives in prose criteria (A) fail to do since the issue is not a lack of detail but a boundary case. Lowering temperature (C) reduces variance but does not fix a systematic misclassification of a specific pattern — the model is consistently unsure, not randomly noisy. Adding a whole new prose category for \"sarcasm\" (D) reintroduces the same prose-ambiguity problem this fix is meant to avoid, rather than anchoring the boundary with a concrete example."
+          },
+          {
+            "text": "A team ships an automated code review system using two independent Claude instances: one instance generates a fix for a reported bug, and a second, separate instance reviews that fix without any of the first instance's reasoning in its context — only the diff and the original bug report. A developer asks why they don't simply ask the same instance that wrote the fix to review its own diff afterward, in the same session, to save an API call. What is the best justification for keeping them separate?",
+            "options": [
+              "It is purely a cost optimization — running two instances is cheaper than one instance doing both tasks with a longer context.",
+              "The same session that generated the fix retains its original reasoning and tends to justify decisions it already made rather than critically re-examining them; an independent instance without that context evaluates the result on its own merits.",
+              "Claude Code technically cannot review a diff it generated in the same session — the API rejects such requests.",
+              "It has no real benefit; the separation is a legacy pattern from before extended thinking existed and should be removed now that reasoning transparency is available."
+            ],
+            "correctAnswer": 1,
+            "explanation": "This is the core justification for independent review instances: retained generation context creates a bias toward confirming prior decisions rather than questioning them, even when explicitly instructed to be critical. It is not primarily a cost optimization (A) — in fact running two instances typically costs more, not less, so cost cannot be the justification. There is no technical restriction preventing self-review in the same session (C). Extended thinking does not eliminate this bias (D) — it makes the reasoning more visible, but the same session still carries forward its original justification for the choices it made."
+          },
+          {
+            "text": "A pull request touches 16 files across three unrelated feature areas. The review pipeline runs a single Claude pass across all 16 files together. Reviewers notice that the same anti-pattern is flagged as \"critical\" in one file and passes silently in another file within the same PR. The team wants a structural fix, not a one-off prompt tweak. Which redesign addresses the root cause?",
+            "options": [
+              "Split the review into one pass per file for local analysis, plus a separate integration pass focused only on cross-file consistency and data flow, then merge both sets of findings.",
+              "Ask developers to always split PRs into single-file submissions going forward, so multi-file reviews never happen again.",
+              "Run the same 16-file review three times and only report findings that appear identically in at least two of the three runs.",
+              "Increase max_tokens for the review call so the model has more room to write out its reasoning for each file."
+            ],
+            "correctAnswer": 0,
+            "explanation": "Per-file passes guarantee uniform attention and consistent judgment on the same pattern regardless of which file it appears in, while a dedicated integration pass captures the cross-file concerns that per-file analysis alone would miss. Forcing single-file PRs (B) shifts the burden to developers without fixing the underlying attention-dilution problem, and is often impractical for genuinely related multi-file changes. Running three passes and requiring agreement across two (C) suppresses real findings that only one pass happens to catch, trading recall for a false sense of consistency. Increasing max_tokens (D) addresses output length, not the quality of attention paid to each file — the inconsistency is not caused by insufficient output space."
           }
         ]
       },
@@ -1921,7 +2075,7 @@
         "id": 5,
         "name": "Context Management and Reliability",
         "weight": 15,
-        "questionCount": 30,
+        "questionCount": 34,
         "questions": [
           {
             "text": "A research agent is analyzing a 120-page regulatory document. Its system prompt contains a critical constraint: it must never cite sources older than 2022. After processing ~80 pages with dozens of tool calls, the agent begins citing 2019 sources without flagging them. No error is returned. What is the most likely structural cause of this regression?",
@@ -2122,17 +2276,6 @@
             "explanation": "A structured error is superior to both alternatives in an agentic context: the agent can distinguish a temporary service outage (circuit_open) from a permanent failure, use retry_after to make informed decisions, and surface the situation to the user with context. Exceptions (A) are coarser — the agent loses the reason and timing information embedded in a structured response. Silent nulls (C) are the most dangerous: the agent proceeds without geocoding data, potentially producing incorrect results without any indication of why. Option D is incorrect — the choice should be driven by what provides the best signal to the agent, not by implementation convenience."
           },
           {
-            "text": "A legal technology firm uses an agent to analyze contracts. Each contract is ~40 pages. The agent must cross-reference clauses across three separate contracts simultaneously to identify conflicts. After processing the first two contracts fully, the agent starts producing inconsistent cross-references between Contract 1 and Contract 3. What context management failure is most likely occurring?",
-            "options": [
-              "The agent is confusing the contracts because they use similar legal language, causing semantic blending regardless of context size.",
-              "The contracts contain confidential information that the model is trained to suppress, causing gaps in recall.",
-              "The agent should have used tool calls to retrieve individual clauses instead of loading full contracts, but tool calls are incompatible with cross-document analysis.",
-              "Contracts 1 and 2 together filled most of the context window; by the time Contract 3 is loaded, the earlier portions of Contract 1 are in the low-attention zone, degrading cross-reference accuracy."
-            ],
-            "correctAnswer": 3,
-            "explanation": "With three 40-page contracts, the total context is ~120 pages. By the time Contract 3 is being analyzed, Contract 1's content is buried deep in the context window and subject to lost-in-the-middle degradation. Cross-references between C1 and C3 require attending to widely separated context regions simultaneously, which is exactly where accuracy degrades. Semantic blending (A) is a real phenomenon but is not the primary cause when context position is the variable that changed. Tool-based retrieval (C) is actually the recommended fix, not an incompatible approach. Training-based suppression (D) is not a documented behavior for commercial contract content."
-          },
-          {
             "text": "The legal team proposes two architectures for the three-contract cross-reference task. Architecture X: load all three contracts into a single long context and run the full analysis in one pass. Architecture Y: extract clauses from each contract into a structured index using subagents, then run cross-reference analysis over the index only. Under what condition would Architecture X actually be preferable to Y?",
             "options": [
               "When the contracts are short enough that all three fit comfortably within the first 30% of the context window, avoiding lost-in-the-middle degradation.",
@@ -2243,15 +2386,70 @@
             "explanation": "Prompt caching requires explicit cache_control breakpoints to mark the boundary of the stable prefix the API should cache. Without them, no caching occurs regardless of content stability or prompt length. Option B is partially correct in identifying that the system prompt is static, but misidentifies the cause — it is not a session vs. cross-session issue, it is a missing configuration issue. Option A is incorrect — caching is not gated on account settings. Option D is incorrect — caching supports prompts well above 8,000 tokens."
           },
           {
-            "text": "An agent tasked with summarizing a 200-page technical report processes the document in 10-page chunks using a loop. After completing all 20 chunks, it produces a final synthesis. A reviewer finds that the synthesis accurately reflects pages 1-80 but almost entirely ignores pages 81-200. Token usage logs show all 20 chunks were processed. What is the most likely cause?",
+            "text": "An agent is asked to understand how authentication works across a legacy codebase with no documentation. The task requires finding every place a session token is validated, which spans middleware, three microservices, and a shared library. A developer suggests having the main agent read every file in the repository up front to build complete context before answering. What is the better approach and why?",
             "options": [
-              "The model stopped reading after page 80 because it detected the content was repetitive and internally decided to skip redundant sections.",
-              "Chunks 9-20 were processed but their summaries were appended to the context after it was already near saturation, causing the later summaries to fall into the low-attention zone when the final synthesis was generated.",
-              "The chunking loop had an off-by-one error that caused chunks 9-20 to be silently skipped, despite the token log showing all chunks processed.",
-              "The synthesis prompt did not explicitly instruct the model to weight all chunks equally, so the model defaulted to the most recent content."
+              "Reading every file up front is correct — without full context, the agent cannot be certain it found every validation site.",
+              "Spawn a subagent to investigate a specific, narrow question (e.g., 'find all functions that validate a session token') and have it return a structured summary, while the main agent preserves high-level coordination instead of accumulating every file's full content in its own context.",
+              "Use only Grep across the entire repository in a single call and treat the raw match list as the final answer, since Grep is exhaustive by construction.",
+              "Increase max_tokens on the main agent's calls so it has enough room to read every file without truncation."
             ],
             "correctAnswer": 1,
-            "explanation": "This is a lost-in-the-middle failure at the synthesis stage, not the chunking stage. All 20 chunk summaries were processed (confirmed by token logs), but when generating the final synthesis, the earlier summaries (pages 1-80) are at the beginning of a long accumulated context while later summaries (pages 81-200) are near the end — yet the synthesis reflects pages 1-80. This seems counterintuitive but occurs when the synthesis generation itself attends more to the earlier-positioned content. More precisely: if summaries were appended sequentially and context is near capacity, the synthesis attends to the structurally prominent positions. The fix is to compact all chunk summaries into a flat structured list before synthesis. A silently skipping model (A) is not a documented behavior. Off-by-one errors (C) would not show correct token counts. Weighting instructions (D) are a valid mitigation but don't explain the root cause."
+            "explanation": "Delegating focused investigation to a subagent isolates the verbose exploration (reading many files, tracing call chains) into a separate context, and the main agent only receives a compact, structured summary — preserving its own context for coordination rather than filling it with raw file contents. Reading every file upfront (A) doesn't guarantee completeness either, and burns context on irrelevant files while raising the risk of lost-in-the-middle degradation later in the session. A single blind Grep pass (C) misses validation logic that is structured differently across the middleware, services, and shared library — pure text matching is not equivalent to understanding call flow. Increasing max_tokens (D) treats a context-management problem as a token-budget problem — it does not address the fact that most of that content would be irrelevant to the final answer."
+          },
+          {
+            "text": "A team is investigating a bug in a large monorepo. After roughly two hours of continuous exploration in one long session, the agent begins giving answers that reference \"typical patterns\" in the codebase instead of the specific classes it examined earlier in that same session — even though the earlier findings are technically still present in the conversation history. What technique most directly counteracts this degradation for the remainder of the investigation?",
+            "options": [
+              "Switch the model to a larger context window model mid-session, since the root cause is running out of space, not degraded attention.",
+              "Have the agent maintain a scratchpad file recording key findings as it discovers them, and explicitly reference that file for subsequent questions instead of relying on the conversation history alone.",
+              "Increase the temperature parameter so the model produces more specific, less generic-sounding answers.",
+              "Restart the session from scratch with no prior context, since a two-hour session has exceeded a hard usable-context limit."
+            ],
+            "correctAnswer": 1,
+            "explanation": "A scratchpad file persists key findings outside the conversation's flow of tokens, and explicitly referencing it counteracts degradation by giving the agent a reliable, structured anchor to specific facts instead of relying on attention over a long, potentially degraded context. Switching models (A) can delay the symptom but does not address the structural issue, and the underlying content is still technically in context — the problem described is closer to attention degradation, not literal truncation. Increasing temperature (C) affects randomness of word choice, not factual grounding — it does not fix the agent forgetting specific classes. There is no fixed two-hour hard limit that mandates restarting from zero (D); restarting from scratch also discards genuinely useful findings that a scratchpad could have preserved instead."
+          },
+          {
+            "text": "An invoice-extraction pipeline reports 97% overall field-level accuracy and the team is considering removing human review entirely for extractions above a 0.9 confidence score. Before doing so, a data scientist insists on running stratified sampling across document type and field before finalizing this decision. What risk does this stratified sampling step specifically catch that the aggregate 97% figure could hide?",
+            "options": [
+              "It verifies that the extraction tool's JSON schema has no syntax errors, which the aggregate accuracy figure cannot detect on its own.",
+              "It reveals whether the 97% average is masking a much lower accuracy on a minority document type or a specific field, which a simple random sample might under-represent given its low volume.",
+              "It measures the API's response latency across different document sizes, which is unrelated to extraction correctness but often correlates with it.",
+              "It confirms that the Message Batches API is processing all 100 documents within the 24-hour window, which the accuracy metric does not track."
+            ],
+            "correctAnswer": 1,
+            "explanation": "An aggregate accuracy figure can hide a segment — a rare document type, or one specific field — performing far worse than the average, and stratified sampling deliberately guarantees enough samples from each segment (including rare ones) to detect this, which plain random sampling would likely under-represent. Schema syntax errors (A) are a separate concern already eliminated by strict tool-use schemas, not what stratified sampling targets. Latency (C) is unrelated to correctness and not what stratified sampling measures. Batch processing time windows (D) are an operational SLA concern, unrelated to measuring extraction accuracy by segment."
+          },
+          {
+            "text": "A calibration exercise finds that when the extraction model reports 0.9 confidence, the actual empirical accuracy in that confidence bucket—measured against a labeled validation set—is only 68%. The team currently auto-approves everything at or above 0.9 confidence with no human review. What does this finding imply, and what is the correct response?",
+            "options": [
+              "The model's confidence score is systematically overconfident at that bucket; the auto-approval threshold must be raised, or that bucket routed to human review, based on the calibrated empirical accuracy rather than the model's raw reported score.",
+              "The 0.9 confidence score is fine as reported; a 68% empirical accuracy is expected variance and does not require any threshold adjustment.",
+              "The validation set itself must be mislabeled, since a well-trained model's confidence score should always match empirical accuracy by definition.",
+              "The extraction schema should be changed to remove confidence scoring entirely, since it has been shown to be unreliable in this case."
+            ],
+            "correctAnswer": 0,
+            "explanation": "This is exactly what confidence calibration is for: comparing the model's raw reported confidence against empirically measured accuracy on a labeled set, and adjusting the operational threshold — or routing that bucket to human review — based on the calibrated reality rather than trusting the nominal score at face value. Treating a 22-point gap as expected variance (B) ignores a systematic miscalibration large enough to change real-world outcomes. Blaming the validation set (C) inverts the purpose of calibration — the whole point is that a model's raw confidence is not guaranteed to match reality until validated. Removing confidence scoring altogether (D) discards a signal that, once properly calibrated, is still useful for routing — the fix is recalibrating the threshold, not abandoning the mechanism."
+          },
+          {
+            "text": "A synthesis subagent combines findings from a web-search subagent and a document-analysis subagent into a final research report. The web source states a metric was \"5.2% as of January\" and the document source states \"4.8% as of June\" for what appears to be the same metric. The synthesis subagent's output schema does not currently include a date field per claim, only the claim text and a source name. What is the risk of this schema gap, and what is the fix?",
+            "options": [
+              "The risk is minor — synthesis quality is unaffected by missing dates as long as both source names are correctly attributed to each claim.",
+              "Without a per-claim date field, the synthesis agent cannot distinguish a normal metric change over time from a genuine contradiction between sources, and may incorrectly flag this as a conflict between disagreeing sources; the fix is requiring a published/collected date field in each claim's structured output.",
+              "The risk is that the report will be too verbose; the fix is to drop the source name field instead, since the claim text alone is sufficient for synthesis.",
+              "The risk only affects citation formatting, not the correctness of the reported metric; the fix is a cosmetic change to how dates are displayed in the final report, not a schema change."
+            ],
+            "correctAnswer": 1,
+            "explanation": "Without publication or collection dates, a synthesis step cannot tell whether two different values represent a real disagreement between sources or simply the normal evolution of a metric over time — the correct fix is making a date field mandatory in each claim's structured output so the synthesis agent can reason about temporal context before deciding whether something is truly contested. Calling the risk minor (A) misses that misclassifying a time-series change as a contradiction actively misleads the report's reader about data reliability. Dropping the source name (C) removes attribution, which is the opposite of what provenance requires, and does not address the actual gap. Framing this as a purely cosmetic display issue (D) understates the risk — the synthesis agent's classification logic itself is affected, not just how the date is rendered."
+          },
+          {
+            "text": "Two credible sources report different Q2 growth figures for the same industry: a government report says 2.1%, a private industry dataset says 3.4%, both published within the same week. The synthesis agent's system prompt says: \"When sources conflict, average the values to produce a single unified figure.\" What is the problem with this instruction, and what should replace it?",
+            "options": [
+              "There is no problem — averaging is the standard, correct way to reconcile any two numeric values from different sources.",
+              "Averaging silently manufactures a number (2.75%) that neither source actually reported, hiding the real disagreement from the report's reader; the correct approach is to report both values with their sources explicitly, annotated as contested, and let the reader or a higher-context reviewer judge the discrepancy.",
+              "The problem is only that 2.75% should be rounded to one decimal place for presentation consistency; the averaging logic itself is sound.",
+              "The instruction is correct for numeric metrics but should be replaced with 'always prefer the government source' for non-numeric claims instead."
+            ],
+            "correctAnswer": 1,
+            "explanation": "Averaging two conflicting values produces a number that neither source stated, which misrepresents the underlying uncertainty as false precision; the correct approach — as with any inter-source conflict — is to preserve both values with attribution, explicitly mark them as contested, and let a higher level of context (a human reader or reviewing orchestrator) decide how to interpret the discrepancy, rather than resolving it silently. This isn't a rounding issue (C) — the entire premise of manufacturing a blended number is the problem, not its precision. There is no principled reason to default to the government source for non-numeric claims (D); the fix generalizes to any conflict type, and defaulting to one source without disclosure has the same transparency problem as averaging."
           }
         ]
       }

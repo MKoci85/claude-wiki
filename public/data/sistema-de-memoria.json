@@ -286,6 +286,87 @@
           ]
         },
         {
+          "id": "case-facts-persistentes",
+          "title": "\"Case facts\": preservar datos duros en conversaciones largas",
+          "summary": "Cuando una conversación se resume progresivamente para ahorrar contexto, los valores numéricos, fechas y expectativas del cliente son los primeros en perderse. La solución es extraerlos a un bloque estructurado que viaja fuera del historial resumido.",
+          "source": null,
+          "subsections": [
+            {
+              "title": "El riesgo de la summarization progresiva",
+              "blocks": [
+                {
+                  "type": "text",
+                  "content": "En una sesión larga (soporte al cliente, investigación, procesamiento de un caso), cada resumen sucesivo del historial tiende a condensar los detalles concretos en lenguaje más vago. \"El cliente pidió un reembolso de $84.50 por el pedido #7734, con fecha límite del 15 de marzo\" se convierte, después de dos o tres resúmenes, en \"el cliente tenía un reclamo de reembolso pendiente\". El monto exacto, el número de pedido y la fecha —los datos que importan para tomar la decisión correcta— desaparecen primero, porque son justamente lo más fácil de generalizar al resumir."
+                },
+                {
+                  "type": "callout",
+                  "icon": "⚠️",
+                  "content": "Este riesgo es distinto del \"lost in the middle\": no es que el modelo ignore contenido ubicado en el medio del contexto, sino que el propio proceso de resumen destruye la precisión de los datos antes de que el modelo tenga la oportunidad de leerlos."
+                },
+                {
+                  "type": "compare",
+                  "left": {
+                    "title": "❌ Solo historial resumido",
+                    "rows": [
+                      { "key": "Turno 1", "value": "\"Reembolso de $84.50, pedido #7734, vence el 15/3\"" },
+                      { "key": "Resumen tras turno 8", "value": "\"El cliente tenía un reclamo de reembolso pendiente\"" },
+                      { "key": "Turno 12", "value": "El agente no puede confirmar el monto exacto ni el número de pedido" }
+                    ]
+                  },
+                  "right": {
+                    "title": "✅ Con bloque de case facts",
+                    "rows": [
+                      { "key": "Bloque persistente", "value": "{ order_id: \"7734\", amount: 84.50, deadline: \"2025-03-15\", status: \"pending_refund\" }" },
+                      { "key": "Historial", "value": "Puede resumirse libremente — el bloque no depende de él" },
+                      { "key": "Turno 12", "value": "El agente confirma monto exacto y fecha sin ambigüedad" }
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "title": "El patrón: extraer hechos transaccionales a un bloque separado",
+              "blocks": [
+                {
+                  "type": "text",
+                  "content": "La técnica consiste en mantener, además del historial de conversación (que puede resumirse o compactarse), un bloque estructurado de \"hechos del caso\" que se actualiza incrementalmente y se incluye completo en cada prompt, sin pasar por el proceso de resumen. Este bloque contiene solo los datos que una decisión posterior necesitará con precisión: montos, fechas, IDs, estados, expectativas explícitas del cliente."
+                },
+                {
+                  "type": "code",
+                  "lang": "python",
+                  "content": "case_facts = {\n    \"order_id\": \"7734\",\n    \"amount_requested\": 84.50,\n    \"currency\": \"USD\",\n    \"deadline\": \"2025-03-15\",\n    \"status\": \"pending_refund\",\n    \"customer_stated_expectation\": \"reembolso completo antes del 15/3\",\n}\n\ndef construir_prompt(historial_resumido, case_facts, nuevo_mensaje):\n    # case_facts va SIEMPRE completo, fuera de cualquier resumen\n    bloque_facts = \"\\n\".join(f\"- {k}: {v}\" for k, v in case_facts.items())\n    return f\"\"\"\nHechos del caso (siempre exactos, no resumir):\n{bloque_facts}\n\nHistorial de la conversación (puede estar resumido):\n{historial_resumido}\n\nMensaje nuevo del cliente:\n{nuevo_mensaje}\n\"\"\"\n\ndef actualizar_case_facts(case_facts, tool_result):\n    # cada resultado de tool que contenga un hecho nuevo actualiza el bloque\n    # en vez de quedar enterrado en el historial que luego se resume\n    if \"refund_amount\" in tool_result:\n        case_facts[\"amount_requested\"] = tool_result[\"refund_amount\"]\n    return case_facts"
+                },
+                {
+                  "type": "callout",
+                  "icon": "💡",
+                  "content": "Este mismo patrón se extiende a sesiones con múltiples issues simultáneos: cada issue tiene su propio sub-bloque de hechos (order_id, monto, estado), y el resumen del historial solo necesita trackear en qué issue está la conversación en cada momento — los números viven aparte."
+                }
+              ]
+            },
+            {
+              "title": "Qué extraer y qué dejar en el historial resumible",
+              "blocks": [
+                {
+                  "type": "table",
+                  "headers": ["Tipo de dato", "Dónde va", "Por qué"],
+                  "rows": [
+                    ["Montos, IDs de orden/transacción, fechas límite", "Bloque de case facts", "Un resumen los generaliza o los pierde; una decisión posterior los necesita exactos"],
+                    ["Estados (pending, approved, escalated)", "Bloque de case facts", "Cambian el flujo de la conversación; deben quedar sin ambigüedad"],
+                    ["Expectativas explícitas del cliente (\"quiero que me llame un humano\")", "Bloque de case facts", "Determinan si corresponde escalar; perderlas en un resumen genera una escalación omitida"],
+                    ["Razonamiento intermedio, cortesías, small talk", "Historial resumible", "No afecta ninguna decisión posterior; resumir o descartar no tiene costo"],
+                    ["Resultados de tool completos (ej. 40+ campos de un lookup de orden)", "Ninguno de los dos — filtrar antes", "Solo 4-5 campos son relevantes; el resto no debería ni llegar al contexto"]
+                  ]
+                },
+                {
+                  "type": "callout",
+                  "icon": "🎯",
+                  "content": "Regla práctica: si un dato aparece en la respuesta final que el usuario recibirá (un monto, una fecha, una confirmación), tiene que vivir en el bloque de case facts, no depender de que sobreviva varias rondas de resumen del historial conversacional."
+                }
+              ]
+            }
+          ]
+        },
+        {
           "id": "cuando-funciona-bien-y-cuando-no",
           "title": "Cuándo funciona bien y cuándo no",
           "summary": "El sistema de memoria tiene casos de uso donde brilla y limitaciones importantes que conviene conocer para no depender de él en contextos inadecuados.",

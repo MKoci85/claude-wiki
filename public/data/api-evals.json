@@ -205,6 +205,247 @@
           ]
         }
       ]
+    },
+    {
+      "title": "Revisión Multi-Pass e Instancias Independientes",
+      "articles": [
+        {
+          "title": "Por qué el self-review es poco confiable",
+          "subsections": [
+            {
+              "title": "El sesgo de la sesión que generó el código",
+              "blocks": [
+                {
+                  "type": "text",
+                  "content": "Pedirle a la misma sesión que generó un código que después lo revise tiene una limitación estructural: esa sesión retiene el razonamiento con el que tomó cada decisión, y ese mismo razonamiento tiende a justificar retrospectivamente las elecciones hechas en vez de cuestionarlas. Si el modelo decidió no manejar un caso límite porque \"no parecía relevante\", esa misma sesión revisándose a sí misma tiene menos probabilidad de marcar esa omisión como un problema — ya \"decidió\" que no lo era."
+                },
+                {
+                  "type": "callout",
+                  "icon": "⚠️",
+                  "content": "Esto no es un problema de falta de instrucciones (\"revisá tu propio código críticamente\") ni de extended thinking. Es un problema de contexto: la sesión que generó el código tiene su razonamiento de generación todavía presente, y ese contexto sesga la revisión incluso cuando se le pide explícitamente ser crítica."
+                },
+                {
+                  "type": "compare",
+                  "left": {
+                    "title": "❌ Self-review (misma sesión)",
+                    "rows": [
+                      { "key": "Contexto", "value": "Retiene el razonamiento de generación completo" },
+                      { "key": "Sesgo", "value": "Tiende a justificar decisiones ya tomadas en vez de cuestionarlas" },
+                      { "key": "Detecta bien", "value": "Errores de sintaxis, typos — problemas superficiales" },
+                      { "key": "Detecta mal", "value": "Omisiones de diseño, casos límite no considerados, decisiones cuestionables" }
+                    ]
+                  },
+                  "right": {
+                    "title": "✅ Revisión independiente (instancia nueva)",
+                    "rows": [
+                      { "key": "Contexto", "value": "Solo ve el código final, sin el razonamiento de por qué se escribió así" },
+                      { "key": "Sesgo", "value": "Ninguno hacia las decisiones previas — evalúa el resultado en sus propios méritos" },
+                      { "key": "Detecta bien", "value": "Casos límite omitidos, contradicciones, problemas de diseño" },
+                      { "key": "Detecta mal", "value": "Nada estructural distinto — es la revisión de referencia" }
+                    ]
+                  }
+                },
+                {
+                  "type": "callout",
+                  "icon": "💡",
+                  "content": "El patrón correcto en CI/CD: la sesión que generó el PR y la sesión que lo revisa deben ser instancias separadas, sin contexto compartido. En la práctica, esto significa lanzar el review como un proceso nuevo (una nueva invocación de Claude Code con -p, o un subagente con contexto aislado) que solo recibe el diff final — no el historial de cómo se llegó a él."
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "title": "Dividir reviews grandes: pases por archivo + integración",
+          "subsections": [
+            {
+              "title": "El problema de revisar 14 archivos en un solo pase",
+              "blocks": [
+                {
+                  "type": "text",
+                  "content": "Cuando un PR modifica muchos archivos y se analizan todos juntos en un único pase, aparece un problema de dilución de atención: el modelo da feedback detallado a algunos archivos y superficial a otros, dentro del mismo review. Peor aún, puede dar feedback contradictorio — marcar un patrón como problemático en un archivo y aprobar el mismo patrón en otro archivo del mismo PR — porque la atención no es uniforme a lo largo de un contexto grande."
+                },
+                {
+                  "type": "steps",
+                  "items": [
+                    {
+                      "title": "Pase 1: análisis local por archivo",
+                      "body": "Cada archivo se revisa en su propio pase, aislado del resto. Esto garantiza profundidad y consistencia pareja — el archivo #14 recibe la misma atención que el archivo #1."
+                    },
+                    {
+                      "title": "Pase 2: integración cross-file",
+                      "body": "Un pase separado, con los 14 archivos juntos pero con foco exclusivo en relaciones entre archivos: flujo de datos entre módulos, contratos de API rotos entre caller y callee, duplicación de lógica introducida en más de un lugar."
+                    },
+                    {
+                      "title": "Consolidación",
+                      "body": "Los hallazgos de ambos pases se combinan en un solo reporte, distinguiendo problemas locales de problemas de integración."
+                    }
+                  ]
+                },
+                {
+                  "type": "compare",
+                  "left": {
+                    "title": "❌ Un solo pase con 14 archivos",
+                    "rows": [
+                      { "key": "Profundidad", "value": "Inconsistente entre archivos — dilución de atención" },
+                      { "key": "Consistencia", "value": "Puede contradecirse a sí mismo dentro del mismo review" },
+                      { "key": "Bugs obvios", "value": "Se pierden en archivos que recibieron menos atención" }
+                    ]
+                  },
+                  "right": {
+                    "title": "✅ Pases por archivo + pase de integración",
+                    "rows": [
+                      { "key": "Profundidad", "value": "Uniforme — cada archivo tiene su propio pase dedicado" },
+                      { "key": "Consistencia", "value": "El mismo patrón se evalúa igual en todos los archivos" },
+                      { "key": "Cross-file", "value": "Capturado explícitamente en un pase dedicado, no como efecto secundario" }
+                    ]
+                  }
+                },
+                {
+                  "type": "callout",
+                  "icon": "⚠️",
+                  "content": "Alternativas que no resuelven el problema de raíz: pedirle al desarrollador que divida el PR en submits más chicos (traslada el problema, no lo resuelve), usar un modelo con ventana de contexto más grande (el problema es de calidad de atención, no de espacio disponible), o correr 3 pases independientes y quedarse solo con los hallazgos que coinciden en al menos 2 (esto suprime bugs reales que solo un pase detecta, en vez de mejorar la cobertura)."
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "Human Review y Calibración de Confianza",
+      "articles": [
+        {
+          "title": "Por qué la accuracy agregada engaña",
+          "subsections": [
+            {
+              "title": "El problema del promedio",
+              "blocks": [
+                {
+                  "type": "text",
+                  "content": "Un pipeline de extracción o clasificación que reporta 97% de accuracy global puede estar ocultando un problema serio: esa cifra es un promedio, y un promedio puede esconder que el 99.5% de accuracy en documentos tipo A convive con 60% de accuracy en documentos tipo B, simplemente porque el tipo B es minoritario en el dataset. Automatizar sin revisión humana basándose solo en la métrica agregada implica confiar ciegamente en el segmento minoritario que en realidad falla la mitad de las veces."
+                },
+                {
+                  "type": "callout",
+                  "icon": "⚠️",
+                  "content": "Antes de reducir la revisión humana en base a una accuracy global alta, hay que descomponerla por tipo de documento y por campo. Solo así se sabe si el 97% es 97% en todos lados, o 99% en la mayoría y 55% en un segmento que nadie miró de cerca."
+                },
+                {
+                  "type": "code",
+                  "lang": "python",
+                  "content": "import pandas as pd\n\ndef accuracy_por_segmento(resultados: pd.DataFrame) -> pd.DataFrame:\n    # resultados tiene columnas: document_type, field_name, correct (bool)\n    return (\n        resultados\n        .groupby([\"document_type\", \"field_name\"])[\"correct\"]\n        .agg([\"mean\", \"count\"])\n        .rename(columns={\"mean\": \"accuracy\", \"count\": \"n\"})\n        .reset_index()\n    )\n\n# detectar segmentos problemáticos incluso con pocas muestras\nsegmentos = accuracy_por_segmento(resultados)\nsegmentos_riesgo = segmentos[(segmentos[\"accuracy\"] < 0.90) | (segmentos[\"n\"] < 20)]\nprint(segmentos_riesgo)  # candidatos a más revisión humana, no menos"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "title": "Stratified sampling para medir error real",
+          "subsections": [
+            {
+              "title": "Muestreo aleatorio simple no alcanza",
+              "blocks": [
+                {
+                  "type": "text",
+                  "content": "Revisar manualmente una muestra aleatoria simple del total de extracciones tiende a sub-representar los tipos de documento minoritarios — exactamente los que más necesitan atención. El stratified sampling (muestreo estratificado) resuelve esto: se define cada estrato (tipo de documento, rango de confianza del modelo, campo extraído) y se muestrea una cantidad mínima garantizada de cada uno, en vez de dejar que la proporción del dataset original determine cuánto se revisa de cada segmento."
+                },
+                {
+                  "type": "steps",
+                  "items": [
+                    {
+                      "title": "Definir los estratos",
+                      "body": "Cruzar tipo de documento × rango de confianza del modelo (alta / media / baja) × campo crítico. Cada combinación es un estrato independiente."
+                    },
+                    {
+                      "title": "Garantizar un mínimo por estrato",
+                      "body": "Muestrear al menos N casos de cada estrato, incluso si ese estrato representa menos del 1% del volumen total. Esto es lo que evita que un tipo de documento raro pase inadvertido."
+                    },
+                    {
+                      "title": "Calcular la tasa de error por estrato",
+                      "body": "Con la muestra revisada, calcular accuracy real por estrato — no asumir que se comporta igual que el promedio general."
+                    },
+                    {
+                      "title": "Detectar patrones de error novedosos",
+                      "body": "El muestreo estratificado también sirve para encontrar tipos de error que el sistema de validación automática no anticipó — casos que pasan la validación de schema pero son semánticamente incorrectos."
+                    }
+                  ]
+                },
+                {
+                  "type": "code",
+                  "lang": "python",
+                  "content": "import random\n\ndef muestreo_estratificado(extracciones: list[dict], min_por_estrato: int = 15) -> list[dict]:\n    estratos: dict[tuple, list[dict]] = {}\n    for ext in extracciones:\n        clave = (ext[\"document_type\"], ext[\"confidence_bucket\"])  # ej: (\"invoice\", \"low\")\n        estratos.setdefault(clave, []).append(ext)\n\n    muestra = []\n    for clave, items in estratos.items():\n        n = min(min_por_estrato, len(items))\n        muestra.extend(random.sample(items, n))\n    return muestra  # cada estrato queda representado, sin importar su tamaño original"
+                },
+                {
+                  "type": "callout",
+                  "icon": "💡",
+                  "content": "El muestreo estratificado no reemplaza la revisión dirigida por confianza baja (ver abajo) — la complementa. Sirve específicamente para medir la tasa de error real de segmentos que, de otro modo, quedarían invisibles detrás del promedio general."
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "title": "Confidence calibration y enrutamiento de revisión",
+          "subsections": [
+            {
+              "title": "Confianza field-level, no solo global",
+              "blocks": [
+                {
+                  "type": "text",
+                  "content": "Pedirle al modelo un solo puntaje de confianza para toda una extracción es poco accionable: si un documento tiene 8 campos y uno de ellos es dudoso, un puntaje único no dice cuál. El diseño correcto es que el modelo emita un puntaje de confianza por campo, de manera que la revisión humana pueda enfocarse exactamente en los campos dudosos de cada documento, no en el documento entero."
+                },
+                {
+                  "type": "code",
+                  "lang": "python",
+                  "content": "extraction_schema = {\n    \"type\": \"object\",\n    \"properties\": {\n        \"invoice_number\": {\"type\": \"string\"},\n        \"invoice_number_confidence\": {\"type\": \"number\", \"minimum\": 0, \"maximum\": 1},\n        \"total_amount\": {\"type\": [\"number\", \"null\"]},\n        \"total_amount_confidence\": {\"type\": \"number\", \"minimum\": 0, \"maximum\": 1},\n        \"due_date\": {\"type\": [\"string\", \"null\"]},\n        \"due_date_confidence\": {\"type\": \"number\", \"minimum\": 0, \"maximum\": 1},\n    },\n    \"required\": [\"invoice_number\", \"invoice_number_confidence\",\n                 \"total_amount_confidence\", \"due_date_confidence\"],\n}"
+                }
+              ]
+            },
+            {
+              "title": "Calibrar el umbral con un set de validación etiquetado",
+              "blocks": [
+                {
+                  "type": "text",
+                  "content": "El puntaje de confianza que el modelo reporta no es automáticamente confiable: un modelo puede estar sistemáticamente sobreconfiado o subconfiado. Antes de usar un umbral de confianza para decidir qué va a revisión humana, hay que calibrarlo contra un set de validación con etiquetas humanas — verificando que, empíricamente, los casos que el modelo marca con confianza 0.9+ realmente aciertan ~90% de las veces."
+                },
+                {
+                  "type": "code",
+                  "lang": "python",
+                  "code": "def calibrar_umbral(set_validacion: list[dict]) -> dict:\n    # set_validacion: [{\"confidence\": 0.92, \"correct\": True}, ...] con ground truth humano\n    buckets = {}\n    for item in set_validacion:\n        bucket = round(item[\"confidence\"], 1)\n        buckets.setdefault(bucket, []).append(item[\"correct\"])\n\n    calibracion = {\n        bucket: sum(aciertos) / len(aciertos)\n        for bucket, aciertos in buckets.items()\n    }\n    # si confidence=0.9 corresponde a accuracy real de 0.65, el modelo está\n    # sobreconfiado en ese rango: el umbral de auto-aprobación debe subir\n    return calibracion"
+                },
+                {
+                  "type": "callout",
+                  "icon": "🎯",
+                  "content": "El umbral de enrutamiento (\"por debajo de X, va a revisión humana\") se define en base a esta calibración empírica, no en base al valor nominal que reporta el modelo. Un modelo puede reportar 0.9 y acertar solo 70% de las veces en ese rango — el umbral real debe ajustarse a esa realidad."
+                }
+              ]
+            },
+            {
+              "title": "Enrutamiento de revisión: priorizar capacidad limitada",
+              "blocks": [
+                {
+                  "type": "text",
+                  "content": "La capacidad de revisión humana siempre es limitada. El diseño correcto no envía todo lo \"posiblemente dudoso\" a la cola de revisión — prioriza según impacto y probabilidad real de error, calibrada con el paso anterior."
+                },
+                {
+                  "type": "table",
+                  "headers": ["Señal", "Acción"],
+                  "rows": [
+                    ["Confianza baja en campo crítico (calibrada)", "Revisión humana prioritaria"],
+                    ["Documento fuente ambiguo o contradictorio (ej. dos totales distintos en la misma factura)", "Revisión humana, incluso con confianza alta reportada"],
+                    ["Confianza alta y campo no crítico", "Auto-aprobar sin revisión"],
+                    ["Tipo de documento nuevo o poco frecuente en el set de calibración", "Revisión humana hasta acumular suficientes muestras para calibrar ese segmento"]
+                  ]
+                },
+                {
+                  "type": "callout",
+                  "icon": "⚠️",
+                  "content": "Reducir la revisión humana es una decisión que se toma segmento por segmento, después de validar accuracy por tipo de documento y campo (ver arriba) — no una decisión global basada en la accuracy promedio del sistema completo."
+                }
+              ]
+            }
+          ]
+        }
+      ]
     }
   ]
 }

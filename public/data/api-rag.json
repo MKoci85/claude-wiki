@@ -249,6 +249,120 @@
           ]
         }
       ]
+    },
+    {
+      "title": "Provenance en síntesis multi-fuente",
+      "articles": [
+        {
+          "title": "Preservar el origen de cada afirmación",
+          "subsections": [
+            {
+              "title": "Por qué se pierde la trazabilidad",
+              "blocks": [
+                {
+                  "type": "text",
+                  "content": "En un pipeline de investigación con múltiples subagentes (uno busca en la web, otro analiza documentos, uno sintetiza), cada paso de resumen es una oportunidad de perder de dónde vino cada dato. Si un subagente de análisis de documentos devuelve solo texto libre (\"el estudio encontró una mejora del 23%\"), el agente de síntesis no tiene forma de saber qué fuente respalda esa cifra quince pasos después. La trazabilidad se pierde exactamente en la frontera entre agentes, salvo que se preserve explícitamente."
+                },
+                {
+                  "type": "callout",
+                  "icon": "⚠️",
+                  "content": "Este problema es distinto del retrieval en sí: aunque la búsqueda encuentre los fragmentos correctos, si el formato de paso entre subagentes no incluye metadata de origen, la síntesis final no puede citar correctamente ni distinguir qué está bien respaldado de qué no."
+                }
+              ]
+            },
+            {
+              "title": "Claim-source mapping como formato de intercambio",
+              "blocks": [
+                {
+                  "type": "text",
+                  "content": "La solución estructural es que cada subagente que produce hallazgos devuelva un mapeo explícito entre cada afirmación (claim) y su fuente — no prosa narrativa que mezcla el contenido con su procedencia. El agente de síntesis recibe estos mapeos y debe preservarlos al combinar hallazgos de múltiples subagentes, en vez de fusionar todo en un resumen sin atribución."
+                },
+                {
+                  "type": "code",
+                  "lang": "python",
+                  "content": "# Formato de salida de un subagente de análisis de documentos:\n# separa el contenido (claim) de su metadata (fuente, fecha, ubicación)\n\nhallazgo_schema = {\n    \"type\": \"object\",\n    \"required\": [\"claim\", \"source\", \"published_date\", \"excerpt\"],\n    \"properties\": {\n        \"claim\": {\"type\": \"string\"},\n        \"source\": {\n            \"type\": \"object\",\n            \"required\": [\"name\", \"url_or_doc_id\"],\n            \"properties\": {\n                \"name\": {\"type\": \"string\"},\n                \"url_or_doc_id\": {\"type\": \"string\"},\n                \"page\": {\"type\": [\"integer\", \"null\"]},\n            },\n        },\n        \"published_date\": {\"type\": [\"string\", \"null\"]},\n        \"excerpt\": {\"type\": \"string\"},\n    },\n}\n\n# ejemplo de hallazgo bien formado\nhallazgo = {\n    \"claim\": \"El crecimiento del PBI del sector fue de 3.4% en el segundo trimestre\",\n    \"source\": {\"name\": \"Reporte Industria XYZ\", \"url_or_doc_id\": \"industry-report-q2.pdf\", \"page\": 12},\n    \"published_date\": \"2025-08-01\",\n    \"excerpt\": \"...el crecimiento reportado fue de 3.4% interanual...\",\n}"
+                },
+                {
+                  "type": "callout",
+                  "icon": "💡",
+                  "content": "El agente de síntesis debe recibir la instrucción explícita de preservar y mergear estos mapeos, no de reescribirlos como prosa. Cuando el reporte final cita una cifra, la cita debe rastrearse directamente al claim-source mapping original, no a la memoria del modelo de síntesis sobre lo que leyó."
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "title": "Conflictos entre fuentes: anotar, no resolver arbitrariamente",
+          "subsections": [
+            {
+              "title": "El anti-patrón: promediar o elegir en silencio",
+              "blocks": [
+                {
+                  "type": "text",
+                  "content": "Cuando dos fuentes creíbles reportan valores distintos para el mismo dato (un reporte gubernamental dice 2.1% de crecimiento, un dataset de la industria dice 3.4%), la reacción intuitiva es \"resolver\" el conflicto: promediar ambos valores, o elegir la fuente que parece más autoritativa. Ambas opciones destruyen información: el promedio (2.75%) no es el valor real de ninguna fuente, y elegir una fuente sin decirlo oculta la incertidumbre real del dato al lector final del reporte."
+                },
+                {
+                  "type": "compare",
+                  "left": {
+                    "title": "❌ Resolución silenciosa",
+                    "rows": [
+                      { "key": "Acción", "value": "Promediar, o elegir la fuente \"más confiable\" sin decirlo" },
+                      { "key": "Problema", "value": "El lector cree que el dato es sólido cuando en realidad hay discrepancia entre fuentes" },
+                      { "key": "Consecuencia", "value": "Una decisión de negocio se toma sobre un número que nadie reportó realmente" }
+                    ]
+                  },
+                  "right": {
+                    "title": "✅ Anotación explícita del conflicto",
+                    "rows": [
+                      { "key": "Acción", "value": "Reportar ambos valores con su fuente, marcados como \"contested\"" },
+                      { "key": "Ventaja", "value": "El lector decide con la información completa; el reporte es honesto sobre la incertidumbre" },
+                      { "key": "Dónde se decide", "value": "En el nivel de síntesis/orquestador, que tiene el contexto global — no en el subagente que detectó el conflicto" }
+                    ]
+                  }
+                },
+                {
+                  "type": "code",
+                  "lang": "python",
+                  "content": "conflicto = {\n    \"metric\": \"crecimiento_pbi_q2\",\n    \"status\": \"contested\",\n    \"values\": [\n        {\"value\": 2.1, \"unit\": \"%\", \"source\": \"Reporte Gubernamental\", \"published_date\": \"2025-07-15\"},\n        {\"value\": 3.4, \"unit\": \"%\", \"source\": \"Dataset Industria XYZ\", \"published_date\": \"2025-08-01\"},\n    ],\n    \"note\": \"Las fuentes difieren posiblemente por metodología de medición distinta; no se resuelve automáticamente.\",\n}\n\n# el reporte final estructura secciones separadas:\n# \"Hallazgos bien establecidos\" (una sola fuente consistente, o múltiples que coinciden)\n# \"Hallazgos en disputa\" (como el de arriba, con ambos valores y fuentes visibles)"
+                }
+              ]
+            },
+            {
+              "title": "Fechas de publicación: evitar falsas contradicciones temporales",
+              "blocks": [
+                {
+                  "type": "text",
+                  "content": "No toda discrepancia entre fuentes es un conflicto real: si una fuente de enero reporta \"tasa de desempleo 5.2%\" y una de junio reporta \"4.8%\", no están en desacuerdo — están describiendo momentos distintos. Sin la fecha de publicación o de recolección de cada dato, el agente de síntesis no puede distinguir una serie temporal normal de una contradicción genuina entre fuentes. Por eso el schema de claim-source mapping incluye `published_date` como campo obligatorio, no opcional."
+                },
+                {
+                  "type": "callout",
+                  "icon": "⚠️",
+                  "content": "Un error común es que un subagente de síntesis, al no tener fechas, marque como \"conflicto\" lo que en realidad es la evolución normal de una métrica en el tiempo. El campo de fecha es lo que le permite al nivel de síntesis diferenciar ambos casos antes de anotar nada como contradicción."
+                }
+              ]
+            },
+            {
+              "title": "Formato de salida según el tipo de contenido",
+              "blocks": [
+                {
+                  "type": "text",
+                  "content": "Un reporte de síntesis final no debería forzar todo el contenido al mismo formato. Datos financieros se comunican mejor en tablas; hallazgos narrativos en prosa; listas de hallazgos técnicos en estructuras de lista. Convertir todo a un único formato uniforme (por ejemplo, todo a prosa) suele perder precisión — una tabla de cifras convertida a prosa es más difícil de verificar que la tabla original."
+                },
+                {
+                  "type": "table",
+                  "headers": ["Tipo de contenido", "Formato recomendado en el reporte final"],
+                  "rows": [
+                    ["Cifras financieras, métricas comparables", "Tabla"],
+                    ["Hallazgos narrativos, contexto cualitativo", "Prosa"],
+                    ["Hallazgos técnicos discretos, checklist de recomendaciones", "Lista estructurada"],
+                    ["Conflictos entre fuentes", "Sección separada explícita, nunca mezclada con hallazgos consolidados"]
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
     }
   ]
 }
