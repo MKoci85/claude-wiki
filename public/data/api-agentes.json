@@ -109,6 +109,12 @@
                   "type": "code",
                   "language": "python",
                   "code": "def generar_contrato(brief_cliente):\n    requisitos = pedir_a_claude(f\"Extraé los requisitos clave de: {brief_cliente}\")\n\n    if \"falta\" in requisitos.lower():  # gate\n        return {\"error\": \"requisitos incompletos, pedir más info al cliente\"}\n\n    borrador = pedir_a_claude(f\"Redactá un borrador con estos requisitos: {requisitos}\")\n    version_final = pedir_a_claude(f\"Revisá y pulí el lenguaje legal de: {borrador}\")\n    return {\"contrato\": version_final}"
+                },
+                {
+                  "type": "callout",
+                  "style": "info",
+                  "title": "Error propagation en pipelines secuenciales",
+                  "content": "Este es el otro sentido del término 'error propagation' (el primero es a nivel de excepciones de una tool individual, ver Tool Use → Manejo de errores). Acá se refiere a calidad: sin un gate intermedio, un output débil del primer paso —un outline mal armado, requisitos mal extraídos— fluye sin corrección a través de todos los pasos siguientes y se amplifica, en vez de detectarse a tiempo. Los gates después de pasos de alto apalancamiento (como la extracción de requisitos) son la mitigación; más pasos secuenciales sin checkpoints no mejora la calidad, solo da más oportunidades para que un error temprano se propague."
                 }
               ]
             },

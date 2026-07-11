@@ -151,6 +151,12 @@
                   "type": "code",
                   "language": "python",
                   "code": "def ejecutar_tool_segura(nombre, input_):\n    try:\n        return {\"resultado\": ejecutar_tool(nombre, input_), \"is_error\": False}\n    except Exception as e:\n        return {\"resultado\": f\"Error ejecutando {nombre}: {e}\", \"is_error\": True}\n\nsalida = ejecutar_tool_segura(\"obtener_clima\", {\"ciudad\": \"Atlantida\"})\n\ntool_result = {\n    \"type\": \"tool_result\",\n    \"tool_use_id\": tool_use_block.id,\n    \"content\": salida[\"resultado\"],\n    \"is_error\": salida[\"is_error\"],\n}"
+                },
+                {
+                  "type": "callout",
+                  "style": "warning",
+                  "title": "Error propagation: qué pasa si no se captura",
+                  "content": "Si la función de la tool lanza una excepción sin capturarla, esa excepción se propaga hacia arriba y rompe el loop del agente por completo —no llega ni siquiera a devolver un tool_result. Por eso el try/except de arriba no es una buena práctica opcional: es lo que evita que un fallo puntual (una API caída, un timeout) tire abajo toda la conversación. La regla es siempre la misma ante un error de herramienta: ni dejar que la excepción se propague, ni tragarla en silencio devolviendo éxito falso. Se captura y se devuelve como tool_result con is_error: true, para que el modelo decida cómo reaccionar."
                 }
               ]
             },
